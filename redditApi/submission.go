@@ -3,6 +3,7 @@ package redditapi
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 )
 
@@ -58,68 +59,147 @@ func NewSubmission(red *Reddit, id string) *Submission {
 	return &helper.Data.Children[0].Data
 }
 
-func (sub *Submission) GetId() string {
-	return sub.Name
-}
-
 func (sub *Submission) GetComments() {
 
 }
 
-func (sub *Submission) Delete() {
-
+func (sub *Submission) Delete() error {
+	req := sub.reddit.buildRequest("POST", "api/del?id="+sub.Name, nilReader)
+	resp, err := sub.reddit.Client.Do(req)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != 200 {
+		data, _ := io.ReadAll(resp.Body)
+		return errors.New(string(data))
+	}
+	return nil
 }
 
-func (sub *Submission) Reply() {
-
+func replyHelper(red *Reddit, id string, text string) error {
+	req := red.buildRequest("POST", fmt.Sprintf("api/comment?thing_id=%s&api_type=json&text=%s", id, text), nilReader)
+	resp, err := red.Client.Do(req)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != 200 {
+		data, _ := io.ReadAll(resp.Body)
+		return errors.New(string(data))
+	}
+	return nil
 }
 
-func (sub *Submission) Edit() {
-
+func (sub *Submission) Reply(text string) error {
+	return replyHelper(sub.reddit, sub.Name, text)
 }
 
-func (sub *Submission) Upvote() {
-
+func (sub *Submission) Edit(text string) error {
+	req := sub.reddit.buildRequest("POST", fmt.Sprintf("api/editusertext?thing_id=%s&api_type=json&text=%s", sub.Name, text), nilReader)
+	resp, err := sub.reddit.Client.Do(req)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != 200 {
+		data, _ := io.ReadAll(resp.Body)
+		return errors.New(string(data))
+	}
+	return nil
 }
 
-func (sub *Submission) Downvote() {
-
+func voteHelper(red *Reddit, id string, dir int) error {
+	if dir < -1 || dir > 1 {
+		return errors.New("dir out of range; expected in [-1, 1]")
+	}
+	req := red.buildRequest("POST", fmt.Sprintf("api/vote?id=%s&dir=%d", id, dir), nilReader)
+	resp, err := red.Client.Do(req)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != 200 {
+		data, _ := io.ReadAll(resp.Body)
+		return errors.New(string(data))
+	}
+	return nil
 }
 
-func (sub *Submission) ClearVote() {
-
+func (sub *Submission) Upvote() error {
+	return voteHelper(sub.reddit, sub.Name, 1)
 }
 
-func (sub *Submission) Report() {
+func (sub *Submission) Downvote() error {
+	return voteHelper(sub.reddit, sub.Name, -1)
+}
 
+func (sub *Submission) ClearVote() error {
+	return voteHelper(sub.reddit, sub.Name, 0)
+}
+
+func (sub *Submission) Report(reason string) error {
+	if reason == "" {
+		return errors.New("non-empty reason required")
+	}
+	req := sub.reddit.buildRequest("POST", fmt.Sprintf("api/report?thing_id=%s&reason=%s", sub.Name, reason), nilReader)
+	resp, err := sub.reddit.Client.Do(req)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != 200 {
+		data, _ := io.ReadAll(resp.Body)
+		return errors.New(string(data))
+	}
+	return nil
 }
 
 func (sub *Submission) Save() error {
 	req := sub.reddit.buildRequest("POST", "api/save?id="+sub.Name, nilReader)
 	resp, err := sub.reddit.Client.Do(req)
+	if err != nil {
+		return err
+	}
 	if resp.StatusCode != 200 {
 		data, _ := io.ReadAll(resp.Body)
 		return errors.New(string(data))
 	}
-	if err == nil {
-		sub.Saved = true
-	}
-	return err
+	sub.Saved = true
+	return nil
 }
 
 func (sub *Submission) Unsave() error {
 	req := sub.reddit.buildRequest("POST", "api/unsave?id="+sub.Name, nilReader)
-	_, err := sub.reddit.Client.Do(req)
-	if err == nil {
-		sub.Saved = false
+	resp, err := sub.reddit.Client.Do(req)
+	if err != nil {
+		return err
 	}
-	return err
+	if resp.StatusCode != 200 {
+		data, _ := io.ReadAll(resp.Body)
+		return errors.New(string(data))
+	}
+	sub.Saved = false
+	return nil
 }
 
-func (sub *Submission) Hide() {
-
+func (sub *Submission) Hide() error {
+	req := sub.reddit.buildRequest("POST", "api/hide?id="+sub.Name, nilReader)
+	resp, err := sub.reddit.Client.Do(req)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != 200 {
+		data, _ := io.ReadAll(resp.Body)
+		return errors.New(string(data))
+	}
+	return nil
 }
 
-func (sub *Submission) Unhide() {
-
+func (sub *Submission) Unhide() error {
+	req := sub.reddit.buildRequest("POST", "api/unhide?id="+sub.Name, nilReader)
+	resp, err := sub.reddit.Client.Do(req)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != 200 {
+		data, _ := io.ReadAll(resp.Body)
+		return errors.New(string(data))
+	}
+	return nil
 }
