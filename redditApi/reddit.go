@@ -149,3 +149,15 @@ func (r *Reddit) GetNew() (*ListingIterator, error) {
 	ls.Reddit = r
 	return ls, nil
 }
+
+type Timestamp struct{ time.Time }
+
+func (t *Timestamp) UnmarshalJSON(b []byte) error {
+	var ts float64
+	err := json.Unmarshal(b, &ts)
+	if err != nil {
+		return err
+	}
+	*t = Timestamp{time.Unix(int64(ts), 0)}
+	return nil
+}

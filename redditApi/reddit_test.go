@@ -69,3 +69,12 @@ func TestListingNew(T *testing.T) {
 	ls.Close()
 	red.Logout()
 }
+
+func TestSubmission(T *testing.T) {
+	red := loginHelper(T)
+	s := redditapi.NewSubmission(red, "b8yd3r")
+	if s.Created_utc.IsZero() {
+		T.Fail()
+	}
+	red.Logout()
+}
