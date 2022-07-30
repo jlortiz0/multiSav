@@ -2,6 +2,7 @@ package redditapi
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 )
 
@@ -29,7 +30,7 @@ type Submission struct {
 	Title           string
 	URL             string
 	Upvote_ratio    float32
-	Fullname        string
+	Name            string
 	reddit          *Reddit
 }
 
@@ -55,6 +56,10 @@ func NewSubmission(red *Reddit, id string) *Submission {
 		helper.Data.Children[0].Data.Created_utc.Time = helper.Data.Children[0].Data.Created.UTC()
 	}
 	return &helper.Data.Children[0].Data
+}
+
+func (sub *Submission) GetId() string {
+	return sub.Name
 }
 
 func (sub *Submission) GetComments() {
@@ -90,8 +95,12 @@ func (sub *Submission) Report() {
 }
 
 func (sub *Submission) Save() error {
-	req := sub.reddit.buildRequest("POST", "api/save?id="+sub.Fullname, nilReader)
-	_, err := sub.reddit.Client.Do(req)
+	req := sub.reddit.buildRequest("POST", "api/save?id="+sub.Name, nilReader)
+	resp, err := sub.reddit.Client.Do(req)
+	if resp.StatusCode != 200 {
+		data, _ := io.ReadAll(resp.Body)
+		return errors.New(string(data))
+	}
 	if err == nil {
 		sub.Saved = true
 	}
@@ -99,7 +108,7 @@ func (sub *Submission) Save() error {
 }
 
 func (sub *Submission) Unsave() error {
-	req := sub.reddit.buildRequest("POST", "api/unsave?id="+sub.Fullname, nilReader)
+	req := sub.reddit.buildRequest("POST", "api/unsave?id="+sub.Name, nilReader)
 	_, err := sub.reddit.Client.Do(req)
 	if err == nil {
 		sub.Saved = false
