@@ -124,6 +124,7 @@ func (r *Reddit) Logout() error {
 
 func (r *Reddit) buildRequest(method, url string, body io.Reader) *http.Request {
 	if r.token != "" {
+		r.checkToken()
 		url = "https://oauth.reddit.com/" + url
 	} else {
 		url = "https://reddit.com/" + url
