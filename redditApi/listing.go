@@ -9,30 +9,57 @@ const LISTING_PAGE_LIMIT = "100"
 
 type ListingIterator struct {
 	URL     string
-	Reddit  Reddit
+	Reddit  *Reddit
 	count   uint32
 	lastId  string
 	decoder *json.Decoder
+	Close   func() error
 }
 
-func (iter *ListingIterator) Next() interface{} {
+type Snowflake interface {
+	GetId() string
+}
+
+type LimitedDecoder interface {
+	Decode(interface{}) error
+}
+
+func (iter *ListingIterator) Next(parser func(LimitedDecoder) Snowflake) (Snowflake, error) {
 	if !iter.decoder.More() {
 		url := fmt.Sprintf("%s?after=%s&count=%d&limit="+LISTING_PAGE_LIMIT, iter.URL, iter.lastId, iter.count)
 		resp, err := iter.Reddit.Client.Do(iter.Reddit.buildRequest("GET", url, nilReader))
 		if err != nil {
-			return err
+			return nil, err
 		}
 		iter.decoder = json.NewDecoder(resp.Body)
 		if !iter.decoder.More() {
 			iter.decoder = nil
-			return nil
+			return nil, nil
 		}
 	}
-	var data interface{}
-	iter.decoder.Decode(data)
-	//iter.lastId = data.Id
+	data := parser(iter.decoder)
+	iter.lastId = data.GetId()
 	iter.count++
-	return data
+	return data, nil
+}
+
+type JsonObj map[string]interface{}
+
+func (obj JsonObj) GetId() string {
+	s := obj["id"]
+	if s == nil {
+		return ""
+	}
+	return s.(string)
+}
+
+func (iter *ListingIterator) NextMap() (JsonObj, error) {
+	obj, err := iter.Next(func(ld LimitedDecoder) Snowflake {
+		var data JsonObj
+		ld.Decode(&data)
+		return data
+	})
+	return obj.(JsonObj), err
 }
 
 func (iter *ListingIterator) HasNext() bool {
