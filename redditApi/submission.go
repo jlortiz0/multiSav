@@ -59,10 +59,6 @@ func NewSubmission(red *Reddit, id string) *Submission {
 	return &helper.Data.Children[0].Data
 }
 
-func (sub *Submission) GetComments() {
-
-}
-
 func (sub *Submission) Delete() error {
 	req := sub.reddit.buildRequest("POST", "api/del?id="+sub.Name, nilReader)
 	resp, err := sub.reddit.Client.Do(req)
