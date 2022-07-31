@@ -138,7 +138,7 @@ func (r *Reddit) buildRequest(method, url string, body io.Reader) *http.Request 
 	return rq
 }
 
-func (r *Reddit) GetNew() (*SubmissionIterator, error) {
+func (r *Reddit) ListNew() (*SubmissionIterator, error) {
 	rq := r.buildRequest("GET", "new", nilReader)
 	resp, err := r.Client.Do(rq)
 	if err != nil {
@@ -146,6 +146,18 @@ func (r *Reddit) GetNew() (*SubmissionIterator, error) {
 	}
 	data, _ := io.ReadAll(resp.Body)
 	return newSubmissionIterator("new", r, data, 0)
+}
+
+func (r *Reddit) Self() *Redditor {
+	rq := r.buildRequest("GET", "api/v1/me", nilReader)
+	resp, err := r.Client.Do(rq)
+	if err != nil {
+		return nil
+	}
+	data, _ := io.ReadAll(resp.Body)
+	var user Redditor
+	json.Unmarshal(data, &user)
+	return &user
 }
 
 type Timestamp struct{ time.Time }

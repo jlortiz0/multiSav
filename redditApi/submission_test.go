@@ -38,7 +38,7 @@ func TestSubmissionSave(T *testing.T) {
 func TestSubmissionUnsave(T *testing.T) {
 	red := loginHelper(T)
 	s := redditapi.NewSubmission(red, "b8yd3r")
-	if s.Name == "" {
+	if s == nil || s.Name == "" {
 		red.Logout()
 		T.Fatal("Failed to load submission")
 	}
@@ -60,6 +60,48 @@ func TestSubmissionUnsave(T *testing.T) {
 	}
 	if s.Saved == true {
 		T.Error("Submission not unsaved serverside")
+	}
+	red.Logout()
+}
+
+func TestSubmissionVarious(T *testing.T) {
+	red := loginHelper(T)
+	s := redditapi.NewSubmission(red, "")
+	if s == nil || s.Name == "" {
+		red.Logout()
+		T.Fatal("Failed to load submission")
+	}
+	if s.Author != red.Self().Name {
+		T.Fatal("Own post required")
+	}
+	err := s.Edit("Did you know that I am secretly a rumduck?")
+	if err != nil {
+		T.Error(err.Error())
+	}
+	err = s.Reply("It's true.")
+	if err != nil {
+		T.Error(err.Error())
+	}
+	err = s.Downvote()
+	if err != nil {
+		T.Error(err.Error())
+	}
+	red.Logout()
+}
+
+func TestSubmissionDelete(T *testing.T) {
+	red := loginHelper(T)
+	s := redditapi.NewSubmission(red, "")
+	if s == nil || s.Name == "" {
+		red.Logout()
+		T.Fatal("Failed to load submission")
+	}
+	if s.Author != red.Self().Name {
+		T.Fatal("Own post required")
+	}
+	err := s.Delete()
+	if err != nil {
+		T.Error(err.Error())
 	}
 	red.Logout()
 }

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 )
 
 type Submission struct {
@@ -73,7 +74,7 @@ func (sub *Submission) Delete() error {
 }
 
 func replyHelper(red *Reddit, id string, text string) error {
-	req := red.buildRequest("POST", fmt.Sprintf("api/comment?thing_id=%s&api_type=json&text=%s", id, text), nilReader)
+	req := red.buildRequest("POST", fmt.Sprintf("api/comment?thing_id=%s&api_type=json&text=%s", id, url.QueryEscape(text)), nilReader)
 	resp, err := red.Client.Do(req)
 	if err != nil {
 		return err
@@ -90,7 +91,7 @@ func (sub *Submission) Reply(text string) error {
 }
 
 func (sub *Submission) Edit(text string) error {
-	req := sub.reddit.buildRequest("POST", fmt.Sprintf("api/editusertext?thing_id=%s&api_type=json&text=%s", sub.Name, text), nilReader)
+	req := sub.reddit.buildRequest("POST", fmt.Sprintf("api/editusertext?thing_id=%s&api_type=json&text=%s", sub.Name, url.QueryEscape(text)), nilReader)
 	resp, err := sub.reddit.Client.Do(req)
 	if err != nil {
 		return err
