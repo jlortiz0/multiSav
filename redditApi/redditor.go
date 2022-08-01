@@ -7,14 +7,14 @@ import (
 )
 
 type Redditor struct {
-	ID                                                              string
-	Is_employee, Is_friend, Is_mod, Is_gold, Is_suspended, Verified bool
-	Created_utc                                                     uint64
-	Name                                                            string
-	Icon_img                                                        string
-	Subreddit                                                       string
-	Total_karma                                                     int
-	reddit                                                          *Reddit
+	ID                                          string
+	Is_employee, Is_mod, Is_suspended, Verified bool
+	Created_utc                                 Timestamp
+	Name                                        string
+	Icon_img                                    string
+	Subreddit                                   *Subreddit
+	Total_karma                                 int
+	reddit                                      *Reddit
 }
 
 func (red *Reddit) Redditor(name string) (*Redditor, error) {
@@ -38,6 +38,69 @@ func (red *Reddit) Redditor(name string) (*Redditor, error) {
 	return &helper.Data, nil
 }
 
-func (usr *Redditor) Block() {
+func (usr *Redditor) Block() error {
+	rq := usr.reddit.buildRequest("POST", "api/block_user?name="+usr.Name, nilReader)
+	resp, err := usr.reddit.Client.Do(rq)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != 200 {
+		data, _ := io.ReadAll(resp.Body)
+		return errors.New(string(data))
+	}
+	return nil
+}
 
+func (usr *Redditor) Unblock() error {
+	rq := usr.reddit.buildRequest("POST", "api/unfriend?type=enemy&name="+usr.Name, nilReader)
+	resp, err := usr.reddit.Client.Do(rq)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != 200 {
+		data, _ := io.ReadAll(resp.Body)
+		return errors.New(string(data))
+	}
+	return nil
+}
+
+func (usr *Redditor) Report(reason string) error {
+	rq := usr.reddit.buildRequest("POST", "api/report_user?user="+usr.Name+"&reason="+reason, nilReader)
+	resp, err := usr.reddit.Client.Do(rq)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != 200 {
+		data, _ := io.ReadAll(resp.Body)
+		return errors.New(string(data))
+	}
+	return nil
+}
+
+func (usr *Redditor) ListSubmissions(limit int) (*SubmissionIterator, error) {
+	return newSubmissionIterator("user/"+usr.Name+"/submitted", usr.reddit, limit)
+}
+
+func (usr *Redditor) ListComments() {
+
+}
+
+func (usr *Redditor) ListDownvoted(limit int) (*SubmissionIterator, error) {
+	return newSubmissionIterator("user/"+usr.Name+"/downvoted", usr.reddit, limit)
+}
+
+func (usr *Redditor) ListHidden(limit int) (*SubmissionIterator, error) {
+	return newSubmissionIterator("user/"+usr.Name+"/hidden", usr.reddit, limit)
+}
+
+func (usr *Redditor) ListSaved(limit int) (*SubmissionIterator, error) {
+	return newSubmissionIterator("user/"+usr.Name+"/saved", usr.reddit, limit)
+}
+
+func (usr *Redditor) ListUpvoted(limit int) (*SubmissionIterator, error) {
+	return newSubmissionIterator("user/"+usr.Name+"/upvoted", usr.reddit, limit)
+}
+
+func (usr *Redditor) ListGilded(limit int) (*SubmissionIterator, error) {
+	return newSubmissionIterator("user/"+usr.Name+"/gilded", usr.reddit, limit)
 }
