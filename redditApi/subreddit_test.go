@@ -106,6 +106,13 @@ func TestSearch(T *testing.T) {
 			T.Errorf("failed to load submission from listing: %s", err)
 		}
 		T.Log(post.Title)
+		post, err = iter.Next()
+		if err != nil {
+			T.Errorf("failed to load submission from listing: %s", err)
+		}
+		if post != nil {
+			T.Log(post.Title)
+		}
 		if iter.Count() > 5 {
 			T.Error("iterator did not stop after 5")
 			break

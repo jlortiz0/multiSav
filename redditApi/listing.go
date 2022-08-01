@@ -93,6 +93,9 @@ func (iter *SubmissionIterator) Next() (*Submission, error) {
 			iter.data[k] = v.Data
 		}
 		iter.index = 0
+		if len(iter.data) == 0 {
+			return nil, nil
+		}
 	}
 	iter.count++
 	iter.index++
