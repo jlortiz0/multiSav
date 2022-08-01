@@ -80,7 +80,7 @@ func TestSearch(T *testing.T) {
 	if err != nil {
 		T.Fatalf("failed to load subreddit: %s", err.Error())
 	}
-	iter, err := s.Search(0, "link", "", "")
+	iter, err := s.Search(5, "link", "", "")
 	if err != nil {
 		T.Fatalf("failed to get sr/search?link: %s", err.Error())
 	}
@@ -95,10 +95,11 @@ func TestSearch(T *testing.T) {
 			break
 		}
 	}
-	iter, err = s.Search(0, "link", "top", "")
+	iter, err = s.Search(5, "link", "top", "")
 	if err != nil {
 		T.Fatalf("failed to get sr/search?link&top: %s", err.Error())
 	}
+	T.Log("---")
 	for iter.HasNext() {
 		post, err := iter.Next()
 		if err != nil {

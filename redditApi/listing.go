@@ -101,7 +101,7 @@ func (iter *SubmissionIterator) Next() (*Submission, error) {
 
 func (iter *SubmissionIterator) HasNext() bool {
 	if iter.limit == 0 {
-		return iter.lastId != ""
+		return len(iter.data) != 0
 	} else {
 		return iter.count < iter.limit
 	}
