@@ -51,7 +51,7 @@ func loginHelper(T *testing.T) *redditapi.Reddit {
 
 func TestListingNew(T *testing.T) {
 	red := loginHelper(T)
-	ls, err := red.ListNew()
+	ls, err := red.ListNew(0)
 	if err != nil {
 		T.Fatalf("Failed to get /new: %s", err.Error())
 	}
@@ -62,6 +62,10 @@ func TestListingNew(T *testing.T) {
 		x, err := ls.Next()
 		if err != nil {
 			T.Error(err.Error())
+		} else if x == nil {
+			if ls.Count() != 4 {
+				T.Error("Ended before the end?")
+			}
 		} else {
 			T.Log(x.ID)
 		}
