@@ -52,6 +52,7 @@ func (sub *Subreddit) ListRising(limit int) (*SubmissionIterator, error) {
 	return newSubmissionIterator("r/"+sub.Display_name+"/rising", sub.reddit, limit)
 }
 
+// If t not specified, seems to default to "day"
 func (sub *Subreddit) ListTop(limit int, t string) (*SubmissionIterator, error) {
 	s := "r/" + sub.Display_name + "/top"
 	if t != "" {
@@ -61,7 +62,7 @@ func (sub *Subreddit) ListTop(limit int, t string) (*SubmissionIterator, error) 
 }
 
 func (sub *Subreddit) Search(limit int, q string, sort string, t string) (*SubmissionIterator, error) {
-	s := "r/" + sub.Display_name + "/search?q=" + q
+	s := "r/" + sub.Display_name + "/search?q=" + q + "&restrict_sr=true"
 	if t != "" {
 		s += "&t=" + t
 	}
