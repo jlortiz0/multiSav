@@ -2,8 +2,10 @@ package redditapi
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"strings"
 )
 
 const LISTING_PAGE_LIMIT = 100
@@ -27,7 +29,20 @@ type submissionListingPayload struct {
 	}
 }
 
-func newSubmissionIterator(URL string, red *Reddit, data []byte, limit uint32) (*SubmissionIterator, error) {
+func newSubmissionIterator(URL string, red *Reddit, limit uint32) (*SubmissionIterator, error) {
+	req := red.buildRequest("GET", URL, nilReader)
+	resp, err := red.Client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	data, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != 200 {
+		return nil, errors.New(string(data))
+	}
+	return newSubmissionIteratorPayload(URL, red, data, limit)
+}
+
+func newSubmissionIteratorPayload(URL string, red *Reddit, data []byte, limit uint32) (*SubmissionIterator, error) {
 	i := new(SubmissionIterator)
 	i.URL = URL
 	i.limit = limit
@@ -50,7 +65,11 @@ func (iter *SubmissionIterator) Next() (*Submission, error) {
 		return nil, nil
 	}
 	if iter.index == len(iter.data) {
-		url := fmt.Sprintf("%s?after=%s&count=%d&limit=%d", iter.URL, iter.lastId, iter.count, LISTING_PAGE_LIMIT)
+		chr := '?'
+		if strings.ContainsRune(iter.URL, '?') {
+			chr = '&'
+		}
+		url := fmt.Sprintf("%s%cafter=%s&count=%d&limit=%d", iter.URL, chr, iter.lastId, iter.count, LISTING_PAGE_LIMIT)
 		resp, err := iter.Reddit.Client.Do(iter.Reddit.buildRequest("GET", url, nilReader))
 		if err != nil {
 			return nil, err
@@ -74,7 +93,11 @@ func (iter *SubmissionIterator) Next() (*Submission, error) {
 }
 
 func (iter *SubmissionIterator) HasNext() bool {
-	return (iter.limit != 0 && iter.count < iter.limit) || iter.lastId != ""
+	if iter.limit == 0 {
+		return iter.lastId != ""
+	} else {
+		return iter.count < iter.limit
+	}
 }
 
 func (iter *SubmissionIterator) Count() uint32 {

@@ -138,14 +138,8 @@ func (r *Reddit) buildRequest(method, url string, body io.Reader) *http.Request 
 	return rq
 }
 
-func (r *Reddit) ListNew() (*SubmissionIterator, error) {
-	rq := r.buildRequest("GET", "new", nilReader)
-	resp, err := r.Client.Do(rq)
-	if err != nil {
-		return nil, err
-	}
-	data, _ := io.ReadAll(resp.Body)
-	return newSubmissionIterator("new", r, data, 0)
+func (r *Reddit) ListNew(limit uint32) (*SubmissionIterator, error) {
+	return newSubmissionIterator("new", r, limit)
 }
 
 func (r *Reddit) Self() *Redditor {
