@@ -36,7 +36,7 @@ type Submission struct {
 	reddit          *Reddit
 }
 
-func NewSubmission(red *Reddit, id string) *Submission {
+func NewSubmission(red *Reddit, id string) (*Submission, error) {
 	var helper struct {
 		Data struct {
 			Children []struct {
@@ -50,14 +50,14 @@ func NewSubmission(red *Reddit, id string) *Submission {
 	req.Body.Close()
 	err := json.Unmarshal(data, &helper)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	helper.Data.Children[0].Data.reddit = red
 	if helper.Data.Children[0].Data.Created_utc.Time.IsZero() {
 		// Why would this be missing???
 		helper.Data.Children[0].Data.Created_utc.Time = helper.Data.Children[0].Data.Created.UTC()
 	}
-	return &helper.Data.Children[0].Data
+	return &helper.Data.Children[0].Data, nil
 }
 
 func (sub *Submission) Delete() error {

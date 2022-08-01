@@ -9,7 +9,7 @@ import (
 type Subreddit struct {
 	ID                                                    string
 	Active_user_count                                     int
-	Created_utc                                           uint64
+	Created_utc                                           Timestamp
 	Description                                           string
 	Display_name                                          string
 	Name                                                  string
@@ -20,7 +20,7 @@ type Subreddit struct {
 	reddit                                                *Reddit
 }
 
-func NewSubreddit(red *Reddit, id string) *Subreddit {
+func NewSubreddit(red *Reddit, id string) (*Subreddit, error) {
 	var helper struct {
 		Data Subreddit
 	}
@@ -30,29 +30,29 @@ func NewSubreddit(red *Reddit, id string) *Subreddit {
 	req.Body.Close()
 	err := json.Unmarshal(data, &helper)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	helper.Data.reddit = red
-	return &helper.Data
+	return &helper.Data, nil
 }
 
-func (sub *Subreddit) ListNew(limit uint32) (*SubmissionIterator, error) {
+func (sub *Subreddit) ListNew(limit int) (*SubmissionIterator, error) {
 	return newSubmissionIterator("r/"+sub.Display_name+"/new", sub.reddit, limit)
 }
 
-func (sub *Subreddit) ListHot(limit uint32) (*SubmissionIterator, error) {
+func (sub *Subreddit) ListHot(limit int) (*SubmissionIterator, error) {
 	return newSubmissionIterator("r/"+sub.Display_name+"/hot", sub.reddit, limit)
 }
 
-func (sub *Subreddit) ListControversial(limit uint32) (*SubmissionIterator, error) {
+func (sub *Subreddit) ListControversial(limit int) (*SubmissionIterator, error) {
 	return newSubmissionIterator("r/"+sub.Display_name+"/controversial", sub.reddit, limit)
 }
 
-func (sub *Subreddit) ListRising(limit uint32) (*SubmissionIterator, error) {
+func (sub *Subreddit) ListRising(limit int) (*SubmissionIterator, error) {
 	return newSubmissionIterator("r/"+sub.Display_name+"/rising", sub.reddit, limit)
 }
 
-func (sub *Subreddit) ListTop(limit uint32, t string) (*SubmissionIterator, error) {
+func (sub *Subreddit) ListTop(limit int, t string) (*SubmissionIterator, error) {
 	s := "r/" + sub.Display_name + "/top"
 	if t != "" {
 		s += "?t=" + t
@@ -60,8 +60,15 @@ func (sub *Subreddit) ListTop(limit uint32, t string) (*SubmissionIterator, erro
 	return newSubmissionIterator(s, sub.reddit, limit)
 }
 
-func (sub *Subreddit) Search() {
-
+func (sub *Subreddit) Search(limit int, q string, sort string, t string) (*SubmissionIterator, error) {
+	s := "r/" + sub.Display_name + "/search?q=" + q
+	if t != "" {
+		s += "&t=" + t
+	}
+	if sort != "" {
+		s += "&sort=" + sort
+	}
+	return newSubmissionIterator(s, sub.reddit, limit)
 }
 
 func (sub *Subreddit) Subscribe() error {

@@ -13,8 +13,8 @@ const LISTING_PAGE_LIMIT = 100
 type SubmissionIterator struct {
 	URL    string
 	Reddit *Reddit
-	count  uint32
-	limit  uint32
+	count  int
+	limit  int
 	lastId string
 	index  int
 	data   []*Submission
@@ -29,7 +29,14 @@ type submissionListingPayload struct {
 	}
 }
 
-func newSubmissionIterator(URL string, red *Reddit, limit uint32) (*SubmissionIterator, error) {
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func newSubmissionIterator(URL string, red *Reddit, limit int) (*SubmissionIterator, error) {
 	req := red.buildRequest("GET", URL, nilReader)
 	resp, err := red.Client.Do(req)
 	if err != nil {
@@ -42,7 +49,7 @@ func newSubmissionIterator(URL string, red *Reddit, limit uint32) (*SubmissionIt
 	return newSubmissionIteratorPayload(URL, red, data, limit)
 }
 
-func newSubmissionIteratorPayload(URL string, red *Reddit, data []byte, limit uint32) (*SubmissionIterator, error) {
+func newSubmissionIteratorPayload(URL string, red *Reddit, data []byte, limit int) (*SubmissionIterator, error) {
 	i := new(SubmissionIterator)
 	i.URL = URL
 	i.limit = limit
@@ -69,7 +76,7 @@ func (iter *SubmissionIterator) Next() (*Submission, error) {
 		if strings.ContainsRune(iter.URL, '?') {
 			chr = '&'
 		}
-		url := fmt.Sprintf("%s%cafter=%s&count=%d&limit=%d", iter.URL, chr, iter.lastId, iter.count, LISTING_PAGE_LIMIT)
+		url := fmt.Sprintf("%s%cafter=%s&count=%d&limit=%d", iter.URL, chr, iter.lastId, iter.count, minInt(LISTING_PAGE_LIMIT, iter.limit-iter.count))
 		resp, err := iter.Reddit.Client.Do(iter.Reddit.buildRequest("GET", url, nilReader))
 		if err != nil {
 			return nil, err
@@ -100,6 +107,6 @@ func (iter *SubmissionIterator) HasNext() bool {
 	}
 }
 
-func (iter *SubmissionIterator) Count() uint32 {
+func (iter *SubmissionIterator) Count() int {
 	return iter.count
 }

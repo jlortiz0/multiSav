@@ -111,9 +111,13 @@ func (r *Reddit) Logout() error {
 		req, _ := http.NewRequest("POST", "https://www.reddit.com/api/v1/revoke_token", buf)
 		req.SetBasicAuth(r.clientId, r.clientSecret)
 		req.Header.Add("User-Agent", r.userAgent)
-		_, err := r.Client.Do(req)
+		resp, err := r.Client.Do(req)
 		if err != nil {
 			return err
+		}
+		if resp.StatusCode != 204 {
+			data, _ := io.ReadAll(resp.Body)
+			return errors.New(string(data))
 		}
 		r.tokenExpiry = time.Time{}
 		r.refreshToken = ""
@@ -138,7 +142,7 @@ func (r *Reddit) buildRequest(method, url string, body io.Reader) *http.Request 
 	return rq
 }
 
-func (r *Reddit) ListNew(limit uint32) (*SubmissionIterator, error) {
+func (r *Reddit) ListNew(limit int) (*SubmissionIterator, error) {
 	return newSubmissionIterator("new", r, limit)
 }
 
