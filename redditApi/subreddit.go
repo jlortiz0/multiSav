@@ -20,7 +20,7 @@ type Subreddit struct {
 	reddit                                                *Reddit
 }
 
-func NewSubreddit(red *Reddit, id string) (*Subreddit, error) {
+func (red *Reddit) Subreddit(id string) (*Subreddit, error) {
 	var helper struct {
 		Data Subreddit
 	}

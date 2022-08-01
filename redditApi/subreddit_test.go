@@ -2,13 +2,11 @@ package redditapi_test
 
 import (
 	"testing"
-
-	redditapi "jlortiz.org/rediSav/redditApi"
 )
 
 func TestListNew(T *testing.T) {
 	red := loginHelper(T)
-	s, err := redditapi.NewSubreddit(red, "CountOnceADay")
+	s, err := red.Subreddit("CountOnceADay")
 	if err != nil {
 		T.Fatalf("failed to load subreddit: %s", err.Error())
 	}
@@ -32,7 +30,7 @@ func TestListNew(T *testing.T) {
 
 func TestListTop(T *testing.T) {
 	red := loginHelper(T)
-	s, err := redditapi.NewSubreddit(red, "CountOnceADay")
+	s, err := red.Subreddit("CountOnceADay")
 	if err != nil {
 		T.Fatalf("failed to load subreddit: %s", err.Error())
 	}
@@ -76,7 +74,7 @@ func TestListTop(T *testing.T) {
 
 func TestSearch(T *testing.T) {
 	red := loginHelper(T)
-	s, err := redditapi.NewSubreddit(red, "MisreadSprites")
+	s, err := red.Subreddit("MisreadSprites")
 	if err != nil {
 		T.Fatalf("failed to load subreddit: %s", err.Error())
 	}
@@ -123,7 +121,7 @@ func TestSearch(T *testing.T) {
 
 func TestSubscribe(T *testing.T) {
 	red := loginHelper(T)
-	s, err := redditapi.NewSubreddit(red, "CountOnceADay")
+	s, err := red.Subreddit("CountOnceADay")
 	if err != nil {
 		T.Fatalf("failed to load subreddit: %s", err.Error())
 	}
@@ -134,7 +132,7 @@ func TestSubscribe(T *testing.T) {
 	if err != nil {
 		T.Fatalf("failed to subscribe: %s", err.Error())
 	}
-	s, err = redditapi.NewSubreddit(red, "CountOnceADay")
+	s, err = red.Subreddit("CountOnceADay")
 	if err != nil {
 		T.Fatalf("failed to load subreddit 2nd time: %s", err.Error())
 	}

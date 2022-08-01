@@ -36,7 +36,7 @@ type Submission struct {
 	reddit          *Reddit
 }
 
-func NewSubmission(red *Reddit, id string) (*Submission, error) {
+func (red *Reddit) Submission(id string) (*Submission, error) {
 	var helper struct {
 		Data struct {
 			Children []struct {

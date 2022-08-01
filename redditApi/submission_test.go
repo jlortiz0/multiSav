@@ -2,13 +2,11 @@ package redditapi_test
 
 import (
 	"testing"
-
-	redditapi "jlortiz.org/rediSav/redditApi"
 )
 
 func TestSubmissionSave(T *testing.T) {
 	red := loginHelper(T)
-	s, err := redditapi.NewSubmission(red, "b8yd3r")
+	s, err := red.Submission("b8yd3r")
 	if err != nil {
 		T.Fatalf("failed to load submission: %s", err.Error())
 	}
@@ -23,7 +21,7 @@ func TestSubmissionSave(T *testing.T) {
 	if s.Saved == false {
 		T.Error("submission object was not marked as saved")
 	}
-	s, err = redditapi.NewSubmission(red, "b8yd3r")
+	s, err = red.Submission("b8yd3r")
 	if err != nil {
 		T.Fatalf("failed to load submission 2nd time: %s", err.Error())
 	}
@@ -35,7 +33,7 @@ func TestSubmissionSave(T *testing.T) {
 
 func TestSubmissionUnsave(T *testing.T) {
 	red := loginHelper(T)
-	s, err := redditapi.NewSubmission(red, "b8yd3r")
+	s, err := red.Submission("b8yd3r")
 	if err != nil {
 		T.Fatalf("failed to load submission: %s", err.Error())
 	}
@@ -50,7 +48,7 @@ func TestSubmissionUnsave(T *testing.T) {
 	if s.Saved == true {
 		T.Error("submission object was not unmarked as saved")
 	}
-	s, err = redditapi.NewSubmission(red, "b8yd3r")
+	s, err = red.Submission("b8yd3r")
 	if err != nil {
 		T.Fatalf("failed to load submission 2nd time: %s", err.Error())
 	}
@@ -62,7 +60,7 @@ func TestSubmissionUnsave(T *testing.T) {
 
 func TestSubmissionVarious(T *testing.T) {
 	red := loginHelper(T)
-	s, err := redditapi.NewSubmission(red, "")
+	s, err := red.Submission("")
 	if err != nil {
 		T.Fatalf("failed to load submission: %s", err.Error())
 	}
@@ -86,7 +84,7 @@ func TestSubmissionVarious(T *testing.T) {
 
 func TestSubmissionDelete(T *testing.T) {
 	red := loginHelper(T)
-	s, err := redditapi.NewSubmission(red, "")
+	s, err := red.Submission("")
 	if err != nil {
 		T.Fatalf("failed to load submission: %s", err.Error())
 	}
