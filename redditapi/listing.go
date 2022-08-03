@@ -111,6 +111,10 @@ func (iter *SubmissionIterator) HasNext() bool {
 	}
 }
 
+func (iter *SubmissionIterator) NextRequiresFetch() bool {
+	return iter.index == len(iter.data)
+}
+
 func (iter *SubmissionIterator) Count() int {
 	return iter.count
 }
@@ -207,6 +211,10 @@ func (iter *CommentIterator) HasNext() bool {
 	} else {
 		return iter.count < iter.limit
 	}
+}
+
+func (iter *CommentIterator) NextRequiresFetch() bool {
+	return iter.index == len(iter.data)
 }
 
 func (iter *CommentIterator) Count() int {

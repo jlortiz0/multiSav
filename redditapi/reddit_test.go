@@ -39,9 +39,6 @@ func loginHelper(T *testing.T) *redditapi.Reddit {
 		T.Fatalf("Failed to decode login data: %s", err.Error())
 	}
 	red := redditapi.NewReddit("linux:org.jlortiz.test.GolangRedditAPI:v0.0.1 (by /u/jlortiz)", fields.Id, fields.Secret)
-	if red == nil {
-		T.FailNow()
-	}
 	err = red.Login(fields.Login, fields.Password)
 	if err != nil {
 		T.Fatalf("Failed to log in: %s", err.Error())
