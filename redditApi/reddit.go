@@ -169,3 +169,19 @@ func (t *Timestamp) UnmarshalJSON(b []byte) error {
 	*t = Timestamp{time.Unix(int64(ts), 0)}
 	return nil
 }
+
+type TSBool struct{ time.Time }
+
+func (t *TSBool) UnmarshalJSON(b []byte) error {
+	var ts float64
+	if b[0] != 'f' {
+		err := json.Unmarshal(b, &ts)
+		if err != nil {
+			return err
+		}
+		*t = TSBool{time.Unix(int64(ts), 0)}
+	} else {
+		*t = TSBool{}
+	}
+	return nil
+}

@@ -20,7 +20,7 @@ type Comment struct {
 	Link_id         string
 	Is_submitter    bool
 	Removed         bool
-	Edited          bool
+	Edited          TSBool
 	reddit          *Reddit
 }
 
