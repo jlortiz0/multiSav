@@ -17,13 +17,17 @@ type SubmissionIterator struct {
 	limit  int
 	lastId string
 	index  int
-	data   []*Submission
+	data   []struct {
+		Kind string
+		Data *Submission
+	}
 }
 
 type submissionListingPayload struct {
 	Data struct {
 		After    string
 		Children []struct {
+			Kind string
 			Data *Submission
 		}
 	}
@@ -60,10 +64,7 @@ func newSubmissionIteratorPayload(URL string, red *Reddit, data []byte, limit in
 		return nil, err
 	}
 	i.lastId = payload.Data.After
-	i.data = make([]*Submission, len(payload.Data.Children))
-	for k, v := range payload.Data.Children {
-		i.data[k] = v.Data
-	}
+	i.data = payload.Data.Children
 	return i, nil
 }
 
@@ -88,10 +89,7 @@ func (iter *SubmissionIterator) Next() (*Submission, error) {
 			return nil, err
 		}
 		iter.lastId = payload.Data.After
-		iter.data = make([]*Submission, len(payload.Data.Children))
-		for k, v := range payload.Data.Children {
-			iter.data[k] = v.Data
-		}
+		iter.data = payload.Data.Children
 		iter.index = 0
 		if len(iter.data) == 0 {
 			return nil, nil
@@ -99,7 +97,10 @@ func (iter *SubmissionIterator) Next() (*Submission, error) {
 	}
 	iter.count++
 	iter.index++
-	return iter.data[iter.index-1], nil
+	if iter.data[iter.index-1].Kind != "t3" {
+		return iter.Next()
+	}
+	return iter.data[iter.index-1].Data, nil
 }
 
 func (iter *SubmissionIterator) HasNext() bool {
@@ -111,5 +112,103 @@ func (iter *SubmissionIterator) HasNext() bool {
 }
 
 func (iter *SubmissionIterator) Count() int {
+	return iter.count
+}
+
+type CommentIterator struct {
+	URL    string
+	Reddit *Reddit
+	count  int
+	limit  int
+	lastId string
+	index  int
+	data   []struct {
+		Kind string
+		Data *Comment
+	}
+}
+
+type commentListingPayload struct {
+	Data struct {
+		After    string
+		Children []struct {
+			Kind string
+			Data *Comment
+		}
+	}
+}
+
+func newCommentIterator(URL string, red *Reddit, limit int) (*CommentIterator, error) {
+	req := red.buildRequest("GET", URL, nilReader)
+	resp, err := red.Client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	data, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != 200 {
+		return nil, errors.New(string(data))
+	}
+	return newCommentIteratorPayload(URL, red, data, limit)
+}
+
+func newCommentIteratorPayload(URL string, red *Reddit, data []byte, limit int) (*CommentIterator, error) {
+	i := new(CommentIterator)
+	i.URL = URL
+	i.limit = limit
+	i.Reddit = red
+	var payload commentListingPayload
+	err := json.Unmarshal(data, &payload)
+	if err != nil {
+		return nil, err
+	}
+	i.lastId = payload.Data.After
+	i.data = payload.Data.Children
+	return i, nil
+}
+
+func (iter *CommentIterator) Next() (*Comment, error) {
+	if !iter.HasNext() {
+		return nil, nil
+	}
+	if iter.index == len(iter.data) {
+		chr := '?'
+		if strings.ContainsRune(iter.URL, '?') {
+			chr = '&'
+		}
+		url := fmt.Sprintf("%s%cafter=%s&count=%d&limit=%d", iter.URL, chr, iter.lastId, iter.count, minInt(LISTING_PAGE_LIMIT, iter.limit-iter.count))
+		resp, err := iter.Reddit.Client.Do(iter.Reddit.buildRequest("GET", url, nilReader))
+		if err != nil {
+			return nil, err
+		}
+		var payload commentListingPayload
+		data, _ := io.ReadAll(resp.Body)
+		err = json.Unmarshal(data, &payload)
+		if err != nil {
+			return nil, err
+		}
+		iter.lastId = payload.Data.After
+		iter.data = payload.Data.Children
+		iter.index = 0
+		if len(iter.data) == 0 {
+			return nil, nil
+		}
+	}
+	iter.count++
+	iter.index++
+	if iter.data[iter.index-1].Kind != "t1" {
+		return iter.Next()
+	}
+	return iter.data[iter.index-1].Data, nil
+}
+
+func (iter *CommentIterator) HasNext() bool {
+	if iter.limit == 0 {
+		return len(iter.data) != 0
+	} else {
+		return iter.count < iter.limit
+	}
+}
+
+func (iter *CommentIterator) Count() int {
 	return iter.count
 }

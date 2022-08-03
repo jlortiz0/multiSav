@@ -65,6 +65,9 @@ func (usr *Redditor) Unblock() error {
 }
 
 func (usr *Redditor) Report(reason string) error {
+	if reason == "" {
+		return errors.New("non-empty reason required")
+	}
 	rq := usr.reddit.buildRequest("POST", "api/report_user?user="+usr.Name+"&reason="+reason, nilReader)
 	resp, err := usr.reddit.Client.Do(rq)
 	if err != nil {
@@ -81,8 +84,8 @@ func (usr *Redditor) ListSubmissions(limit int) (*SubmissionIterator, error) {
 	return newSubmissionIterator("user/"+usr.Name+"/submitted", usr.reddit, limit)
 }
 
-func (usr *Redditor) ListComments() {
-
+func (usr *Redditor) ListComments(limit int) (*CommentIterator, error) {
+	return newCommentIterator("user/"+usr.Name+"/comments", usr.reddit, limit)
 }
 
 func (usr *Redditor) ListDownvoted(limit int) (*SubmissionIterator, error) {
@@ -94,6 +97,10 @@ func (usr *Redditor) ListHidden(limit int) (*SubmissionIterator, error) {
 }
 
 func (usr *Redditor) ListSaved(limit int) (*SubmissionIterator, error) {
+	return newSubmissionIterator("user/"+usr.Name+"/saved", usr.reddit, limit)
+}
+
+func (usr *Redditor) ListSavedComments(limit int) (*SubmissionIterator, error) {
 	return newSubmissionIterator("user/"+usr.Name+"/saved", usr.reddit, limit)
 }
 
