@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	redditapi "jlortiz.org/rediSav/redditApi"
+	"jlortiz.org/redisav/redditapi"
 )
 
 func TestLogin(T *testing.T) {
