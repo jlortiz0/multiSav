@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"image/color"
 	"os"
 
 	"github.com/adrg/sysfont"
@@ -49,10 +50,15 @@ func main() {
 	// ls := NewLazySubmissionList(iter)
 	// NewLazyImageMenu(ls)
 	// red.Logout()
+	rl.SetConfigFlags(rl.FlagVsyncHint)
 	rl.InitWindow(1024, 768, "rediSav Test Window")
 	finder := sysfont.NewFinder(nil)
 	font = rl.LoadFontEx(finder.Match("Ubuntu").Filename, 18, nil, 250)
-	menu := NewChoiceMenu([]string{"Hello", "World", "test1", "Sort", "Trash", "Options", "New..."})
+	// menu := NewChoiceMenu([]string{"Hello", "World", "test1", "Sort", "Trash", "Options", "New..."})
+	menu, err := NewOfflineImageMenu("jlortiz_TEST/Sort")
+	if err != nil {
+		panic(err)
+	}
 	// w := menu.SuggestWidth()
 	rl.SetExitKey(0)
 	rg.GuiSetFont(font)
@@ -66,14 +72,23 @@ Outer:
 			key = rl.GetKeyPressed()
 		}
 		rl.BeginDrawing()
-		rl.ClearBackground(rl.RayWhite)
-		menu.Renderer(rl.Rectangle{X: 175, Y: 208 - 18, Height: 500, Width: 674})
+		rl.ClearBackground(color.RGBA{R: 64, G: 64, B: 64})
 		s := "Logged in as: somebody"
 		vec := rl.MeasureTextEx(font, s, 18, 0)
+		menu.Renderer(rl.Rectangle{Height: 768 - vec.Y - 10, Width: 1024})
 		rl.DrawRectangle(0, 768-int32(vec.Y)-10, 1024, int32(vec.Y)+10, rl.Black)
 		rl.DrawTextEx(font, s, rl.Vector2{Y: 768 - vec.Y - 5, X: 1024/2 - vec.X/2}, vec.Y, 0, rl.RayWhite)
 		rl.EndDrawing()
 	}
 	rl.UnloadFont(font)
 	rl.CloseWindow()
+}
+
+func drawMessage(text string) rl.Texture2D {
+	vec := rl.MeasureTextEx(font, text, 18, 0)
+	img := rl.GenImageColor(int(vec.X)+16, int(vec.Y)+12, rl.RayWhite)
+	rl.ImageDrawTextEx(img, rl.Vector2{X: 8, Y: 5}, font, text, 18, 0, rl.Black)
+	texture := rl.LoadTextureFromImage(img)
+	rl.UnloadImage(img)
+	return texture
 }

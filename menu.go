@@ -9,7 +9,8 @@ const CHOICEMENU_SPACE_BETWEEN_ITEM = 16
 
 type Menu interface {
 	HandleKey(int32) LoopStatus
-	Renderer(rl.Rectangle)
+	Renderer(rl.Rectangle) LoopStatus
+	Cleanup()
 }
 
 type LoopStatus int
@@ -33,7 +34,7 @@ func NewChoiceMenu(items []string) *ChoiceMenu {
 	return menu
 }
 
-func (cm *ChoiceMenu) Renderer(target rl.Rectangle) {
+func (cm *ChoiceMenu) Renderer(target rl.Rectangle) LoopStatus {
 	bigger := len(cm.itemList)*(int(font.BaseSize)+CHOICEMENU_SPACE_BETWEEN_ITEM) > int(target.Height)
 	if bigger {
 		view := rg.GuiScrollPanel(target, rl.Rectangle{Height: float32(len(cm.itemList) * (int(font.BaseSize) + CHOICEMENU_SPACE_BETWEEN_ITEM)), Width: target.Width - 16}, &cm.scroll)
@@ -52,6 +53,7 @@ func (cm *ChoiceMenu) Renderer(target rl.Rectangle) {
 	}
 	// DEBUG
 	// rl.DrawRectangleLinesEx(rl.Rectangle{X: target.X - 5, Y: target.Y - 5, Width: target.Width + 10, Height: target.Height + 10}, 5, rl.Magenta)
+	return LOOP_CONT
 }
 
 func (cm *ChoiceMenu) SuggestWidth() float32 {
@@ -66,5 +68,10 @@ func (cm *ChoiceMenu) SuggestWidth() float32 {
 }
 
 func (cm *ChoiceMenu) HandleKey(keycode int32) LoopStatus {
+	if keycode == rl.KeyEscape {
+		return LOOP_BACK
+	}
 	return LOOP_CONT
 }
+
+func (cm *ChoiceMenu) Cleanup() {}
