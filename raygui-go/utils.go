@@ -17,3 +17,11 @@ func cRectangle(rect rl.Rectangle) C.Rectangle {
 func goRectangle(rect C.Rectangle) rl.Rectangle {
 	return *((*rl.Rectangle)(unsafe.Pointer(&rect)))
 }
+
+func cIntPtr(p *int) *C.int {
+	return (*C.int)(unsafe.Pointer(p))
+}
+
+func cFloat(f float32) C.float {
+	return *(*C.float)(unsafe.Pointer(&f))
+}
