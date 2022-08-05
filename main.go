@@ -57,12 +57,14 @@ func main() {
 	finder := sysfont.NewFinder(nil)
 	font = rl.LoadFontEx(finder.Match("Ubuntu").Filename, TEXT_SIZE, nil, 250)
 	// menu := NewChoiceMenu([]string{"Hello", "World", "test1", "Sort", "Trash", "Options", "New..."}, rl.Rectangle{X: 100, Y: 200, Height: 200, Width: 500})
-	menu, err := NewOfflineImageMenu("jlortiz_TEST/Sort", rl.Rectangle{Height: 768 - TEXT_SIZE - 10, Width: 1024})
+	menu, err := NewOfflineImageMenu("jlortiz_TEST/Sort", rl.Rectangle{Height: 768, Width: 1024})
 	if err != nil {
 		panic(err)
 	}
 	rl.SetExitKey(0)
 	rg.GuiSetFont(font)
+	rg.GuiSetStyle(rg.LABEL, rg.TEXT_COLOR_NORMAL, 0xf5f5f5ff)
+	rg.GuiSetStyle(rg.LABEL, rg.TEXT_ALIGNMENT, rg.TEXT_ALIGN_RIGHT)
 Outer:
 	for !rl.WindowShouldClose() {
 		key := rl.GetKeyPressed()
@@ -75,11 +77,7 @@ Outer:
 		menu.Prerender()
 		rl.BeginDrawing()
 		rl.ClearBackground(color.RGBA{R: 64, G: 64, B: 64})
-		s := "Logged in as: somebody"
-		vec := rl.MeasureTextEx(font, s, 18, 0)
 		menu.Renderer()
-		rl.DrawRectangle(0, 768-int32(vec.Y)-10, 1024, int32(vec.Y)+10, rl.Black)
-		rl.DrawTextEx(font, s, rl.Vector2{Y: 768 - vec.Y - 5, X: 1024/2 - vec.X/2}, vec.Y, 0, rl.RayWhite)
 		rl.EndDrawing()
 	}
 	rl.UnloadFont(font)
@@ -87,9 +85,9 @@ Outer:
 }
 
 func drawMessage(text string) rl.Texture2D {
-	vec := rl.MeasureTextEx(font, text, 18, 0)
-	img := rl.GenImageColor(int(vec.X)+16, int(vec.Y)+12, rl.RayWhite)
-	rl.ImageDrawTextEx(img, rl.Vector2{X: 8, Y: 5}, font, text, 18, 0, rl.Black)
+	vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
+	img := rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
+	rl.ImageDrawTextEx(img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
 	texture := rl.LoadTextureFromImage(img)
 	rl.UnloadImage(img)
 	return texture

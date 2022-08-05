@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
+	rg "jlortiz.org/redisav/raygui-go"
 )
 
 type OfflineImageMenu struct {
@@ -21,17 +22,20 @@ type OfflineImageMenu struct {
 	loadingFrame int
 	cam          rl.Camera2D
 	tol          rl.Vector2
+	tempSel      int
 	// ffmpeg *void
 }
 
 type imageMenuState int
 
 const (
-	IMSTATE_NORMAL imageMenuState = iota
-	IMSTATE_SHOULDLOAD
-	IMSTATE_LOADING
-	IMSTATE_ERROR
-	IMSTATE_SHOULDEXIT
+	IMSTATE_NORMAL     imageMenuState = 0
+	IMSTATE_SHOULDLOAD imageMenuState = 1
+	IMSTATE_LOADING    imageMenuState = 2
+	IMSTATE_ERROR      imageMenuState = 4
+	IMSTATE_ERRORMINOR imageMenuState = 8
+	IMSTATE_SHOULDEXIT imageMenuState = 16
+	IMSTATE_GOTO       imageMenuState = 32
 )
 
 func minf32(a, b float32) float32 {
@@ -87,7 +91,8 @@ func NewOfflineImageMenu(fldr string, target rl.Rectangle) (*OfflineImageMenu, e
 	menu.itemList = ls
 	menu.state = IMSTATE_SHOULDLOAD
 	menu.target = target
-	menu.cam.Offset = rl.Vector2{Y: target.Height / 2, X: target.Width / 2}
+	menu.target.Height -= TEXT_SIZE + 10
+	menu.cam.Offset = rl.Vector2{Y: target.Height/2 - 5 - TEXT_SIZE/2, X: target.Width / 2}
 	menu.cam.Zoom = 1
 	if len(ls) == 0 {
 		menu.state = IMSTATE_ERROR
@@ -125,7 +130,15 @@ func (menu *OfflineImageMenu) loadImage() LoopStatus {
 			_, err = os.Stat(menu.fldr + string(os.PathSeparator) + menu.itemList[menu.Selected])
 		}
 		menu.img = rl.LoadImage(menu.fldr + string(os.PathSeparator) + menu.itemList[menu.Selected])
-		menu.state = IMSTATE_NORMAL
+		if menu.img == nil {
+			text := "Failed to load image?"
+			vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
+			menu.img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
+			rl.ImageDrawTextEx(menu.img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
+			menu.state = IMSTATE_ERRORMINOR
+		} else {
+			menu.state = IMSTATE_NORMAL
+		}
 	}()
 	return LOOP_CONT
 }
@@ -133,6 +146,20 @@ func (menu *OfflineImageMenu) loadImage() LoopStatus {
 func (menu *OfflineImageMenu) HandleKey(keycode int32) LoopStatus {
 	if keycode == rl.KeyEscape {
 		return LOOP_BACK
+	}
+	if menu.state&IMSTATE_ERRORMINOR != 0 {
+		switch keycode {
+		case rl.KeyLeft:
+			if menu.Selected > 0 {
+				menu.Selected--
+				menu.state = IMSTATE_SHOULDLOAD
+			}
+		case rl.KeyRight:
+			if menu.Selected+1 < len(menu.itemList) {
+				menu.Selected++
+				menu.state = IMSTATE_SHOULDLOAD
+			}
+		}
 	}
 	if menu.state != IMSTATE_NORMAL {
 		return LOOP_CONT
@@ -148,15 +175,20 @@ func (menu *OfflineImageMenu) HandleKey(keycode int32) LoopStatus {
 			menu.Selected++
 			menu.state = IMSTATE_SHOULDLOAD
 		}
+	case rl.KeyHome:
+		if menu.Selected != 0 {
+			menu.Selected = 0
+			menu.state = IMSTATE_SHOULDLOAD
+		}
+	case rl.KeyEnd:
+		if menu.Selected != len(menu.itemList)-1 {
+			menu.Selected = len(menu.itemList) - 1
+			menu.state = IMSTATE_SHOULDLOAD
+		}
 	case rl.KeyF3:
 		menu.cam.Target = rl.Vector2{Y: float32(menu.texture.Height) / 2, X: float32(menu.texture.Width) / 2}
 		menu.cam.Zoom = getZoomForTexture(menu.texture, menu.target)
 		menu.tol = rl.Vector2{Y: menu.cam.Offset.Y / menu.cam.Zoom, X: menu.cam.Offset.X / menu.cam.Zoom}
-	case rl.KeyF1:
-		fmt.Println(menu.cam.Target)
-		fmt.Println(menu.cam.Zoom)
-		fmt.Println(menu.texture.Height, menu.texture.Width)
-		fmt.Println(menu.tol)
 	}
 	return LOOP_CONT
 }
@@ -165,7 +197,7 @@ func (menu *OfflineImageMenu) Prerender() LoopStatus {
 	if len(menu.itemList) == 0 || menu.state == IMSTATE_SHOULDEXIT {
 		return LOOP_EXIT
 	}
-	if menu.state == IMSTATE_SHOULDLOAD {
+	if menu.state&IMSTATE_SHOULDLOAD != 0 {
 		menu.loadImage()
 		return menu.Prerender()
 	}
@@ -230,44 +262,83 @@ func (menu *OfflineImageMenu) Prerender() LoopStatus {
 		menu.cam.Zoom += 0.03125
 		menu.tol = rl.Vector2{Y: menu.cam.Offset.Y / menu.cam.Zoom, X: menu.cam.Offset.X / menu.cam.Zoom}
 	}
-	if rl.IsWindowResized() {
-		menu.cam.Target = rl.Vector2{Y: float32(menu.texture.Height) / 2, X: float32(menu.texture.Width) / 2}
-		menu.cam.Zoom = getZoomForTexture(menu.texture, menu.target)
-		menu.tol = rl.Vector2{Y: menu.cam.Offset.Y / menu.cam.Zoom, X: menu.cam.Offset.X / menu.cam.Zoom}
-	}
 	return LOOP_CONT
 }
 
 func (menu *OfflineImageMenu) Renderer() {
-	switch menu.state {
-	case IMSTATE_LOADING:
+	if menu.state&IMSTATE_LOADING != 0 {
 		rl.BeginMode2D(menu.cam)
 		rl.DrawTexture(menu.texture, 0, 0, rl.White)
 		rl.EndMode2D()
-		x := int32(menu.target.Width)/2 - 50 + int32(menu.target.X)
-		y := int32(menu.target.Height)/2 - 50 + int32(menu.target.Y)
-		rl.DrawRectangle(x, y, 100, 100, rl.RayWhite)
-		if menu.loadingFrame < 10 {
-			rl.DrawRectangle(x+int32(menu.loadingFrame)*5, y, 50, 50, rl.Black)
-			rl.DrawRectangle(x+50-int32(menu.loadingFrame)*5, y+50, 50, 50, rl.Black)
-		} else if menu.loadingFrame < 16 {
-			rl.DrawRectangle(x+50, y, 50, 50, rl.Black)
-			rl.DrawRectangle(x, y+50, 50, 50, rl.Black)
-		} else if menu.loadingFrame < 26 {
-			rl.DrawRectangle(x+50, y-80+int32(menu.loadingFrame)*5, 50, 50, rl.Black)
-			rl.DrawRectangle(x, y+130-int32(menu.loadingFrame)*5, 50, 50, rl.Black)
+		// x := int32(menu.target.Width)/2 - 50 + int32(menu.target.X)
+		// y := int32(menu.target.Height)/2 - 50 + int32(menu.target.Y)
+		// rl.DrawRectangle(x, y, 100, 100, rl.RayWhite)
+		// if menu.loadingFrame < 10 {
+		// 	rl.DrawRectangle(x+int32(menu.loadingFrame)*5, y, 50, 50, rl.Black)
+		// 	rl.DrawRectangle(x+50-int32(menu.loadingFrame)*5, y+50, 50, 50, rl.Black)
+		// } else if menu.loadingFrame < 16 {
+		// 	rl.DrawRectangle(x+50, y, 50, 50, rl.Black)
+		// 	rl.DrawRectangle(x, y+50, 50, 50, rl.Black)
+		// } else if menu.loadingFrame < 26 {
+		// 	rl.DrawRectangle(x+50, y-80+int32(menu.loadingFrame)*5, 50, 50, rl.Black)
+		// 	rl.DrawRectangle(x, y+130-int32(menu.loadingFrame)*5, 50, 50, rl.Black)
+		// } else {
+		// 	rl.DrawRectangle(x, y, 50, 50, rl.Black)
+		// 	rl.DrawRectangle(x+50, y+50, 50, 50, rl.Black)
+		// }
+		// menu.loadingFrame++
+		// menu.loadingFrame %= 32
+		rl.DrawRectangle(int32(menu.target.X), int32(menu.target.Height), int32(menu.target.Width), TEXT_SIZE+10, rl.Black)
+		if menu.loadingFrame < 0 {
+			rl.DrawRectangle(int32(menu.target.X)-int32(menu.loadingFrame)*5, int32(menu.target.Height)+5, TEXT_SIZE, TEXT_SIZE, rl.Green)
+			rl.DrawRectangle(int32(menu.target.X)-int32(menu.loadingFrame+4)*5, int32(menu.target.Height)+5, TEXT_SIZE, TEXT_SIZE, rl.Green)
+			rl.DrawRectangle(int32(menu.target.X)-int32(menu.loadingFrame+8)*5, int32(menu.target.Height)+5, TEXT_SIZE, TEXT_SIZE, rl.Green)
+			if menu.loadingFrame == -9 {
+				menu.loadingFrame = -1
+			}
 		} else {
-			rl.DrawRectangle(x, y, 50, 50, rl.Black)
-			rl.DrawRectangle(x+50, y+50, 50, 50, rl.Black)
+			rl.DrawRectangle(int32(menu.target.X)+int32(menu.loadingFrame+1)*5, int32(menu.target.Height)+5, TEXT_SIZE, TEXT_SIZE, rl.Green)
+			rl.DrawRectangle(int32(menu.target.X)+int32(menu.loadingFrame+5)*5, int32(menu.target.Height)+5, TEXT_SIZE, TEXT_SIZE, rl.Green)
+			rl.DrawRectangle(int32(menu.target.X)+int32(menu.loadingFrame+9)*5, int32(menu.target.Height)+5, TEXT_SIZE, TEXT_SIZE, rl.Green)
+			if TEXT_SIZE+(menu.loadingFrame+9)*5 > int(menu.target.Width) {
+				menu.loadingFrame = -menu.loadingFrame - 7
+			}
 		}
 		menu.loadingFrame++
-		menu.loadingFrame %= 32
-	case IMSTATE_ERROR:
-		fallthrough
-	case IMSTATE_NORMAL:
+	} else {
 		rl.BeginMode2D(menu.cam)
 		rl.DrawTexture(menu.texture, 0, 0, rl.White)
 		rl.EndMode2D()
+		rl.DrawRectangle(int32(menu.target.X), int32(menu.target.Height), int32(menu.target.Width), TEXT_SIZE+10, rl.Black)
+		if menu.state&IMSTATE_ERROR == 0 {
+			s := fmt.Sprintf("%dx%d (%.0fx%.0f)", menu.texture.Width, menu.texture.Height,
+				float32(menu.texture.Width)*menu.cam.Zoom, float32(menu.texture.Height)*menu.cam.Zoom)
+			vec := rl.NewVector2(5+menu.target.X, menu.target.Height+5+menu.target.Y)
+			rl.DrawTextEx(font, s, vec, TEXT_SIZE, 0, rl.RayWhite)
+			vec = rl.MeasureTextEx(font, menu.itemList[menu.Selected], TEXT_SIZE, 0)
+			vec.Y = menu.target.Height + 5 + menu.target.Y
+			vec.X = menu.target.X + menu.target.Width/2 - vec.X/2
+			rl.DrawTextEx(font, menu.itemList[menu.Selected], vec, TEXT_SIZE, 0, rl.RayWhite)
+			if menu.state&IMSTATE_GOTO == 0 {
+				if (rg.GuiLabelButton(rl.Rectangle{X: menu.target.X + menu.target.Width - 75, Y: menu.target.Height, Width: 70, Height: TEXT_SIZE + 10},
+					fmt.Sprintf("%d/%d", menu.Selected+1, len(menu.itemList)))) {
+					menu.state |= IMSTATE_GOTO
+					menu.tempSel = menu.Selected + 1
+				}
+			} else {
+				if rg.GuiValueBox(rl.Rectangle{X: menu.target.X + menu.target.Width - 75, Y: menu.target.Height, Width: 75, Height: TEXT_SIZE + 10}, "goto", &menu.tempSel, 1, len(menu.itemList), true) {
+					menu.state &= ^IMSTATE_GOTO
+					menu.Selected = menu.tempSel - 1
+					if menu.Selected < 0 {
+						menu.Selected = 0
+					}
+					if menu.Selected >= len(menu.itemList) {
+						menu.Selected = len(menu.itemList) - 1
+					}
+					menu.loadImage()
+				}
+			}
+		}
 	}
 }
 
