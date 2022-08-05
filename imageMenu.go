@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"sort"
 	"strings"
@@ -11,12 +12,15 @@ import (
 type OfflineImageMenu struct {
 	Selected     int
 	itemList     []string
+	target       rl.Rectangle
 	img          *rl.Image
 	texture      rl.Texture2D
 	prevMoveDir  bool
 	state        imageMenuState
 	fldr         string
 	loadingFrame int
+	cam          rl.Camera2D
+	tol          rl.Vector2
 	// ffmpeg *void
 }
 
@@ -26,13 +30,22 @@ const (
 	IMSTATE_NORMAL imageMenuState = iota
 	IMSTATE_SHOULDLOAD
 	IMSTATE_LOADING
-	IMSTATE_EMPTY
-	IMSTATE_NOSUPPORT
 	IMSTATE_ERROR
 	IMSTATE_SHOULDEXIT
 )
 
-func NewOfflineImageMenu(fldr string) (*OfflineImageMenu, error) {
+func minf32(a, b float32) float32 {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func getZoomForTexture(tex rl.Texture2D, target rl.Rectangle) float32 {
+	return minf32(target.Height/float32(tex.Height), target.Width/float32(tex.Width))
+}
+
+func NewOfflineImageMenu(fldr string, target rl.Rectangle) (*OfflineImageMenu, error) {
 	f, err := os.Open(fldr)
 	if err != nil {
 		return nil, err
@@ -73,11 +86,15 @@ func NewOfflineImageMenu(fldr string) (*OfflineImageMenu, error) {
 	menu.fldr = fldr
 	menu.itemList = ls
 	menu.state = IMSTATE_SHOULDLOAD
+	menu.target = target
+	menu.cam.Offset = rl.Vector2{Y: target.Height / 2, X: target.Width / 2}
+	menu.cam.Zoom = 1
 	if len(ls) == 0 {
+		menu.state = IMSTATE_ERROR
 		if len(entries) == 0 {
-			menu.state = IMSTATE_NOSUPPORT
+			menu.texture = drawMessage("(no supported images)")
 		} else {
-			menu.state = IMSTATE_EMPTY
+			menu.texture = drawMessage("(this page intentionally left blank)")
 		}
 	}
 	return menu, nil
@@ -114,44 +131,121 @@ func (menu *OfflineImageMenu) loadImage() LoopStatus {
 }
 
 func (menu *OfflineImageMenu) HandleKey(keycode int32) LoopStatus {
+	if keycode == rl.KeyEscape {
+		return LOOP_BACK
+	}
+	if menu.state != IMSTATE_NORMAL {
+		return LOOP_CONT
+	}
 	switch keycode {
 	case rl.KeyLeft:
-		if menu.state == IMSTATE_NORMAL && menu.Selected > 0 {
+		if menu.Selected > 0 {
 			menu.Selected--
 			menu.state = IMSTATE_SHOULDLOAD
 		}
 	case rl.KeyRight:
-		if menu.state == IMSTATE_NORMAL && menu.Selected < len(menu.itemList) {
+		if menu.Selected+1 < len(menu.itemList) {
 			menu.Selected++
 			menu.state = IMSTATE_SHOULDLOAD
 		}
-	case rl.KeyEscape:
-		return LOOP_BACK
+	case rl.KeyF3:
+		menu.cam.Target = rl.Vector2{Y: float32(menu.texture.Height) / 2, X: float32(menu.texture.Width) / 2}
+		menu.cam.Zoom = getZoomForTexture(menu.texture, menu.target)
+		menu.tol = rl.Vector2{Y: menu.cam.Offset.Y / menu.cam.Zoom, X: menu.cam.Offset.X / menu.cam.Zoom}
+	case rl.KeyF1:
+		fmt.Println(menu.cam.Target)
+		fmt.Println(menu.cam.Zoom)
+		fmt.Println(menu.texture.Height, menu.texture.Width)
+		fmt.Println(menu.tol)
 	}
 	return LOOP_CONT
 }
 
-func (menu *OfflineImageMenu) Renderer(target rl.Rectangle) LoopStatus {
-	switch menu.state {
-	case IMSTATE_SHOULDEXIT:
+func (menu *OfflineImageMenu) Prerender() LoopStatus {
+	if len(menu.itemList) == 0 || menu.state == IMSTATE_SHOULDEXIT {
 		return LOOP_EXIT
-	case IMSTATE_SHOULDLOAD:
+	}
+	if menu.state == IMSTATE_SHOULDLOAD {
 		menu.loadImage()
-		return menu.Renderer(target)
-	case IMSTATE_EMPTY:
-		if menu.img.Width == 0 {
-			menu.texture = drawMessage("(this page intentionally left blank)")
+		return menu.Prerender()
+	}
+	if menu.state != IMSTATE_NORMAL {
+		return LOOP_CONT
+	}
+	if menu.img != nil {
+		if menu.texture.ID > 0 {
+			rl.UnloadTexture(menu.texture)
 		}
-		fallthrough
-	case IMSTATE_NOSUPPORT:
-		if menu.img.Width == 0 {
-			menu.texture = drawMessage("(no supported images)")
+		menu.texture = rl.LoadTextureFromImage(menu.img)
+		rl.UnloadImage(menu.img)
+		menu.img = nil
+		rl.SetTextureFilter(menu.texture, rl.FilterBilinear)
+		menu.cam.Target = rl.Vector2{Y: float32(menu.texture.Height) / 2, X: float32(menu.texture.Width) / 2}
+		menu.cam.Zoom = getZoomForTexture(menu.texture, menu.target)
+		menu.tol = rl.Vector2{Y: menu.cam.Offset.Y / menu.cam.Zoom, X: menu.cam.Offset.X / menu.cam.Zoom}
+	}
+	if rl.IsKeyDown(rl.KeyA) && menu.cam.Zoom*float32(menu.texture.Width) > menu.target.Width {
+		menu.cam.Target.X -= 6.5 / menu.cam.Zoom
+		if menu.cam.Target.X < menu.tol.X {
+			menu.cam.Target.X = menu.tol.X
 		}
-		fallthrough
+	}
+	if rl.IsKeyDown(rl.KeyD) && menu.cam.Zoom*float32(menu.texture.Width) > menu.target.Width {
+		menu.cam.Target.X += 6.5 / menu.cam.Zoom
+		if float32(menu.texture.Width)-menu.cam.Target.X < menu.tol.X {
+			menu.cam.Target.X = float32(menu.texture.Width) - menu.tol.X
+		}
+	}
+	if rl.IsKeyDown(rl.KeyW) && menu.cam.Zoom*float32(menu.texture.Height) > menu.target.Height {
+		menu.cam.Target.Y -= 6.5 / menu.cam.Zoom
+		if menu.cam.Target.Y < menu.tol.Y {
+			menu.cam.Target.Y = menu.tol.Y
+		}
+	}
+	if rl.IsKeyDown(rl.KeyS) && menu.cam.Zoom*float32(menu.texture.Height) > menu.target.Height {
+		menu.cam.Target.Y += 6.5 / menu.cam.Zoom
+		if float32(menu.texture.Height)-menu.cam.Target.Y < menu.tol.Y {
+			menu.cam.Target.Y = float32(menu.texture.Height) - menu.tol.Y
+		}
+	}
+	if rl.IsKeyDown(rl.KeyDown) && menu.cam.Zoom > 0.1 {
+		menu.cam.Zoom -= 0.03125
+		menu.tol = rl.Vector2{Y: menu.cam.Offset.Y / menu.cam.Zoom, X: menu.cam.Offset.X / menu.cam.Zoom}
+		if menu.tol.Y > float32(menu.texture.Height)/2 {
+			menu.cam.Target.Y = float32(menu.texture.Height) / 2
+		} else if menu.cam.Target.Y < menu.tol.Y {
+			menu.cam.Target.Y = menu.tol.Y
+		} else if float32(menu.texture.Height)-menu.cam.Target.Y < menu.tol.Y {
+			menu.cam.Target.Y = float32(menu.texture.Height) - menu.tol.Y
+		}
+		if menu.tol.X > float32(menu.texture.Width)/2 {
+			menu.cam.Target.X = float32(menu.texture.Width) / 2
+		} else if menu.cam.Target.X < menu.tol.X {
+			menu.cam.Target.X = menu.tol.X
+		} else if float32(menu.texture.Width)-menu.cam.Target.X < menu.tol.X {
+			menu.cam.Target.X = float32(menu.texture.Width) - menu.tol.X
+		}
+	}
+	if rl.IsKeyDown(rl.KeyUp) && menu.cam.Zoom < 6 {
+		menu.cam.Zoom += 0.03125
+		menu.tol = rl.Vector2{Y: menu.cam.Offset.Y / menu.cam.Zoom, X: menu.cam.Offset.X / menu.cam.Zoom}
+	}
+	if rl.IsWindowResized() {
+		menu.cam.Target = rl.Vector2{Y: float32(menu.texture.Height) / 2, X: float32(menu.texture.Width) / 2}
+		menu.cam.Zoom = getZoomForTexture(menu.texture, menu.target)
+		menu.tol = rl.Vector2{Y: menu.cam.Offset.Y / menu.cam.Zoom, X: menu.cam.Offset.X / menu.cam.Zoom}
+	}
+	return LOOP_CONT
+}
+
+func (menu *OfflineImageMenu) Renderer() {
+	switch menu.state {
 	case IMSTATE_LOADING:
-		rl.DrawTexture(menu.texture, int32(target.X), int32(target.Y), rl.White)
-		x := int32(target.Width)/2 - 50 + int32(target.X)
-		y := int32(target.Height)/2 - 50 + int32(target.Y)
+		rl.BeginMode2D(menu.cam)
+		rl.DrawTexture(menu.texture, 0, 0, rl.White)
+		rl.EndMode2D()
+		x := int32(menu.target.Width)/2 - 50 + int32(menu.target.X)
+		y := int32(menu.target.Height)/2 - 50 + int32(menu.target.Y)
 		rl.DrawRectangle(x, y, 100, 100, rl.RayWhite)
 		if menu.loadingFrame < 10 {
 			rl.DrawRectangle(x+int32(menu.loadingFrame)*5, y, 50, 50, rl.Black)
@@ -168,18 +262,13 @@ func (menu *OfflineImageMenu) Renderer(target rl.Rectangle) LoopStatus {
 		}
 		menu.loadingFrame++
 		menu.loadingFrame %= 32
+	case IMSTATE_ERROR:
+		fallthrough
 	case IMSTATE_NORMAL:
-		if menu.img != nil {
-			if menu.texture.ID > 0 {
-				rl.UnloadTexture(menu.texture)
-			}
-			menu.texture = rl.LoadTextureFromImage(menu.img)
-			rl.UnloadImage(menu.img)
-			menu.img = nil
-		}
-		rl.DrawTexture(menu.texture, int32(target.X), int32(target.Y), rl.White)
+		rl.BeginMode2D(menu.cam)
+		rl.DrawTexture(menu.texture, 0, 0, rl.White)
+		rl.EndMode2D()
 	}
-	return LOOP_CONT
 }
 
 func (menu *OfflineImageMenu) Cleanup() {

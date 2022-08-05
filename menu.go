@@ -5,11 +5,12 @@ import (
 	rg "jlortiz.org/redisav/raygui-go"
 )
 
-const CHOICEMENU_SPACE_BETWEEN_ITEM = 16
+const CHOICEMENU_SPACE_BETWEEN_ITEM = 14
 
 type Menu interface {
 	HandleKey(int32) LoopStatus
-	Renderer(rl.Rectangle) LoopStatus
+	Prerender() LoopStatus
+	Renderer()
 	Cleanup()
 }
 
@@ -26,45 +27,42 @@ type ChoiceMenu struct {
 	Selected int
 	itemList []string
 	scroll   rl.Vector2
+	target   rl.Rectangle
+	height   float32
 }
 
-func NewChoiceMenu(items []string) *ChoiceMenu {
+func NewChoiceMenu(items []string, target rl.Rectangle) *ChoiceMenu {
 	menu := new(ChoiceMenu)
 	menu.itemList = items
+	menu.target = target
+	menu.height = float32(len(items) * (TEXT_SIZE + CHOICEMENU_SPACE_BETWEEN_ITEM))
 	return menu
 }
 
-func (cm *ChoiceMenu) Renderer(target rl.Rectangle) LoopStatus {
-	bigger := len(cm.itemList)*(int(font.BaseSize)+CHOICEMENU_SPACE_BETWEEN_ITEM) > int(target.Height)
-	if bigger {
-		view := rg.GuiScrollPanel(target, rl.Rectangle{Height: float32(len(cm.itemList) * (int(font.BaseSize) + CHOICEMENU_SPACE_BETWEEN_ITEM)), Width: target.Width - 16}, &cm.scroll)
+func (cm *ChoiceMenu) Renderer() {
+	if cm.height > cm.target.Height {
+		view := rg.GuiScrollPanel(cm.target, rl.Rectangle{Height: cm.height, Width: cm.target.Width - 16}, &cm.scroll)
 		view2 := view.ToInt32()
 		rl.BeginScissorMode(view2.X, view2.Y, view2.Width, view2.Height)
-		target.Width -= 10
-		target.X += 5
+		cm.target.Width -= 10
+	} else {
+		rl.DrawRectangle(int32(cm.target.X), int32(cm.target.Y), int32(cm.target.Width), int32(cm.height), rl.RayWhite)
 	}
 
 	for i, x := range cm.itemList {
-		rg.GuiButton(rl.Rectangle{X: target.X + cm.scroll.X, Y: target.Y + cm.scroll.Y + float32(i)*(float32(font.BaseSize)+CHOICEMENU_SPACE_BETWEEN_ITEM), Width: target.Width - 10, Height: float32(font.BaseSize)}, x)
+		rg.GuiButton(rl.Rectangle{X: cm.target.X + 5 + cm.scroll.X, Y: cm.target.Y + cm.scroll.Y + float32(i)*(TEXT_SIZE+CHOICEMENU_SPACE_BETWEEN_ITEM) + CHOICEMENU_SPACE_BETWEEN_ITEM/2, Width: cm.target.Width - 10, Height: TEXT_SIZE + 2}, x)
 	}
 
-	if bigger {
+	if cm.height > cm.target.Height {
 		rl.EndScissorMode()
+		cm.target.Width += 10
 	}
 	// DEBUG
-	// rl.DrawRectangleLinesEx(rl.Rectangle{X: target.X - 5, Y: target.Y - 5, Width: target.Width + 10, Height: target.Height + 10}, 5, rl.Magenta)
-	return LOOP_CONT
+	// rl.DrawRectangleLinesEx(rl.Rectangle{X: cm.target.X - 5, Y: cm.target.Y - 5, Width: cm.target.Width + 10, Height: cm.target.Height + 10}, 5, rl.Magenta)
 }
 
-func (cm *ChoiceMenu) SuggestWidth() float32 {
-	var longest string
-	for _, x := range cm.itemList {
-		if len(x) > len(longest) {
-			longest = x
-		}
-	}
-	vec := rl.MeasureTextEx(font, longest, float32(font.BaseSize), 0)
-	return vec.X * 1.5
+func (cm *ChoiceMenu) Prerender() LoopStatus {
+	return LOOP_CONT
 }
 
 func (cm *ChoiceMenu) HandleKey(keycode int32) LoopStatus {
