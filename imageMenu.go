@@ -24,7 +24,7 @@ type OfflineImageMenu struct {
 	cam          rl.Camera2D
 	tol          rl.Vector2
 	tempSel      int
-	// ffmpeg *void
+	ffmpeg       *ffmpegReader
 }
 
 type imageMenuState int
@@ -67,14 +67,14 @@ func NewOfflineImageMenu(fldr string, target rl.Rectangle) (*OfflineImageMenu, e
 				continue
 			}
 			switch strings.ToLower(v.Name()[ind+1:]) {
-			// case "mp4":
-			// 	fallthrough
-			// case "webm":
-			// 	fallthrough
-			// case "gif":
-			// 	fallthrough
-			// case "mov":
-			// 	fallthrough
+			case "mp4":
+				fallthrough
+			case "webm":
+				fallthrough
+			case "gif":
+				fallthrough
+			case "mov":
+				fallthrough
 			case "bmp":
 				fallthrough
 			case "jpg":
@@ -111,6 +111,10 @@ func (menu *OfflineImageMenu) loadImage() LoopStatus {
 	if len(menu.itemList) == 0 {
 		return LOOP_EXIT
 	}
+	if menu.ffmpeg != nil {
+		menu.ffmpeg.Destroy()
+		menu.ffmpeg = nil
+	}
 	menu.state = IMSTATE_LOADING
 	go func() {
 		_, err := os.Stat(menu.fldr + string(os.PathSeparator) + menu.itemList[menu.Selected])
@@ -131,15 +135,29 @@ func (menu *OfflineImageMenu) loadImage() LoopStatus {
 			menu.itemList = menu.itemList[:len(menu.itemList)-1]
 			_, err = os.Stat(menu.fldr + string(os.PathSeparator) + menu.itemList[menu.Selected])
 		}
-		menu.img = rl.LoadImage(menu.fldr + string(os.PathSeparator) + menu.itemList[menu.Selected])
-		if menu.img.Height == 0 {
-			text := "Failed to load image?"
-			vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
-			menu.img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
-			rl.ImageDrawTextEx(menu.img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
-			menu.state = IMSTATE_ERRORMINOR
-		} else {
+		ind := strings.LastIndexByte(menu.itemList[menu.Selected], '.')
+		switch strings.ToLower(menu.itemList[menu.Selected][ind+1:]) {
+		case "mp4":
+			fallthrough
+		case "webm":
+			fallthrough
+		case "gif":
+			fallthrough
+		case "mov":
+			menu.ffmpeg = NewFfmpegReader(menu.fldr + string(os.PathSeparator) + menu.itemList[menu.Selected])
+			menu.img = rl.GenImageColor(int(menu.ffmpeg.w), int(menu.ffmpeg.h), rl.Blank)
 			menu.state = IMSTATE_NORMAL
+		default:
+			menu.img = rl.LoadImage(menu.fldr + string(os.PathSeparator) + menu.itemList[menu.Selected])
+			if menu.img.Height == 0 {
+				text := "Failed to load image?"
+				vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
+				menu.img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
+				rl.ImageDrawTextEx(menu.img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
+				menu.state = IMSTATE_ERRORMINOR
+			} else {
+				menu.state = IMSTATE_NORMAL
+			}
 		}
 	}()
 	return LOOP_CONT
@@ -227,6 +245,23 @@ func (menu *OfflineImageMenu) Prerender() LoopStatus {
 		menu.cam.Target = rl.Vector2{Y: float32(menu.texture.Height) / 2, X: float32(menu.texture.Width) / 2}
 		menu.cam.Zoom = getZoomForTexture(menu.texture, menu.target)
 		menu.tol = rl.Vector2{Y: menu.cam.Offset.Y / menu.cam.Zoom, X: menu.cam.Offset.X / menu.cam.Zoom}
+	}
+	if menu.ffmpeg != nil {
+		data, err := menu.ffmpeg.Read()
+		if err != nil {
+			if menu.texture.ID > 0 {
+				rl.UnloadTexture(menu.texture)
+			}
+			menu.texture = drawMessage(err.Error())
+			menu.cam.Target = rl.Vector2{Y: float32(menu.texture.Height) / 2, X: float32(menu.texture.Width) / 2}
+			menu.state = IMSTATE_ERRORMINOR
+			return LOOP_CONT
+		}
+		data2 := make([]color.RGBA, len(data)/3)
+		for i := range data2 {
+			data2[i] = color.RGBA{R: data[i*3], G: data[i*3+1], B: data[i*3+2], A: 255}
+		}
+		rl.UpdateTexture(menu.texture, data2)
 	}
 	if rl.IsKeyDown(rl.KeyA) && menu.cam.Zoom*float32(menu.texture.Width) > menu.target.Width {
 		menu.cam.Target.X -= 6.5 / menu.cam.Zoom
@@ -400,10 +435,21 @@ func (menu *OfflineImageMenu) Renderer() {
 }
 
 func (menu *OfflineImageMenu) Cleanup() {
-	if menu.texture.ID <= 0 {
+	if menu.texture.ID > 0 {
 		rl.UnloadTexture(menu.texture)
 	}
 	if menu.img != nil {
 		rl.UnloadImage(menu.img)
 	}
+	if menu.ffmpeg != nil {
+		menu.ffmpeg.Destroy()
+	}
+}
+
+func (menu *OfflineImageMenu) SetTarget(target rl.Rectangle) {
+	menu.target = target
+	menu.target.Height -= TEXT_SIZE + 10
+	menu.cam.Offset = rl.Vector2{Y: target.Height/2 - 5 - TEXT_SIZE/2, X: target.Width / 2}
+	menu.cam.Zoom = getZoomForTexture(menu.texture, menu.target)
+	menu.tol = rl.Vector2{Y: menu.cam.Offset.Y / menu.cam.Zoom, X: menu.cam.Offset.X / menu.cam.Zoom}
 }

@@ -13,6 +13,7 @@ import (
 )
 
 const TEXT_SIZE = 18
+const FRAME_RATE = 60
 
 func loginHelper() *redditapi.Reddit {
 	data := make([]byte, 256)
@@ -53,6 +54,7 @@ func main() {
 	// NewLazyImageMenu(ls)
 	// red.Logout()
 	rl.SetConfigFlags(rl.FlagVsyncHint)
+	rl.SetConfigFlags(rl.FlagWindowResizable)
 	rl.InitWindow(1024, 768, "rediSav Test Window")
 	finder := sysfont.NewFinder(nil)
 	font = rl.LoadFontEx(finder.Match("Ubuntu").Filename, TEXT_SIZE, nil, 250)
@@ -73,6 +75,9 @@ Outer:
 				break Outer
 			}
 			key = rl.GetKeyPressed()
+		}
+		if rl.IsWindowResized() {
+			menu.SetTarget(rl.Rectangle{Width: float32(rl.GetScreenWidth()), Height: float32(rl.GetScreenHeight())})
 		}
 		menu.Prerender()
 		rl.BeginDrawing()
