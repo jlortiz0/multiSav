@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"image/color"
 	"os"
 	"sort"
 	"strings"
@@ -262,6 +263,20 @@ func (menu *OfflineImageMenu) Prerender() LoopStatus {
 		menu.cam.Zoom += 0.03125
 		menu.tol = rl.Vector2{Y: menu.cam.Offset.Y / menu.cam.Zoom, X: menu.cam.Offset.X / menu.cam.Zoom}
 	}
+	if rl.IsMouseButtonPressed(rl.MouseLeftButton) {
+		v := rl.GetMousePosition()
+		v.X -= menu.target.X
+		v.Y -= menu.target.Y
+		if v.X < menu.target.Width/16 {
+			if rl.CheckCollisionPointCircle(v, rl.Vector2{Y: menu.target.Height / 2}, TEXT_SIZE*2) {
+				menu.HandleKey(rl.KeyLeft)
+			}
+		} else if v.X-menu.target.Width > -menu.target.Width/16 {
+			if rl.CheckCollisionPointCircle(v, rl.NewVector2(menu.target.Width, menu.target.Height/2), TEXT_SIZE*2) {
+				menu.HandleKey(rl.KeyRight)
+			}
+		}
+	}
 	return LOOP_CONT
 }
 
@@ -337,6 +352,37 @@ func (menu *OfflineImageMenu) Renderer() {
 					}
 					menu.loadImage()
 				}
+			}
+		}
+		y := rl.GetMouseY() - int32(menu.target.Y)
+		if y > int32(menu.target.Height)/4 && y-int32(menu.target.Height)/4 < int32(menu.target.Height)/2 {
+			x := rl.GetMouseX() - int32(menu.target.X)
+			if x < int32(menu.target.Width)/8 && menu.Selected > 0 {
+				a := float32(x) - menu.target.Width/16
+				if a < 0 {
+					a = 0
+				} else {
+					a = a / (menu.target.Width / 16) * 255
+				}
+				rl.DrawCircleV(rl.NewVector2(menu.target.X, menu.target.Y+menu.target.Height/2), TEXT_SIZE*2, color.RGBA{250, 250, 250, 255 - uint8(a)})
+				rl.DrawCircleLines(int32(menu.target.X), int32(menu.target.Y+menu.target.Height/2), TEXT_SIZE*2, color.RGBA{A: 255 - uint8(a)})
+				rl.DrawLineEx(rl.Vector2{X: menu.target.X + TEXT_SIZE, Y: menu.target.Y + menu.target.Height/2 - TEXT_SIZE},
+					rl.Vector2{X: menu.target.X + menu.target.Width/128, Y: menu.target.Y + menu.target.Height/2}, TEXT_SIZE/4, color.RGBA{128, 128, 128, 255 - uint8(a)})
+				rl.DrawLineEx(rl.Vector2{X: menu.target.X + menu.target.Width/128, Y: menu.target.Y + menu.target.Height/2},
+					rl.Vector2{X: menu.target.X + TEXT_SIZE, Y: menu.target.Y + menu.target.Height/2 + TEXT_SIZE}, TEXT_SIZE/4, color.RGBA{128, 128, 128, 255 - uint8(a)})
+			} else if x-int32(menu.target.Width) > -int32(menu.target.Width)/8 && menu.Selected+1 < len(menu.itemList) {
+				a := float32(x) - menu.target.Width + menu.target.Width/8
+				if a > menu.target.Width/16 {
+					a = 255
+				} else {
+					a = a / (menu.target.Width / 16) * 255
+				}
+				rl.DrawCircleV(rl.NewVector2(menu.target.X+menu.target.Width, menu.target.Y+menu.target.Height/2), TEXT_SIZE*2, color.RGBA{250, 250, 250, uint8(a)})
+				rl.DrawCircleLines(int32(menu.target.X+menu.target.Width), int32(menu.target.Y+menu.target.Height/2), TEXT_SIZE*2, color.RGBA{A: uint8(a)})
+				rl.DrawLineEx(rl.Vector2{X: menu.target.X + menu.target.Width - TEXT_SIZE, Y: menu.target.Y + menu.target.Height/2 + TEXT_SIZE},
+					rl.Vector2{X: menu.target.X + menu.target.Width - menu.target.Width/128, Y: menu.target.Y + menu.target.Height/2}, TEXT_SIZE/4, color.RGBA{128, 128, 128, uint8(a)})
+				rl.DrawLineEx(rl.Vector2{X: menu.target.X + +menu.target.Width - menu.target.Width/128, Y: menu.target.Y + menu.target.Height/2},
+					rl.Vector2{X: menu.target.X + menu.target.Width - TEXT_SIZE, Y: menu.target.Y + menu.target.Height/2 - TEXT_SIZE}, TEXT_SIZE/4, color.RGBA{128, 128, 128, uint8(a)})
 			}
 		}
 	}
