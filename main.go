@@ -59,7 +59,8 @@ func main() {
 	finder := sysfont.NewFinder(nil)
 	font = rl.LoadFontEx(finder.Match("Ubuntu").Filename, TEXT_SIZE, nil, 250)
 	// menu := NewChoiceMenu([]string{"Hello", "World", "test1", "Sort", "Trash", "Options", "New..."}, rl.Rectangle{X: 100, Y: 200, Height: 200, Width: 500})
-	menu, err := NewOfflineImageMenu("jlortiz_TEST/Sort", rl.Rectangle{Height: 768, Width: 1024})
+	os.Chdir("jlortiz_TEST")
+	menu, err := NewOfflineImageMenu("Sort", rl.Rectangle{Height: 768, Width: 1024})
 	if err != nil {
 		panic(err)
 	}

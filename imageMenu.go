@@ -88,7 +88,8 @@ func NewOfflineImageMenu(fldr string, target rl.Rectangle) (*ImageMenu, error) {
 	}
 	sort.Strings(ls)
 	menu := new(ImageMenu)
-	menu.Producer = OfflineImageProducer{ls, fldr}
+	menu.Producer = &OfflineImageProducer{ls, fldr}
+	rl.SetWindowTitle(menu.Producer.GetTitle())
 	menu.state = IMSTATE_SHOULDLOAD
 	menu.target = target
 	menu.target.Height -= TEXT_SIZE + 10
@@ -119,48 +120,6 @@ func (menu *ImageMenu) loadImage() {
 	}
 	menu.state = IMSTATE_LOADING
 	go func() {
-		// _, err := os.Stat(menu.fldr + string(os.PathSeparator) + menu.itemList[menu.Selected])
-		// for err != nil {
-		// 	if len(menu.itemList) == 1 {
-		// 		menu.state = IMSTATE_SHOULDEXIT
-		// 		menu.itemList = nil
-		// 		return
-		// 	}
-		// 	if menu.Selected == len(menu.itemList)-1 {
-		// 		menu.Selected--
-		// 	} else {
-		// 		copy(menu.itemList[menu.Selected:], menu.itemList[menu.Selected+1:])
-		// 		if menu.prevMoveDir && menu.Selected > 0 {
-		// 			menu.Selected--
-		// 		}
-		// 	}
-		// 	menu.itemList = menu.itemList[:len(menu.itemList)-1]
-		// 	_, err = os.Stat(menu.fldr + string(os.PathSeparator) + menu.itemList[menu.Selected])
-		// }
-		// ind := strings.LastIndexByte(menu.itemList[menu.Selected], '.')
-		// switch strings.ToLower(menu.itemList[menu.Selected][ind+1:]) {
-		// case "mp4":
-		// 	fallthrough
-		// case "webm":
-		// 	fallthrough
-		// case "gif":
-		// 	fallthrough
-		// case "mov":
-		// 	menu.ffmpeg = NewFfmpegReader(menu.fldr + string(os.PathSeparator) + menu.itemList[menu.Selected])
-		// 	menu.img = rl.GenImageColor(int(menu.ffmpeg.w), int(menu.ffmpeg.h), rl.Blank)
-		// 	menu.state = IMSTATE_NORMAL
-		// default:
-		// 	menu.img = rl.LoadImage(menu.fldr + string(os.PathSeparator) + menu.itemList[menu.Selected])
-		// 	if menu.img.Height == 0 {
-		// 		text := "Failed to load image?"
-		// 		vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
-		// 		menu.img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
-		// 		rl.ImageDrawTextEx(menu.img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
-		// 		menu.state = IMSTATE_ERRORMINOR
-		// 	} else {
-		// 		menu.state = IMSTATE_NORMAL
-		// 	}
-		// }
 		menu.fName = menu.Producer.Get(menu.Selected, &menu.img, &menu.ffmpeg)
 		if (menu.img == nil || menu.img.Height == 0) && menu.ffmpeg == nil {
 			if !menu.Producer.BoundsCheck(menu.Selected) {
@@ -222,6 +181,47 @@ func (menu *ImageMenu) HandleKey(keycode int32) LoopStatus {
 		menu.cam.Target = rl.Vector2{Y: float32(menu.texture.Height) / 2, X: float32(menu.texture.Width) / 2}
 		menu.cam.Zoom = getZoomForTexture(menu.texture, menu.target)
 		menu.tol = rl.Vector2{Y: menu.cam.Offset.Y / menu.cam.Zoom, X: menu.cam.Offset.X / menu.cam.Zoom}
+	case rl.KeySpace:
+		fmt.Println(menu.cam.Target, menu.cam.Zoom, menu.tol)
+	default:
+		call := 0
+		state := ARET_AGAIN
+		for state&ARET_AGAIN != 0 {
+			state = menu.Producer.ActionHandler(keycode, menu.Selected, call)
+			if state&ARET_MOVEDOWN != 0 {
+				moveFactor := float32(25)
+				for menu.cam.Target.Y > menu.tol.Y-menu.target.Height-float32(menu.texture.Height) {
+					menu.cam.Target.Y -= moveFactor
+					if moveFactor < menu.target.Height {
+						moveFactor *= 1.18
+					}
+					rl.BeginDrawing()
+					rl.DrawRectangleRec(menu.target, color.RGBA{R: 64, G: 64, B: 64, A: 255})
+					menu.Renderer()
+					rl.EndDrawing()
+				}
+			} else if state&ARET_MOVEUP != 0 {
+				moveFactor := float32(25)
+				for menu.cam.Target.Y < menu.tol.Y+float32(menu.texture.Height) {
+					menu.cam.Target.Y += moveFactor
+					if moveFactor < menu.target.Height {
+						moveFactor *= 1.18
+					}
+					rl.BeginDrawing()
+					rl.DrawRectangleRec(menu.target, color.RGBA{R: 64, G: 64, B: 64, A: 255})
+					menu.Renderer()
+					rl.EndDrawing()
+				}
+			}
+			if state&ARET_CLOSEFFMPEG != 0 && menu.ffmpeg != nil {
+				menu.ffmpeg.Destroy()
+				menu.ffmpeg = nil
+			}
+			if state&ARET_REMOVE != 0 {
+				menu.state = IMSTATE_SHOULDLOAD
+			}
+			call += 1
+		}
 	}
 	return LOOP_CONT
 }
@@ -436,7 +436,7 @@ func (menu *ImageMenu) Renderer() {
 						rl.Vector2{X: menu.target.X + menu.target.Width/128, Y: menu.target.Y + menu.target.Height/2}, TEXT_SIZE/4, color.RGBA{128, 128, 128, 255 - uint8(a)})
 					rl.DrawLineEx(rl.Vector2{X: menu.target.X + menu.target.Width/128, Y: menu.target.Y + menu.target.Height/2},
 						rl.Vector2{X: menu.target.X + TEXT_SIZE, Y: menu.target.Y + menu.target.Height/2 + TEXT_SIZE}, TEXT_SIZE/4, color.RGBA{128, 128, 128, 255 - uint8(a)})
-				} else if x-int32(menu.target.Width) > -int32(menu.target.Width)/8 && menu.Producer.IsLazy() || menu.Selected+1 < menu.Producer.Len() {
+				} else if x-int32(menu.target.Width) > -int32(menu.target.Width)/8 && (menu.Producer.IsLazy() || menu.Selected+1 < menu.Producer.Len()) {
 					a := float32(x) - menu.target.Width + menu.target.Width/8
 					if a > menu.target.Width/16 {
 						a = 255

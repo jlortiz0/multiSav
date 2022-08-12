@@ -1,8 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"os"
+	"os/exec"
 	"strings"
+	"syscall"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -28,7 +31,7 @@ type ImageProducer interface {
 	GetTitle() string
 	// KeyHandler for a producer
 	// Some keys are reserved by the menu and should not be overriden
-	ActionHandler(int) LoopStatus
+	ActionHandler(int32, int, int) ActionRet
 }
 
 // A website where images can be retrived from
@@ -48,26 +51,83 @@ type ImageSite interface {
 	ExtendListing(interface{}) []string
 }
 
+type ActionRet int
+
+const (
+	ARET_NOTHING     ActionRet = 0
+	ARET_MOVEDOWN    ActionRet = 1
+	ARET_MOVEUP      ActionRet = 2
+	ARET_AGAIN       ActionRet = 4
+	ARET_REMOVE      ActionRet = 8
+	ARET_CLOSEFFMPEG ActionRet = 16
+)
+
 type OfflineImageProducer struct {
 	items []string
 	fldr  string
 }
 
-func (OfflineImageProducer) Destroy() {}
+func (*OfflineImageProducer) Destroy() {}
 
-func (OfflineImageProducer) IsLazy() bool { return false }
+func (*OfflineImageProducer) IsLazy() bool { return false }
 
-func (prod OfflineImageProducer) Len() int { return len(prod.items) }
+func (prod *OfflineImageProducer) Len() int { return len(prod.items) }
 
-func (OfflineImageProducer) ActionHandler(int) LoopStatus { return LOOP_CONT }
+func (prod *OfflineImageProducer) ActionHandler(keycode int32, sel int, call int) ActionRet {
+	if keycode == rl.KeyX || keycode == rl.KeyC {
+		if call != 0 {
+			targetFldr := "Sort" + string(os.PathSeparator)
+			if keycode == rl.KeyC {
+				targetFldr = "Trash" + string(os.PathSeparator)
+			}
+			newName := prod.items[sel]
+			if _, err := os.Stat(targetFldr + newName); err == nil {
+				x := -1
+				dLoc := strings.IndexByte(newName, '.')
+				before := newName
+				var after string
+				if dLoc != -1 {
+					before = newName[:dLoc]
+					after = newName[dLoc+1:]
+				}
+				for ; err == nil; _, err = os.Stat(fmt.Sprintf("%s%s_%d.%s", targetFldr, before, x, after)) {
+					x++
+				}
+				newName = fmt.Sprintf("%s_%d.%s", before, x, after)
+			}
+			os.Rename(prod.fldr+string(os.PathSeparator)+prod.items[sel], targetFldr+newName)
+			return ARET_REMOVE
+		} else if keycode == rl.KeyC {
+			if strings.HasSuffix(prod.fldr, "Trash") {
+				return ARET_NOTHING
+			}
+			return ARET_MOVEDOWN | ARET_AGAIN | ARET_CLOSEFFMPEG
+		} else if strings.HasSuffix(prod.fldr, "Sort") {
+			return ARET_NOTHING
+		} else {
+			return ARET_MOVEUP | ARET_AGAIN | ARET_CLOSEFFMPEG
+		}
+	} else if keycode == rl.KeyV && os.PathSeparator == '\\' {
+		exec.Command("rundll32.exe", "url.dll,FileProtocolHandler", prod.fldr+string(os.PathSeparator)+prod.items[sel]).Run()
+	} else if keycode == rl.KeyH && os.PathSeparator == '\\' {
+		cwd, _ := os.Getwd()
+		cmd := exec.Command("explorer", "/select,", fmt.Sprintf("\"%s%c%s%c%s\"", cwd, os.PathSeparator, prod.fldr, os.PathSeparator, prod.items[sel]))
+		cwd = fmt.Sprintf("explorer /select, %s", cmd.Args[2])
+		cmd.SysProcAttr = &syscall.SysProcAttr{CmdLine: cwd}
+		cmd.Run()
+	}
+	return ARET_NOTHING
+}
 
-func (prod OfflineImageProducer) GetTitle() string { return prod.fldr }
+func (prod *OfflineImageProducer) GetTitle() string {
+	return "rediSav - Offline - " + prod.fldr
+}
 
-func (prod OfflineImageProducer) BoundsCheck(i int) bool {
+func (prod *OfflineImageProducer) BoundsCheck(i int) bool {
 	return i >= 0 && i < len(prod.items)
 }
 
-func (prod OfflineImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegReader) string {
+func (prod *OfflineImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegReader) string {
 	if !prod.BoundsCheck(sel) {
 		return ""
 	}
@@ -83,7 +143,7 @@ func (prod OfflineImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRea
 			// 	menu.Selected--
 			// }
 		}
-		prod.items = prod.items[:len(prod.items)-1]
+		prod.items = prod.items[:prod.Len()-1]
 		if sel == prod.Len() {
 			return ""
 		}
