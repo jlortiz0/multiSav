@@ -33,15 +33,26 @@ type submissionListingPayload struct {
 	}
 }
 
-func minInt(a, b int) int {
-	if a < b {
+func minPosInt(a, b int) int {
+	if a < 1 && b < 1 {
+		return 0
+	}
+	if a < 1 {
+		return b
+	}
+	if b < 1 || a < b {
 		return a
 	}
 	return b
 }
 
 func newSubmissionIterator(URL string, red *Reddit, limit int) (*SubmissionIterator, error) {
-	req := red.buildRequest("GET", URL, nilReader)
+	chr := '?'
+	if strings.ContainsRune(URL, '?') {
+		chr = '&'
+	}
+	url := fmt.Sprintf("%s%climit=%d", URL, chr, minPosInt(LISTING_PAGE_LIMIT, limit))
+	req := red.buildRequest("GET", url, nilReader)
 	resp, err := red.Client.Do(req)
 	if err != nil {
 		return nil, err
@@ -77,7 +88,7 @@ func (iter *SubmissionIterator) Next() (*Submission, error) {
 		if strings.ContainsRune(iter.URL, '?') {
 			chr = '&'
 		}
-		url := fmt.Sprintf("%s%cafter=%s&count=%d&limit=%d", iter.URL, chr, iter.lastId, iter.count, minInt(LISTING_PAGE_LIMIT, iter.limit-iter.count))
+		url := fmt.Sprintf("%s%cafter=%s&count=%d&limit=%d", iter.URL, chr, iter.lastId, iter.count, minPosInt(LISTING_PAGE_LIMIT, iter.limit-iter.count))
 		resp, err := iter.Reddit.Client.Do(iter.Reddit.buildRequest("GET", url, nilReader))
 		if err != nil {
 			return nil, err
@@ -119,6 +130,10 @@ func (iter *SubmissionIterator) Count() int {
 	return iter.count
 }
 
+func (iter *SubmissionIterator) Buffered() int {
+	return len(iter.data) - iter.index
+}
+
 type CommentIterator struct {
 	URL    string
 	Reddit *Reddit
@@ -143,7 +158,12 @@ type commentListingPayload struct {
 }
 
 func newCommentIterator(URL string, red *Reddit, limit int) (*CommentIterator, error) {
-	req := red.buildRequest("GET", URL, nilReader)
+	chr := '?'
+	if strings.ContainsRune(URL, '?') {
+		chr = '&'
+	}
+	url := fmt.Sprintf("%s%climit=%d", URL, chr, minPosInt(LISTING_PAGE_LIMIT, limit))
+	req := red.buildRequest("GET", url, nilReader)
 	resp, err := red.Client.Do(req)
 	if err != nil {
 		return nil, err
@@ -179,7 +199,7 @@ func (iter *CommentIterator) Next() (*Comment, error) {
 		if strings.ContainsRune(iter.URL, '?') {
 			chr = '&'
 		}
-		url := fmt.Sprintf("%s%cafter=%s&count=%d&limit=%d", iter.URL, chr, iter.lastId, iter.count, minInt(LISTING_PAGE_LIMIT, iter.limit-iter.count))
+		url := fmt.Sprintf("%s%cafter=%s&count=%d&limit=%d", iter.URL, chr, iter.lastId, iter.count, minPosInt(LISTING_PAGE_LIMIT, iter.limit-iter.count))
 		resp, err := iter.Reddit.Client.Do(iter.Reddit.buildRequest("GET", url, nilReader))
 		if err != nil {
 			return nil, err
@@ -219,4 +239,8 @@ func (iter *CommentIterator) NextRequiresFetch() bool {
 
 func (iter *CommentIterator) Count() int {
 	return iter.count
+}
+
+func (iter *CommentIterator) Buffered() int {
+	return len(iter.data) - iter.index
 }
