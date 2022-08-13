@@ -34,6 +34,20 @@ type ImageProducer interface {
 	ActionHandler(int32, int, int) ActionRet
 }
 
+type ListingInfo struct {
+	// ID, should be identical to index in GetListingInfo slice
+	// id int
+	// User-friendly name
+	name string
+	// Names of arguments (length gives number)
+	args []string
+	// Argument optionality
+	optional *BitVector
+	// If this listing needs to save data in between sessions to work properly
+	// This may be used to implement a listing which dislays all new content since the last time it was viewed
+	persistent bool
+}
+
 // A website where images can be retrived from
 // Might not actually be a site (cough cough LocalFSImageSite)
 type ImageSite interface {
@@ -41,11 +55,12 @@ type ImageSite interface {
 	// Get a list of user-friendly listing types
 	// Different listing types may get images in different ways
 	// If this list has only one item, force the user to use that type
-	GetListingTypeNames() []string
-	// First argument is listing type, second and third arguments are query
-	// Unneeded query arguments may be left blank
+	GetListingInfo() []ListingInfo
+	// First argument is listing type, second argument is slice of parameters
+	// Unneeded parameters may be left blank or ommitted if towards the end
 	// Returns a listing continuance object, which can be used to extend later, and a slice of urls
-	GetListing(int, string, string) (interface{}, []string)
+	// In case of an error, slice will be nil and interface will be an error
+	GetListing(int, []string) (interface{}, []string)
 	// Return further objects from a listing using a continuance object
 	// If the returned slice is empty or nil, the listing has concluded
 	ExtendListing(interface{}) []string

@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"image/color"
 	"os"
 
 	"github.com/adrg/sysfont"
@@ -15,7 +14,7 @@ import (
 const TEXT_SIZE = 18
 const FRAME_RATE = 60
 
-func loginHelper() *redditapi.Reddit {
+func loginHelper() ImageSite {
 	data := make([]byte, 256)
 	f, err := os.Open("redditapi/login.json")
 	if err != nil {
@@ -41,13 +40,23 @@ func loginHelper() *redditapi.Reddit {
 	if err != nil {
 		panic(fmt.Errorf("failed to log in: %s", err.Error()))
 	}
-	return red
+	return &RedditSite{*red}
 }
 
 var font rl.Font
 
 func main() {
-	// red := loginHelper()
+	red := loginHelper()
+	cont, ls := red.GetListing(0, []string{"cats"})
+	for _, v := range ls {
+		fmt.Println(v)
+	}
+	ls = red.ExtendListing(cont)
+	for _, v := range ls {
+		fmt.Println(v)
+	}
+	red.Destroy()
+	return
 	// sub, _ := red.Subreddit("cats")
 	// iter, _ := sub.ListHot(300)
 	// ls := NewLazySubmissionList(iter)
@@ -59,33 +68,33 @@ func main() {
 	finder := sysfont.NewFinder(nil)
 	font = rl.LoadFontEx(finder.Match("Ubuntu").Filename, TEXT_SIZE, nil, 250)
 	// menu := NewChoiceMenu([]string{"Hello", "World", "test1", "Sort", "Trash", "Options", "New..."}, rl.Rectangle{X: 100, Y: 200, Height: 200, Width: 500})
-	os.Chdir("jlortiz_TEST")
-	menu, err := NewOfflineImageMenu("Sort", rl.Rectangle{Height: 768, Width: 1024})
-	if err != nil {
-		panic(err)
-	}
+	// os.Chdir("jlortiz_TEST")
+	// menu, err := NewOfflineImageMenu("Sort", rl.Rectangle{Height: 768, Width: 1024})
+	// if err != nil {
+	// 	panic(err)
+	// }
 	rl.SetExitKey(0)
 	rg.GuiSetFont(font)
 	rg.GuiSetStyle(rg.LABEL, rg.TEXT_COLOR_NORMAL, 0xf5f5f5ff)
 	rg.GuiSetStyle(rg.LABEL, rg.TEXT_ALIGNMENT, rg.TEXT_ALIGN_RIGHT)
-Outer:
-	for !rl.WindowShouldClose() {
-		key := rl.GetKeyPressed()
-		for key != 0 {
-			if menu.HandleKey(key) != LOOP_CONT {
-				break Outer
-			}
-			key = rl.GetKeyPressed()
-		}
-		if rl.IsWindowResized() {
-			menu.SetTarget(rl.Rectangle{Width: float32(rl.GetScreenWidth()), Height: float32(rl.GetScreenHeight())})
-		}
-		menu.Prerender()
-		rl.BeginDrawing()
-		rl.ClearBackground(color.RGBA{R: 64, G: 64, B: 64})
-		menu.Renderer()
-		rl.EndDrawing()
-	}
+	// Outer:
+	// for !rl.WindowShouldClose() {
+	// 	key := rl.GetKeyPressed()
+	// 	for key != 0 {
+	// 		if menu.HandleKey(key) != LOOP_CONT {
+	// 			break Outer
+	// 		}
+	// 		key = rl.GetKeyPressed()
+	// 	}
+	// 	if rl.IsWindowResized() {
+	// 		menu.SetTarget(rl.Rectangle{Width: float32(rl.GetScreenWidth()), Height: float32(rl.GetScreenHeight())})
+	// 	}
+	// 	menu.Prerender()
+	// 	rl.BeginDrawing()
+	// 	rl.ClearBackground(color.RGBA{R: 64, G: 64, B: 64})
+	// 	menu.Renderer()
+	// 	rl.EndDrawing()
+	// }
 	rl.UnloadFont(font)
 	rl.CloseWindow()
 }
