@@ -107,6 +107,18 @@ func NewOfflineImageMenu(fldr string, target rl.Rectangle) (*ImageMenu, error) {
 	return menu, nil
 }
 
+func NewImageMenu(prod ImageProducer, target rl.Rectangle) *ImageMenu {
+	menu := new(ImageMenu)
+	menu.Producer = prod
+	rl.SetWindowTitle(menu.Producer.GetTitle())
+	menu.state = IMSTATE_SHOULDLOAD
+	menu.target = target
+	menu.target.Height -= TEXT_SIZE + 10
+	menu.cam.Offset = rl.Vector2{Y: target.Height/2 - 5 - TEXT_SIZE/2, X: target.Width / 2}
+	menu.cam.Zoom = 1
+	return menu
+}
+
 func (menu *ImageMenu) loadImage() {
 	if menu.Producer.Len() == 0 {
 		if !menu.Producer.IsLazy() || !menu.Producer.BoundsCheck(0) {

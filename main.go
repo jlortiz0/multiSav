@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"image/color"
 	"os"
 
 	"github.com/adrg/sysfont"
@@ -47,16 +48,6 @@ var font rl.Font
 
 func main() {
 	red := loginHelper()
-	cont, ls := red.GetListing(0, []string{"cats"})
-	for _, v := range ls {
-		fmt.Println(v)
-	}
-	ls = red.ExtendListing(cont)
-	for _, v := range ls {
-		fmt.Println(v)
-	}
-	red.Destroy()
-	return
 	// sub, _ := red.Subreddit("cats")
 	// iter, _ := sub.ListHot(300)
 	// ls := NewLazySubmissionList(iter)
@@ -73,30 +64,33 @@ func main() {
 	// if err != nil {
 	// 	panic(err)
 	// }
+	producer := NewBufferedImageProducer(0, []interface{}{"cats"}, red)
+	menu := NewImageMenu(producer, rl.Rectangle{Height: 768, Width: 1024})
 	rl.SetExitKey(0)
 	rg.GuiSetFont(font)
 	rg.GuiSetStyle(rg.LABEL, rg.TEXT_COLOR_NORMAL, 0xf5f5f5ff)
 	rg.GuiSetStyle(rg.LABEL, rg.TEXT_ALIGNMENT, rg.TEXT_ALIGN_RIGHT)
-	// Outer:
-	// for !rl.WindowShouldClose() {
-	// 	key := rl.GetKeyPressed()
-	// 	for key != 0 {
-	// 		if menu.HandleKey(key) != LOOP_CONT {
-	// 			break Outer
-	// 		}
-	// 		key = rl.GetKeyPressed()
-	// 	}
-	// 	if rl.IsWindowResized() {
-	// 		menu.SetTarget(rl.Rectangle{Width: float32(rl.GetScreenWidth()), Height: float32(rl.GetScreenHeight())})
-	// 	}
-	// 	menu.Prerender()
-	// 	rl.BeginDrawing()
-	// 	rl.ClearBackground(color.RGBA{R: 64, G: 64, B: 64})
-	// 	menu.Renderer()
-	// 	rl.EndDrawing()
-	// }
+Outer:
+	for !rl.WindowShouldClose() {
+		key := rl.GetKeyPressed()
+		for key != 0 {
+			if menu.HandleKey(key) != LOOP_CONT {
+				break Outer
+			}
+			key = rl.GetKeyPressed()
+		}
+		if rl.IsWindowResized() {
+			menu.SetTarget(rl.Rectangle{Width: float32(rl.GetScreenWidth()), Height: float32(rl.GetScreenHeight())})
+		}
+		menu.Prerender()
+		rl.BeginDrawing()
+		rl.ClearBackground(color.RGBA{R: 64, G: 64, B: 64})
+		menu.Renderer()
+		rl.EndDrawing()
+	}
 	rl.UnloadFont(font)
 	rl.CloseWindow()
+	red.Destroy()
 }
 
 func drawMessage(text string) rl.Texture2D {

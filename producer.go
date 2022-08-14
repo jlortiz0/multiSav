@@ -34,15 +34,31 @@ type ImageProducer interface {
 	ActionHandler(int32, int, int) ActionRet
 }
 
+type ListingArgumentType int
+
+const (
+	LARGTYPE_STRING ListingArgumentType = iota
+	LARGTYPE_INT
+	LARGTYPE_TIME
+	LARGTYPE_BOOL
+	LARGTYPE_FLOAT
+	LARGTYPE_CHAR
+	LARGTYPE_URL
+)
+
+type ListingArgument struct {
+	name     string
+	kind     ListingArgumentType
+	optional bool
+}
+
 type ListingInfo struct {
 	// ID, should be identical to index in GetListingInfo slice
 	// id int
 	// User-friendly name
 	name string
 	// Names of arguments (length gives number)
-	args []string
-	// Argument optionality
-	optional *BitVector
+	args []ListingArgument
 	// If this listing needs to save data in between sessions to work properly
 	// This may be used to implement a listing which dislays all new content since the last time it was viewed
 	persistent bool
@@ -60,7 +76,7 @@ type ImageSite interface {
 	// Unneeded parameters may be left blank or ommitted if towards the end
 	// Returns a listing continuance object, which can be used to extend later, and a slice of urls
 	// In case of an error, slice will be nil and interface will be an error
-	GetListing(int, []string) (interface{}, []string)
+	GetListing(int, []interface{}) (interface{}, []string)
 	// Return further objects from a listing using a continuance object
 	// If the returned slice is empty or nil, the listing has concluded
 	ExtendListing(interface{}) []string
