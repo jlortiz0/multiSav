@@ -163,6 +163,16 @@ func (menu *ImageMenu) HandleKey(keycode int32) LoopStatus {
 				menu.Selected++
 				menu.state = IMSTATE_SHOULDLOAD
 			}
+		case rl.KeyHome:
+			if menu.Selected != 0 {
+				menu.Selected = 0
+				menu.state = IMSTATE_SHOULDLOAD
+			}
+		case rl.KeyEnd:
+			if menu.Selected != menu.Producer.Len()-1 {
+				menu.Selected = menu.Producer.Len() - 1
+				menu.state = IMSTATE_SHOULDLOAD
+			}
 		}
 	}
 	if menu.state != IMSTATE_NORMAL {
@@ -193,8 +203,6 @@ func (menu *ImageMenu) HandleKey(keycode int32) LoopStatus {
 		menu.cam.Target = rl.Vector2{Y: float32(menu.texture.Height) / 2, X: float32(menu.texture.Width) / 2}
 		menu.cam.Zoom = getZoomForTexture(menu.texture, menu.target)
 		menu.tol = rl.Vector2{Y: menu.cam.Offset.Y / menu.cam.Zoom, X: menu.cam.Offset.X / menu.cam.Zoom}
-	case rl.KeySpace:
-		fmt.Println(menu.cam.Target, menu.cam.Zoom, menu.tol)
 	default:
 		call := 0
 		state := ARET_AGAIN
