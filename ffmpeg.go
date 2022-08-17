@@ -54,6 +54,24 @@ func NewFfmpegReader(path string) *ffmpegReader {
 	return ffmpeg
 }
 
+func NewFfmpegReaderKnownSize(path string, x, y int32) *ffmpegReader {
+	ffmpeg := new(ffmpegReader)
+	fps := strconv.FormatInt(FRAME_RATE, 10)
+	ffmpeg.Cmd = exec.Command("ffmpeg", "-stream_loop", "-1", "-i", path, "-r", fps,
+		"-pix_fmt", "rgb24", "-vcodec", "rawvideo", "-f", "image2pipe", "-loglevel", "warning", "pipe:1")
+	f, err := ffmpeg.StdoutPipe()
+	if err != nil {
+		panic(err)
+	}
+	ffmpeg.Stderr = os.Stderr
+	ffmpeg.stdoutCloser = f.Close
+	ffmpeg.bufReader = bufio.NewReader(f)
+	ffmpeg.h, ffmpeg.w = y, x
+	ffmpeg.bytesToRead = ffmpeg.h * ffmpeg.w * 3
+	ffmpeg.Start()
+	return ffmpeg
+}
+
 func (ffmpeg *ffmpegReader) Destroy() error {
 	ffmpeg.stdoutCloser()
 	err := ffmpeg.Process.Kill()

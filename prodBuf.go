@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -11,10 +12,9 @@ import (
 
 const BIP_BUFBEFORE = 5
 const BIP_BUFAFTER = 5
-const BIP_BUFLOAD = true
 
 type BufferedImageProducer struct {
-	items     []string
+	items     []ImageEntry
 	listing   interface{}
 	site      ImageSite
 	selSender chan int
@@ -42,6 +42,9 @@ func NewBufferedImageProducer(kind int, args []interface{}, site ImageSite) *Buf
 	buf := new(BufferedImageProducer)
 	buf.site = site
 	buf.listing, buf.items = site.GetListing(kind, args)
+	if buf.items == nil {
+		panic(buf.listing.(error))
+	}
 	buf.lazy = len(buf.items) != 0
 	buf.buffer = make([]*rl.Image, BIP_BUFAFTER+BIP_BUFBEFORE+1)
 	buf.selSender = make(chan int, 3)
@@ -81,7 +84,7 @@ func NewBufferedImageProducer(kind int, args []interface{}, site ImageSite) *Buf
 				if sel+i-BIP_BUFBEFORE < 0 || buf.buffer[i] != nil || sel+i-BIP_BUFBEFORE+1 >= len(buf.items) {
 					continue
 				}
-				url := buf.items[sel+i-BIP_BUFBEFORE]
+				url := buf.items[sel+i-BIP_BUFBEFORE].GetURL()
 				ind := strings.LastIndexByte(url, '.')
 				if ind == -1 {
 					continue
@@ -130,7 +133,7 @@ func (buf *BufferedImageProducer) GetTitle() string {
 
 func (buf *BufferedImageProducer) ActionHandler(key int32, sel int, call int) ActionRet {
 	if key == rl.KeyV {
-		browser.OpenURL(buf.items[sel])
+		browser.OpenURL(buf.items[sel].GetURL())
 	}
 	return ARET_NOTHING
 }
@@ -148,8 +151,40 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 			buf.extending = false
 		}()
 	}
-	ind := strings.LastIndexByte(buf.items[sel], '.')
-	ext := strings.ToLower(buf.items[sel][ind:])
+	switch buf.items[sel].GetType() {
+	case IETYPE_GALLERY:
+		data := buf.items[sel].GetGalleryInfo()
+		if sel+1 != len(buf.items) {
+			buf.items = append(buf.items[:sel+len(data)-1], buf.items[sel:]...)
+			for i, x := range data {
+				buf.items[sel+i] = x
+			}
+			for i := maxint(BIP_BUFBEFORE, len(buf.buffer)-len(data)); i < len(buf.buffer); i++ {
+				if buf.buffer[i] != nil {
+					rl.UnloadImage(buf.buffer[i])
+				}
+			}
+			copy(buf.buffer[BIP_BUFBEFORE+minint(len(data), BIP_BUFAFTER+1):], buf.buffer[BIP_BUFBEFORE:])
+			for i := 0; i < minint(len(data), BIP_BUFAFTER+1); i++ {
+				buf.buffer[i+BIP_BUFBEFORE] = nil
+			}
+		} else {
+			buf.items = append(buf.items, data...)
+		}
+	case IETYPE_TEXT:
+		text := buf.items[sel].GetText()
+		vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
+		*img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
+		rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
+		return buf.items[sel].GetName()
+	}
+	url := buf.items[sel].GetURL()
+	ind := strings.LastIndexByte(url, '.')
+	if ind == -1 {
+		fmt.Println(buf.items[sel].GetName(), buf.items[sel].GetType())
+		panic(url)
+	}
+	ext := strings.ToLower(url[ind:])
 	buf.selSender <- sel
 	<-buf.selRecv
 	switch ext[1:] {
@@ -162,7 +197,12 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 	case "gifv":
 		fallthrough
 	case "mov":
-		*ffmpeg = NewFfmpegReader(buf.items[sel])
+		x, y := buf.items[sel].GetDimensions()
+		if x != 0 {
+			*ffmpeg = NewFfmpegReaderKnownSize(url, int32(x), int32(y))
+		} else {
+			*ffmpeg = NewFfmpegReader(url)
+		}
 		*img = rl.GenImageColor(int((*ffmpeg).w), int((*ffmpeg).h), rl.Blank)
 	case "png":
 		fallthrough
@@ -174,13 +214,13 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 			*img = rl.ImageCopy(tmp)
 			break
 		}
-		resp, err := http.Get(buf.items[sel])
+		resp, err := http.Get(url)
 		if err != nil {
 			text := err.Error()
 			vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
 			*img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
 			rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
-			return "\\/err" + buf.items[sel]
+			return "\\/err" + buf.items[sel].GetName()
 		}
 		// f, _ := os.OpenFile("out.dat", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 		// defer f.Close()
@@ -191,7 +231,7 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 			vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
 			*img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
 			rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
-			return "\\/err" + buf.items[sel]
+			return "\\/err" + buf.items[sel].GetName()
 		}
 		*img = rl.LoadImageFromMemory(ext, data, int32(len(data)))
 		if (*img).Height == 0 {
@@ -199,14 +239,16 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 			vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
 			*img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
 			rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
-			return "\\/err" + buf.items[sel]
+			return "\\/err" + buf.items[sel].GetName()
 		}
 	default:
 		text := "Image format not supported"
 		vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
 		*img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
 		rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
-		return "\\/err" + buf.items[sel]
+		fmt.Println(url, ext, buf.items[sel].GetType())
+		fmt.Println(buf.items[sel].(*RedditImageEntry).Gallery_data, buf.items[sel].(*RedditImageEntry).Is_gallery)
+		return "\\/err" + buf.items[sel].GetName()
 	}
-	return buf.items[sel]
+	return buf.items[sel].GetName()
 }

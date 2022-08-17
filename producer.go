@@ -76,10 +76,30 @@ type ImageSite interface {
 	// Unneeded parameters may be left blank or ommitted if towards the end
 	// Returns a listing continuance object, which can be used to extend later, and a slice of urls
 	// In case of an error, slice will be nil and interface will be an error
-	GetListing(int, []interface{}) (interface{}, []string)
+	GetListing(int, []interface{}) (interface{}, []ImageEntry)
 	// Return further objects from a listing using a continuance object
 	// If the returned slice is empty or nil, the listing has concluded
-	ExtendListing(interface{}) []string
+	ExtendListing(interface{}) []ImageEntry
+}
+
+type ImageEntryType int
+
+const (
+	IETYPE_REGULAR ImageEntryType = iota
+	IETYPE_ANIMATED
+	IETYPE_TEXT
+	IETYPE_GALLERY
+	IETYPE_WEBPAGE
+	IETYPE_NONE
+)
+
+type ImageEntry interface {
+	GetName() string
+	GetURL() string
+	GetText() string
+	GetGalleryInfo() []ImageEntry
+	GetType() ImageEntryType
+	GetDimensions() (int, int)
 }
 
 type ActionRet int
@@ -203,3 +223,22 @@ func (prod *OfflineImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 	}
 	return prod.items[sel]
 }
+
+type DummyImageEntry struct {
+	name string
+	url  string
+	kind ImageEntryType
+	x, y int
+}
+
+func (ie *DummyImageEntry) GetType() ImageEntryType { return ie.kind }
+
+func (*DummyImageEntry) GetGalleryInfo() []ImageEntry { return nil }
+
+func (ie *DummyImageEntry) GetName() string { return ie.name }
+
+func (ie *DummyImageEntry) GetURL() string { return ie.url }
+
+func (*DummyImageEntry) GetText() string { return "" }
+
+func (ie *DummyImageEntry) GetDimensions() (int, int) { return ie.x, ie.y }

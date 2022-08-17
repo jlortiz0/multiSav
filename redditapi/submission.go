@@ -33,7 +33,32 @@ type Submission struct {
 	URL             string
 	Upvote_ratio    float32
 	Name            string
-	reddit          *Reddit
+	Gallery_data    struct {
+		Items []struct {
+			Media_id string
+			// ID int
+		}
+	}
+	Media_metadata map[string]struct {
+		M string
+		S struct {
+			X, Y int
+			U    string
+			Mp4  string
+			Gif  string
+		}
+	}
+	Preview struct {
+		Images []struct {
+			ID     string
+			Source struct {
+				URL           string
+				Width, Height int
+			}
+		}
+	}
+	Crosspost_parent_list []*Submission
+	reddit                *Reddit
 }
 
 func (red *Reddit) Submission(id string) (*Submission, error) {

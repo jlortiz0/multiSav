@@ -36,7 +36,7 @@ func loginHelper() ImageSite {
 	if err != nil {
 		panic(fmt.Errorf("failed to decode login data: %s", err.Error()))
 	}
-	red := redditapi.NewReddit("linux:org.jlortiz.test.GolangRedditAPI:v0.0.1 (by /u/jlortiz)", fields.Id, fields.Secret)
+	red := redditapi.NewReddit("linux:org.jlortiz.test.GolangRedditAPI:v0.2.1 (by /u/jlortiz)", fields.Id, fields.Secret)
 	err = red.Login(fields.Login, fields.Password)
 	if err != nil {
 		panic(fmt.Errorf("failed to log in: %s", err.Error()))
@@ -64,7 +64,7 @@ func main() {
 	// if err != nil {
 	// 	panic(err)
 	// }
-	producer := NewBufferedImageProducer(0, []interface{}{"cats"}, red)
+	producer := NewBufferedImageProducer(0, []interface{}{"gifs"}, red)
 	menu := NewImageMenu(producer, rl.Rectangle{Height: 768, Width: 1024})
 	rl.SetExitKey(0)
 	rg.GuiSetFont(font)
