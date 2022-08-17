@@ -25,6 +25,7 @@ type ImageMenu struct {
 	tempSel      int
 	ffmpeg       *ffmpegReader
 	fName        string
+	ffmpegData   chan []color.RGBA
 }
 
 type imageMenuState int
@@ -129,6 +130,8 @@ func (menu *ImageMenu) loadImage() {
 	if menu.ffmpeg != nil {
 		menu.ffmpeg.Destroy()
 		menu.ffmpeg = nil
+		for range menu.ffmpegData {
+		}
 	}
 	menu.state = IMSTATE_LOADING
 	go func() {
@@ -144,6 +147,29 @@ func (menu *ImageMenu) loadImage() {
 		} else {
 			menu.state = IMSTATE_NORMAL
 		}
+		if menu.ffmpeg == nil {
+			return
+		}
+		menu.ffmpegData = make(chan []color.RGBA)
+		for menu.ffmpeg != nil {
+			data, err := menu.ffmpeg.Read()
+			if err != nil {
+				menu.ffmpeg.Destroy()
+				menu.ffmpeg = nil
+				text := err.Error()
+				vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
+				menu.img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
+				rl.ImageDrawTextEx(menu.img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
+				menu.state = IMSTATE_ERRORMINOR
+				break
+			}
+			data2 := make([]color.RGBA, len(data)/3)
+			for i := range data2 {
+				data2[i] = color.RGBA{R: data[i*3], G: data[i*3+1], B: data[i*3+2], A: 255}
+			}
+			menu.ffmpegData <- data2
+		}
+		close(menu.ffmpegData)
 	}()
 }
 
@@ -284,22 +310,10 @@ func (menu *ImageMenu) Prerender() LoopStatus {
 		menu.cam.Zoom = getZoomForTexture(menu.texture, menu.target)
 		menu.tol = rl.Vector2{Y: menu.cam.Offset.Y / menu.cam.Zoom, X: menu.cam.Offset.X / menu.cam.Zoom}
 	}
-	if menu.ffmpeg != nil {
-		data, err := menu.ffmpeg.Read()
-		if err != nil {
-			if menu.texture.ID > 0 {
-				rl.UnloadTexture(menu.texture)
-			}
-			menu.texture = drawMessage(err.Error())
-			menu.cam.Target = rl.Vector2{Y: float32(menu.texture.Height) / 2, X: float32(menu.texture.Width) / 2}
-			menu.state = IMSTATE_ERRORMINOR
-			return LOOP_CONT
-		}
-		data2 := make([]color.RGBA, len(data)/3)
-		for i := range data2 {
-			data2[i] = color.RGBA{R: data[i*3], G: data[i*3+1], B: data[i*3+2], A: 255}
-		}
-		rl.UpdateTexture(menu.texture, data2)
+	select {
+	case data := <-menu.ffmpegData:
+		rl.UpdateTexture(menu.texture, data)
+	default:
 	}
 	if rl.IsKeyDown(rl.KeyA) && menu.cam.Zoom*float32(menu.texture.Width) > menu.target.Width {
 		menu.cam.Target.X -= 6.5 / menu.cam.Zoom

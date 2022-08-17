@@ -203,7 +203,13 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 		} else {
 			*ffmpeg = NewFfmpegReader(url)
 		}
-		*img = rl.GenImageColor(int((*ffmpeg).w), int((*ffmpeg).h), rl.Blank)
+		tmp := buf.buffer[BIP_BUFBEFORE]
+		if tmp != nil {
+			*img = rl.ImageCopy(tmp)
+		} else {
+			s := minint(int((*ffmpeg).w), int((*ffmpeg).h))
+			*img = rl.GenImageChecked(int((*ffmpeg).w), int((*ffmpeg).h), s/16, s/16, rl.Magenta, rl.Black)
+		}
 	case "png":
 		fallthrough
 	case "jpg":
@@ -242,12 +248,10 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 			return "\\/err" + buf.items[sel].GetName()
 		}
 	default:
-		text := "Image format not supported"
+		text := "Image format not supported\n" + url
 		vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
 		*img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
 		rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
-		fmt.Println(url, ext, buf.items[sel].GetType())
-		fmt.Println(buf.items[sel].(*RedditImageEntry).Gallery_data, buf.items[sel].(*RedditImageEntry).Is_gallery)
 		return "\\/err" + buf.items[sel].GetName()
 	}
 	return buf.items[sel].GetName()

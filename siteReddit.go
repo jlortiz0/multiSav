@@ -142,8 +142,45 @@ func (red *RedditImageEntry) GetURL() string {
 	return red.URL
 }
 
+const RIE_LINE_BREAK_CHARS = 100
+const RIE_LINE_BREAK_TOLERANCE = 10
+
 func (red *RedditImageEntry) GetText() string {
-	return red.Selftext
+	s := red.Selftext
+	s2 := new(strings.Builder)
+	for len(s) > RIE_LINE_BREAK_CHARS+RIE_LINE_BREAK_TOLERANCE {
+		ind := strings.IndexByte(s, '\n')
+		if ind != -1 && ind < RIE_LINE_BREAK_CHARS {
+			s2.WriteString(s[:ind+1])
+			s = s[ind+1:]
+			continue
+		}
+		ind = strings.IndexAny(s[RIE_LINE_BREAK_CHARS-RIE_LINE_BREAK_TOLERANCE:RIE_LINE_BREAK_CHARS], " \t-\r")
+		if ind != -1 {
+			s2.WriteString(s[:RIE_LINE_BREAK_CHARS-RIE_LINE_BREAK_TOLERANCE+ind])
+			s2.WriteByte('\n')
+			s = s[RIE_LINE_BREAK_CHARS-RIE_LINE_BREAK_TOLERANCE+ind:]
+			if s[0] != '-' {
+				s = s[1:]
+			}
+		} else {
+			ind = strings.IndexAny(s[RIE_LINE_BREAK_CHARS:RIE_LINE_BREAK_CHARS+RIE_LINE_BREAK_TOLERANCE], " \t-\r")
+			if ind != -1 {
+				s2.WriteString(s[:RIE_LINE_BREAK_CHARS+ind])
+				s2.WriteByte('\n')
+				s = s[RIE_LINE_BREAK_CHARS+ind:]
+				if s[0] != '-' {
+					s = s[1:]
+				}
+			} else {
+				s2.WriteString(s[:RIE_LINE_BREAK_CHARS])
+				s2.WriteByte('\n')
+				s = s[RIE_LINE_BREAK_CHARS:]
+			}
+		}
+	}
+	s2.WriteString(s)
+	return s2.String()
 }
 
 func (red *RedditImageEntry) GetDimensions() (int, int) {
