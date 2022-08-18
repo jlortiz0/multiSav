@@ -100,6 +100,7 @@ type ImageEntry interface {
 	GetGalleryInfo() []ImageEntry
 	GetType() ImageEntryType
 	GetDimensions() (int, int)
+	GetPostURL() string
 }
 
 type ActionRet int
@@ -225,10 +226,11 @@ func (prod *OfflineImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 }
 
 type DummyImageEntry struct {
-	name string
-	url  string
-	kind ImageEntryType
-	x, y int
+	name    string
+	url     string
+	kind    ImageEntryType
+	x, y    int
+	postURL string
 }
 
 func (ie *DummyImageEntry) GetType() ImageEntryType { return ie.kind }
@@ -242,3 +244,5 @@ func (ie *DummyImageEntry) GetURL() string { return ie.url }
 func (*DummyImageEntry) GetText() string { return "" }
 
 func (ie *DummyImageEntry) GetDimensions() (int, int) { return ie.x, ie.y }
+
+func (ie *DummyImageEntry) GetPostURL() string { return ie.postURL }

@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 
+	rl "github.com/gen2brain/raylib-go/raylib"
 	"jlortiz.org/redisav/redditapi"
 )
 
@@ -30,11 +32,18 @@ func (red *RedditSite) GetListingInfo() []ListingInfo {
 				{
 					name: "Subreddit",
 				},
+				{
+					name: "Track Last",
+					kind: LARGTYPE_BOOL,
+				},
 			},
+			persistent: true,
 		},
 		{
 			name: "New: all",
-			args: nil,
+		},
+		{
+			name: "Saved",
 		},
 	}
 }
@@ -51,6 +60,8 @@ func (red *RedditSite) GetListing(kind int, args []interface{}) (interface{}, []
 		}
 	case 1:
 		iter, err = red.ListNew(0)
+	case 2:
+		iter, err = red.Self().ListSaved(0)
 	}
 	if err != nil {
 		return err, nil
@@ -85,6 +96,9 @@ func (red *RedditSite) ExtendListing(cont interface{}) []ImageEntry {
 			if len(x.Crosspost_parent_list) != 0 {
 				x = x.Crosspost_parent_list[len(x.Crosspost_parent_list)-1]
 			}
+			if strings.HasSuffix(x.URL, ".gifv") {
+				x.URL = x.URL[:len(x.URL)-1]
+			}
 			data = append(data, &RedditImageEntry{*x})
 		}
 	}
@@ -113,7 +127,8 @@ func (red *RedditImageEntry) GetGalleryInfo() []ImageEntry {
 		return nil
 	}
 	data := make([]ImageEntry, 0, len(red.Media_metadata))
-	for _, s := range red.Gallery_data.Items {
+	perma := "https://reddit.com" + red.Permalink
+	for i, s := range red.Gallery_data.Items {
 		x := red.Media_metadata[s.Media_id]
 		if x.S.U == "" {
 			x.S.U = x.S.Mp4
@@ -126,7 +141,7 @@ func (red *RedditImageEntry) GetGalleryInfo() []ImageEntry {
 		if ind != -1 {
 			x.S.U = x.S.U[:ind]
 		}
-		data = append(data, &DummyImageEntry{name: "whatever", url: x.S.U, kind: IETYPE_REGULAR, x: x.S.X, y: x.S.Y})
+		data = append(data, &DummyImageEntry{name: fmt.Sprintf("%s (%d/%d)", red.Title, i+1, len(red.Gallery_data.Items)), url: x.S.U, kind: IETYPE_REGULAR, x: x.S.X, y: x.S.Y, postURL: perma})
 	}
 	return data
 }
@@ -193,4 +208,26 @@ func (red *RedditImageEntry) GetDimensions() (int, int) {
 		}
 	}
 	return 0, 0
+}
+
+func (red *RedditImageEntry) GetPostURL() string {
+	return "https://reddit.com" + red.Permalink
+}
+
+type RedditProducer struct {
+	BufferedImageProducer
+	site *RedditSite
+	kind int
+}
+
+func NewRedditProducer(site *RedditSite, kind int, args []interface{}) *RedditProducer {
+	return &RedditProducer{*NewBufferedImageProducer(site, kind, args), site, kind}
+}
+
+func (red *RedditProducer) ActionHandler(key int32, sel int, call int) ActionRet {
+	if key == rl.KeyI {
+		red.items[sel].(*RedditImageEntry).Save()
+		return ARET_MOVEUP | ARET_REMOVE
+	}
+	return red.BufferedImageProducer.ActionHandler(key, sel, call)
 }

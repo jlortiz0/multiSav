@@ -38,7 +38,7 @@ func maxint(a, b int) int {
 	return a
 }
 
-func NewBufferedImageProducer(kind int, args []interface{}, site ImageSite) *BufferedImageProducer {
+func NewBufferedImageProducer(site ImageSite, kind int, args []interface{}) *BufferedImageProducer {
 	buf := new(BufferedImageProducer)
 	buf.site = site
 	buf.listing, buf.items = site.GetListing(kind, args)
@@ -134,6 +134,8 @@ func (buf *BufferedImageProducer) GetTitle() string {
 func (buf *BufferedImageProducer) ActionHandler(key int32, sel int, call int) ActionRet {
 	if key == rl.KeyV {
 		browser.OpenURL(buf.items[sel].GetURL())
+	} else if key == rl.KeyH {
+		browser.OpenURL(buf.items[sel].GetPostURL())
 	}
 	return ARET_NOTHING
 }

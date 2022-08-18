@@ -211,7 +211,7 @@ func (menu *ImageMenu) HandleKey(keycode int32) LoopStatus {
 			menu.state = IMSTATE_SHOULDLOAD
 		}
 	case rl.KeyRight:
-		if !menu.Producer.IsLazy() || menu.Selected+1 < menu.Producer.Len() {
+		if menu.Producer.IsLazy() || menu.Selected+1 < menu.Producer.Len() {
 			menu.Selected++
 			menu.state = IMSTATE_SHOULDLOAD
 		}
@@ -312,7 +312,9 @@ func (menu *ImageMenu) Prerender() LoopStatus {
 	}
 	select {
 	case data := <-menu.ffmpegData:
-		rl.UpdateTexture(menu.texture, data)
+		if len(data) > 0 {
+			rl.UpdateTexture(menu.texture, data)
+		}
 	default:
 	}
 	if rl.IsKeyDown(rl.KeyA) && menu.cam.Zoom*float32(menu.texture.Width) > menu.target.Width {

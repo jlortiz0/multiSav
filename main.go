@@ -59,12 +59,15 @@ func main() {
 	finder := sysfont.NewFinder(nil)
 	font = rl.LoadFontEx(finder.Match("Ubuntu").Filename, TEXT_SIZE, nil, 250)
 	// menu := NewChoiceMenu([]string{"Hello", "World", "test1", "Sort", "Trash", "Options", "New..."}, rl.Rectangle{X: 100, Y: 200, Height: 200, Width: 500})
-	// os.Chdir("jlortiz_TEST")
+	if _, err := os.Stat("jlortiz_TEST"); err == nil {
+		os.Chdir("jlortiz_TEST")
+	}
+	os.Mkdir("Downloads", 0700)
 	// menu, err := NewOfflineImageMenu("Sort", rl.Rectangle{Height: 768, Width: 1024})
 	// if err != nil {
 	// 	panic(err)
 	// }
-	producer := NewBufferedImageProducer(0, []interface{}{"gifs"}, red)
+	producer := NewBufferedImageProducer(red, 0, []interface{}{"gifs"})
 	menu := NewImageMenu(producer, rl.Rectangle{Height: 768, Width: 1024})
 	rl.SetExitKey(0)
 	rg.GuiSetFont(font)
