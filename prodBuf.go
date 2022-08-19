@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -136,8 +137,52 @@ func (buf *BufferedImageProducer) ActionHandler(key int32, sel int, call int) Ac
 		browser.OpenURL(buf.items[sel].GetURL())
 	} else if key == rl.KeyH {
 		browser.OpenURL(buf.items[sel].GetPostURL())
+	} else if key == rl.KeyX {
+		name := buf.items[sel].GetURL()
+		ind := strings.IndexByte(name, '?')
+		if ind != -1 {
+			name = name[:ind]
+		}
+		ind = strings.LastIndexByte(name, '/')
+		if ind != -1 {
+			name = name[ind+1:]
+		}
+		name = "Downloads" + string(os.PathSeparator) + name
+		if _, err := os.Stat(name); err == nil {
+			i := 0
+			ind = strings.LastIndexByte(name, '.')
+			ext := name[ind+1:]
+			name = name[:ind]
+			for err == nil {
+				i++
+				_, err = os.Stat(fmt.Sprintf("%s_%d.%s", name, i, ext))
+			}
+			name = fmt.Sprintf("%s_%d.%s", name, i, ext)
+		}
+		if buf.buffer[BIP_BUFBEFORE] == nil {
+			resp, err := http.Get(buf.items[sel].GetURL())
+			if err == nil {
+				f, err := os.OpenFile(name, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0600)
+				if err == nil {
+					io.Copy(f, resp.Body)
+				}
+			}
+		} else {
+			rl.ExportImage(*buf.buffer[BIP_BUFBEFORE], name)
+		}
+		buf.remove(sel)
+		return ARET_MOVEUP | ARET_REMOVE
 	}
 	return ARET_NOTHING
+}
+
+func (buf *BufferedImageProducer) remove(sel int) {
+	if buf.buffer[BIP_BUFBEFORE] != nil {
+		rl.UnloadImage(buf.buffer[BIP_BUFBEFORE])
+	}
+	copy(buf.buffer[BIP_BUFBEFORE:], buf.buffer[BIP_BUFBEFORE+1:])
+	buf.buffer[BIP_BUFAFTER+BIP_BUFBEFORE] = nil
+	copy(buf.items[sel:], buf.items[sel+1:])
 }
 
 func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegReader) string {

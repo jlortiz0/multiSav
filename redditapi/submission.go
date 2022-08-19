@@ -16,6 +16,7 @@ type Submission struct {
 	Created         Timestamp
 	Created_utc     Timestamp
 	Clicked         bool
+	Hidden          bool
 	Is_self         bool
 	Is_video        bool
 	Is_gallery      bool

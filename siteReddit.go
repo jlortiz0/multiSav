@@ -66,17 +66,7 @@ func (red *RedditSite) GetListing(kind int, args []interface{}) (interface{}, []
 	if err != nil {
 		return err, nil
 	}
-	data := make([]ImageEntry, 0, iter.Buffered())
-	for !iter.NextRequiresFetch() {
-		x, err := iter.Next()
-		if err == nil {
-			if len(x.Crosspost_parent_list) != 0 {
-				x = x.Crosspost_parent_list[len(x.Crosspost_parent_list)-1]
-			}
-			data = append(data, &RedditImageEntry{*x})
-		}
-	}
-	return iter, data
+	return iter, red.ExtendListing(iter)
 }
 
 func (red *RedditSite) ExtendListing(cont interface{}) []ImageEntry {
@@ -95,6 +85,9 @@ func (red *RedditSite) ExtendListing(cont interface{}) []ImageEntry {
 		if err == nil {
 			if len(x.Crosspost_parent_list) != 0 {
 				x = x.Crosspost_parent_list[len(x.Crosspost_parent_list)-1]
+			}
+			if x.Hidden {
+				continue
 			}
 			if strings.HasSuffix(x.URL, ".gifv") {
 				x.URL = x.URL[:len(x.URL)-1]
@@ -227,7 +220,12 @@ func NewRedditProducer(site *RedditSite, kind int, args []interface{}) *RedditPr
 func (red *RedditProducer) ActionHandler(key int32, sel int, call int) ActionRet {
 	if key == rl.KeyI {
 		red.items[sel].(*RedditImageEntry).Save()
+		red.remove(sel)
 		return ARET_MOVEUP | ARET_REMOVE
+	} else if key == rl.KeyC {
+		red.items[sel].(*RedditImageEntry).Hide()
+		red.remove(sel)
+		return ARET_MOVEDOWN | ARET_REMOVE
 	}
 	return red.BufferedImageProducer.ActionHandler(key, sel, call)
 }

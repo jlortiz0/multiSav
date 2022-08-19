@@ -67,7 +67,7 @@ func main() {
 	// if err != nil {
 	// 	panic(err)
 	// }
-	producer := NewBufferedImageProducer(red, 0, []interface{}{"gifs"})
+	producer := NewBufferedImageProducer(red, 0, []interface{}{"cats"})
 	menu := NewImageMenu(producer, rl.Rectangle{Height: 768, Width: 1024})
 	rl.SetExitKey(0)
 	rg.GuiSetFont(font)
