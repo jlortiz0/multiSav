@@ -111,6 +111,10 @@ func (iter *SubmissionIterator) Next() (*Submission, error) {
 	if iter.data[iter.index-1].Kind != "t3" {
 		return iter.Next()
 	}
+	iter.data[iter.index-1].Data.reddit = iter.Reddit
+	for _, x := range iter.data[iter.index-1].Data.Crosspost_parent_list {
+		x.reddit = iter.Reddit
+	}
 	return iter.data[iter.index-1].Data, nil
 }
 
@@ -222,6 +226,7 @@ func (iter *CommentIterator) Next() (*Comment, error) {
 	if iter.data[iter.index-1].Kind != "t1" {
 		return iter.Next()
 	}
+	iter.data[iter.index-1].Data.reddit = iter.Reddit
 	return iter.data[iter.index-1].Data, nil
 }
 

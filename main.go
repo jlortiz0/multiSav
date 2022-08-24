@@ -15,7 +15,7 @@ import (
 const TEXT_SIZE = 18
 const FRAME_RATE = 60
 
-func loginHelper() ImageSite {
+func loginHelper() *RedditSite {
 	data := make([]byte, 256)
 	f, err := os.Open("redditapi/login.json")
 	if err != nil {
@@ -67,7 +67,7 @@ func main() {
 	// if err != nil {
 	// 	panic(err)
 	// }
-	producer := NewBufferedImageProducer(red, 0, []interface{}{"cats"})
+	producer := NewRedditProducer(red, 2, nil)
 	menu := NewImageMenu(producer, rl.Rectangle{Height: 768, Width: 1024})
 	rl.SetExitKey(0)
 	rg.GuiSetFont(font)

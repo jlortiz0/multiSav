@@ -166,6 +166,9 @@ func (buf *BufferedImageProducer) ActionHandler(key int32, sel int, call int) Ac
 				if err == nil {
 					io.Copy(f, resp.Body)
 				}
+				f.Close()
+			} else {
+				return ARET_NOTHING
 			}
 		} else {
 			rl.ExportImage(*buf.buffer[BIP_BUFBEFORE], name)
@@ -183,6 +186,7 @@ func (buf *BufferedImageProducer) remove(sel int) {
 	copy(buf.buffer[BIP_BUFBEFORE:], buf.buffer[BIP_BUFBEFORE+1:])
 	buf.buffer[BIP_BUFAFTER+BIP_BUFBEFORE] = nil
 	copy(buf.items[sel:], buf.items[sel+1:])
+	buf.items = buf.items[:len(buf.items)-1]
 }
 
 func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegReader) string {

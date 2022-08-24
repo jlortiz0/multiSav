@@ -41,9 +41,45 @@ func (red *RedditSite) GetListingInfo() []ListingInfo {
 		},
 		{
 			name: "New: all",
+			args: []ListingArgument{
+				{
+					name: "Track Last",
+					kind: LARGTYPE_BOOL,
+				},
+			},
+			persistent: true,
 		},
 		{
 			name: "Saved",
+		},
+		{
+			name: "Search: subreddit",
+			args: []ListingArgument{
+				{
+					name: "Subreddit",
+				},
+				{
+					name: "Search",
+				},
+				{
+					name: "Track Last",
+					kind: LARGTYPE_BOOL,
+				},
+			},
+			persistent: true,
+		},
+		{
+			name: "Search: all",
+			args: []ListingArgument{
+				{
+					name: "Search",
+				},
+				{
+					name: "Track Last",
+					kind: LARGTYPE_BOOL,
+				},
+			},
+			persistent: true,
 		},
 	}
 }
@@ -62,6 +98,14 @@ func (red *RedditSite) GetListing(kind int, args []interface{}) (interface{}, []
 		iter, err = red.ListNew(0)
 	case 2:
 		iter, err = red.Self().ListSaved(0)
+	case 3:
+		var sub *redditapi.Subreddit
+		sub, err = red.Subreddit(args[0].(string))
+		if err == nil {
+			iter, err = sub.Search(0, args[1].(string), "", "")
+		}
+	case 4:
+		// Need to add reddit.Search()
 	}
 	if err != nil {
 		return err, nil
@@ -79,7 +123,7 @@ func (red *RedditSite) ExtendListing(cont interface{}) []ImageEntry {
 		return nil
 	}
 	data := make([]ImageEntry, 1, iter.Buffered()+1)
-	data[0] = &RedditImageEntry{*x}
+	data[0] = &RedditImageEntry{x}
 	for !iter.NextRequiresFetch() {
 		x, err = iter.Next()
 		if err == nil {
@@ -92,14 +136,14 @@ func (red *RedditSite) ExtendListing(cont interface{}) []ImageEntry {
 			if strings.HasSuffix(x.URL, ".gifv") {
 				x.URL = x.URL[:len(x.URL)-1]
 			}
-			data = append(data, &RedditImageEntry{*x})
+			data = append(data, &RedditImageEntry{x})
 		}
 	}
 	return data
 }
 
 type RedditImageEntry struct {
-	redditapi.Submission
+	*redditapi.Submission
 }
 
 func (red *RedditImageEntry) GetType() ImageEntryType {
@@ -208,22 +252,34 @@ func (red *RedditImageEntry) GetPostURL() string {
 }
 
 type RedditProducer struct {
-	BufferedImageProducer
+	*BufferedImageProducer
 	site *RedditSite
 	kind int
 }
 
 func NewRedditProducer(site *RedditSite, kind int, args []interface{}) *RedditProducer {
-	return &RedditProducer{*NewBufferedImageProducer(site, kind, args), site, kind}
+	return &RedditProducer{NewBufferedImageProducer(site, kind, args), site, kind}
 }
 
 func (red *RedditProducer) ActionHandler(key int32, sel int, call int) ActionRet {
-	if key == rl.KeyI {
-		red.items[sel].(*RedditImageEntry).Save()
+	if key == rl.KeyX {
+		if red.kind == 2 {
+			ret := red.BufferedImageProducer.ActionHandler(key, sel, call)
+			if ret&ARET_REMOVE != 0 {
+				red.items[sel].(*RedditImageEntry).Unsave()
+			}
+			return ret
+		} else {
+			red.items[sel].(*RedditImageEntry).Save()
+		}
 		red.remove(sel)
 		return ARET_MOVEUP | ARET_REMOVE
 	} else if key == rl.KeyC {
-		red.items[sel].(*RedditImageEntry).Hide()
+		if red.kind == 2 {
+			red.items[sel].(*RedditImageEntry).Unsave()
+		} else {
+			red.items[sel].(*RedditImageEntry).Hide()
+		}
 		red.remove(sel)
 		return ARET_MOVEDOWN | ARET_REMOVE
 	}

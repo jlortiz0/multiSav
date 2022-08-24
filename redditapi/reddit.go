@@ -155,6 +155,7 @@ func (r *Reddit) Self() *Redditor {
 	data, _ := io.ReadAll(resp.Body)
 	var user Redditor
 	json.Unmarshal(data, &user)
+	user.reddit = r
 	return &user
 }
 
