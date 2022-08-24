@@ -224,25 +224,3 @@ func (prod *OfflineImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 	}
 	return prod.items[sel]
 }
-
-type DummyImageEntry struct {
-	name    string
-	url     string
-	kind    ImageEntryType
-	x, y    int
-	postURL string
-}
-
-func (ie *DummyImageEntry) GetType() ImageEntryType { return ie.kind }
-
-func (*DummyImageEntry) GetGalleryInfo() []ImageEntry { return nil }
-
-func (ie *DummyImageEntry) GetName() string { return ie.name }
-
-func (ie *DummyImageEntry) GetURL() string { return ie.url }
-
-func (*DummyImageEntry) GetText() string { return "" }
-
-func (ie *DummyImageEntry) GetDimensions() (int, int) { return ie.x, ie.y }
-
-func (ie *DummyImageEntry) GetPostURL() string { return ie.postURL }

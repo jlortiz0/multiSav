@@ -164,7 +164,6 @@ func (red *RedditImageEntry) GetGalleryInfo() []ImageEntry {
 		return nil
 	}
 	data := make([]ImageEntry, 0, len(red.Media_metadata))
-	perma := "https://reddit.com" + red.Permalink
 	for i, s := range red.Gallery_data.Items {
 		x := red.Media_metadata[s.Media_id]
 		if x.S.U == "" {
@@ -178,7 +177,7 @@ func (red *RedditImageEntry) GetGalleryInfo() []ImageEntry {
 		if ind != -1 {
 			x.S.U = x.S.U[:ind]
 		}
-		data = append(data, &DummyImageEntry{name: fmt.Sprintf("%s (%d/%d)", red.Title, i+1, len(red.Gallery_data.Items)), url: x.S.U, kind: IETYPE_REGULAR, x: x.S.X, y: x.S.Y, postURL: perma})
+		data = append(data, &RedditGalleryEntry{RedditImageEntry: *red, name: fmt.Sprintf("%s (%d/%d)", red.Title, i+1, len(red.Gallery_data.Items)), url: x.S.U, x: x.S.X, y: x.S.Y})
 	}
 	return data
 }
@@ -251,34 +250,67 @@ func (red *RedditImageEntry) GetPostURL() string {
 	return "https://reddit.com" + red.Permalink
 }
 
+type RedditGalleryEntry struct {
+	RedditImageEntry
+	name string
+	url  string
+	x, y int
+}
+
+func (red *RedditGalleryEntry) GetURL() string {
+	return red.url
+}
+
+func (red *RedditGalleryEntry) GetDimensions() (int, int) {
+	return red.x, red.y
+}
+
+func (red *RedditGalleryEntry) GetName() string {
+	return red.name
+}
+
+func (*RedditGalleryEntry) GetType() ImageEntryType {
+	return IETYPE_REGULAR
+}
+
 type RedditProducer struct {
 	*BufferedImageProducer
 	site *RedditSite
 	kind int
+	args []interface{}
 }
 
 func NewRedditProducer(site *RedditSite, kind int, args []interface{}) *RedditProducer {
-	return &RedditProducer{NewBufferedImageProducer(site, kind, args), site, kind}
+	return &RedditProducer{NewBufferedImageProducer(site, kind, args), site, kind, args}
 }
 
 func (red *RedditProducer) ActionHandler(key int32, sel int, call int) ActionRet {
+	var useful *redditapi.Submission
+	switch v := red.items[sel].(type) {
+	case *RedditImageEntry:
+		useful = v.Submission
+	case *RedditGalleryEntry:
+		useful = v.Submission
+	default:
+		return red.BufferedImageProducer.ActionHandler(key, sel, call)
+	}
 	if key == rl.KeyX {
 		if red.kind == 2 {
 			ret := red.BufferedImageProducer.ActionHandler(key, sel, call)
 			if ret&ARET_REMOVE != 0 {
-				red.items[sel].(*RedditImageEntry).Unsave()
+				useful.Unsave()
 			}
 			return ret
 		} else {
-			red.items[sel].(*RedditImageEntry).Save()
+			useful.Save()
 		}
 		red.remove(sel)
 		return ARET_MOVEUP | ARET_REMOVE
 	} else if key == rl.KeyC {
 		if red.kind == 2 {
-			red.items[sel].(*RedditImageEntry).Unsave()
+			useful.Unsave()
 		} else {
-			red.items[sel].(*RedditImageEntry).Hide()
+			useful.Hide()
 		}
 		red.remove(sel)
 		return ARET_MOVEDOWN | ARET_REMOVE
