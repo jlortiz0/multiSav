@@ -51,9 +51,10 @@ const (
 )
 
 type ListingArgument struct {
-	name     string
-	kind     ListingArgumentType
-	optional bool
+	name string
+	kind ListingArgumentType
+	// If not nil, possible options to select from a drop-down
+	options []interface{}
 }
 
 type ListingInfo struct {

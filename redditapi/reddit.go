@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -144,6 +145,38 @@ func (r *Reddit) buildRequest(method, url string, body io.Reader) *http.Request 
 
 func (r *Reddit) ListNew(limit int) (*SubmissionIterator, error) {
 	return newSubmissionIterator("new", r, limit)
+}
+
+func (r *Reddit) ListHot(limit int) (*SubmissionIterator, error) {
+	return newSubmissionIterator("hot", r, limit)
+}
+
+func (r *Reddit) ListControversial(limit int) (*SubmissionIterator, error) {
+	return newSubmissionIterator("controversial", r, limit)
+}
+
+func (r *Reddit) ListRising(limit int) (*SubmissionIterator, error) {
+	return newSubmissionIterator("rising", r, limit)
+}
+
+// If t not specified, seems to default to "day"
+func (r *Reddit) ListTop(limit int, t string) (*SubmissionIterator, error) {
+	s := "top"
+	if t != "" {
+		s += "?t=" + t
+	}
+	return newSubmissionIterator(s, r, limit)
+}
+
+func (r *Reddit) Search(limit int, q string, sort string, t string) (*SubmissionIterator, error) {
+	s := "search?q=" + url.QueryEscape(q)
+	if t != "" {
+		s += "&t=" + t
+	}
+	if sort != "" {
+		s += "&sort=" + sort
+	}
+	return newSubmissionIterator(s, r, limit)
 }
 
 func (r *Reddit) Self() *Redditor {

@@ -40,8 +40,62 @@ func (red *RedditSite) GetListingInfo() []ListingInfo {
 			persistent: true,
 		},
 		{
-			name: "New: all",
+			name: "Hot: subreddit",
 			args: []ListingArgument{
+				{
+					name: "Subreddit",
+				},
+				{
+					name: "Track Last",
+					kind: LARGTYPE_BOOL,
+				},
+			},
+			persistent: true,
+		},
+		{
+			name: "Rising: subreddit",
+			args: []ListingArgument{
+				{
+					name: "Subreddit",
+				},
+				{
+					name: "Track Last",
+					kind: LARGTYPE_BOOL,
+				},
+			},
+			persistent: true,
+		},
+		{
+			name: "Controversial: subreddit",
+			args: []ListingArgument{
+				{
+					name: "Subreddit",
+				},
+				{
+					name: "Track Last",
+					kind: LARGTYPE_BOOL,
+				},
+			},
+			persistent: true,
+		},
+		{
+			name: "Top: subreddit",
+			args: []ListingArgument{
+				{
+					name: "Subreddit",
+				},
+				{
+					name: "Best of this",
+
+					options: []interface{}{
+						"hour",
+						"day",
+						"week",
+						"month",
+						"year",
+						"all",
+					},
+				},
 				{
 					name: "Track Last",
 					kind: LARGTYPE_BOOL,
@@ -60,6 +114,16 @@ func (red *RedditSite) GetListingInfo() []ListingInfo {
 				},
 				{
 					name: "Search",
+				},
+				{
+					name: "Sort",
+					options: []interface{}{
+						"relevance",
+						"hot",
+						"top",
+						"new",
+						"comments",
+					},
 				},
 				{
 					name: "Track Last",
@@ -95,17 +159,39 @@ func (red *RedditSite) GetListing(kind int, args []interface{}) (interface{}, []
 			iter, err = sub.ListNew(0)
 		}
 	case 1:
-		iter, err = red.ListNew(0)
+		var sub *redditapi.Subreddit
+		sub, err = red.Subreddit(args[0].(string))
+		if err == nil {
+			iter, err = sub.ListHot(0)
+		}
 	case 2:
-		iter, err = red.Self().ListSaved(0)
+		var sub *redditapi.Subreddit
+		sub, err = red.Subreddit(args[0].(string))
+		if err == nil {
+			iter, err = sub.ListRising(0)
+		}
 	case 3:
+		var sub *redditapi.Subreddit
+		sub, err = red.Subreddit(args[0].(string))
+		if err == nil {
+			iter, err = sub.ListControversial(0)
+		}
+	case 4:
+		var sub *redditapi.Subreddit
+		sub, err = red.Subreddit(args[0].(string))
+		if err == nil {
+			iter, err = sub.ListTop(0, args[1].(string))
+		}
+	case 5:
+		iter, err = red.Self().ListSaved(0)
+	case 6:
 		var sub *redditapi.Subreddit
 		sub, err = red.Subreddit(args[0].(string))
 		if err == nil {
 			iter, err = sub.Search(0, args[1].(string), "", "")
 		}
-	case 4:
-		// Need to add reddit.Search()
+	case 7:
+		iter, err = red.Search(0, args[0].(string), "", "")
 	}
 	if err != nil {
 		return err, nil
@@ -330,12 +416,18 @@ func (red *RedditProducer) GetTitle() string {
 	case 0:
 		return "rediSav - Reddit - New: r/" + red.args[0].(string)
 	case 1:
-		return "rediSav - Reddit - New"
+		return "rediSav - Reddit - Hot: r/" + red.args[0].(string)
 	case 2:
-		return "rediSav - Reddit - Saved: u/" + red.site.Self().Name
+		return "rediSav - Reddit - Rising: r/" + red.args[0].(string)
 	case 3:
-		return "rediSav - Reddit - Search: r/" + red.args[0].(string) + " - " + red.args[1].(string)
+		return "rediSav - Reddit - Controversial: r/" + red.args[0].(string)
 	case 4:
+		return "rediSav - Reddit - Top: r/" + red.args[0].(string)
+	case 5:
+		return "rediSav - Reddit - Saved: u/" + red.site.Self().Name
+	case 6:
+		return "rediSav - Reddit - Search: r/" + red.args[0].(string) + " - " + red.args[1].(string)
+	case 7:
 		return "rediSav - Reddit - Search - " + red.args[0].(string)
 	default:
 		return "rediSav - Reddit - Unknown"
