@@ -196,8 +196,7 @@ func (red *RedditImageEntry) GetURL() string {
 const RIE_LINE_BREAK_CHARS = 100
 const RIE_LINE_BREAK_TOLERANCE = 10
 
-func (red *RedditImageEntry) GetText() string {
-	s := red.Selftext
+func wordWrapper(s string) string {
 	s2 := new(strings.Builder)
 	for len(s) > RIE_LINE_BREAK_CHARS+RIE_LINE_BREAK_TOLERANCE {
 		ind := strings.IndexByte(s, '\n')
@@ -232,6 +231,10 @@ func (red *RedditImageEntry) GetText() string {
 	}
 	s2.WriteString(s)
 	return s2.String()
+}
+
+func (red *RedditImageEntry) GetText() string {
+	return wordWrapper(red.Selftext)
 }
 
 func (red *RedditImageEntry) GetDimensions() (int, int) {

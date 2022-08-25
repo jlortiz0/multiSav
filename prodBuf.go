@@ -307,3 +307,7 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 	}
 	return buf.items[sel].GetName()
 }
+
+func (buf *BufferedImageProducer) GetInfo(sel int) string {
+	return buf.items[sel].GetInfo()
+}

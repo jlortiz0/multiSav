@@ -32,6 +32,10 @@ type ImageProducer interface {
 	// KeyHandler for a producer
 	// Some keys are reserved by the menu and should not be overriden
 	ActionHandler(int32, int, int) ActionRet
+	// Get some textual info about the image at the given index
+	// This info will be displayed to the user in a Message
+	// If the returned string is empty, the Message will not be opened
+	GetInfo(int) string
 }
 
 type ListingArgumentType int
@@ -107,12 +111,12 @@ type ImageEntry interface {
 type ActionRet int
 
 const (
-	ARET_NOTHING     ActionRet = 0
-	ARET_MOVEDOWN    ActionRet = 1
-	ARET_MOVEUP      ActionRet = 2
-	ARET_AGAIN       ActionRet = 4
-	ARET_REMOVE      ActionRet = 8
-	ARET_CLOSEFFMPEG ActionRet = 16
+	ARET_NOTHING  ActionRet = 0
+	ARET_MOVEDOWN ActionRet = 1 << iota
+	ARET_MOVEUP
+	ARET_AGAIN
+	ARET_REMOVE
+	ARET_CLOSEFFMPEG
 )
 
 type OfflineImageProducer struct {
@@ -224,4 +228,20 @@ func (prod *OfflineImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 		}
 	}
 	return prod.items[sel]
+}
+
+func (prod *OfflineImageProducer) GetInfo(sel int) string {
+	stat, err := os.Stat(prod.fldr + string(os.PathSeparator) + prod.items[sel])
+	if err == nil {
+		size := stat.Size()
+		if size > 1024*1024 {
+			return fmt.Sprintf("%s\n%.1f MiB", prod.items[sel], float32(size)/(1024*1024))
+		} else if size > 1024 {
+			return fmt.Sprintf("%s\n%.1f KiB", prod.items[sel], float32(size)/1024)
+		} else {
+			return fmt.Sprintf("%s\n%d B", prod.items[sel], size)
+		}
+	} else {
+		return fmt.Sprintf("%s\n%s", prod.items[sel], err.Error())
+	}
 }

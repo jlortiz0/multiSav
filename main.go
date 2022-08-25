@@ -67,7 +67,8 @@ func main() {
 	// if err != nil {
 	// 	panic(err)
 	// }
-	producer := NewRedditProducer(red, 2, nil)
+	// producer := NewRedditProducer(red, 2, nil)
+	producer := NewRedditProducer(red, 3, []interface{}{"AbandonedThemeParks", "six flags"})
 	menu := NewImageMenu(producer, rl.Rectangle{Height: 768, Width: 1024})
 	rl.SetExitKey(0)
 	rg.GuiSetFont(font)
@@ -103,4 +104,28 @@ func drawMessage(text string) rl.Texture2D {
 	texture := rl.LoadTextureFromImage(img)
 	rl.UnloadImage(img)
 	return texture
+}
+
+func displayMessage(text string, menu Menu) {
+	msg := drawMessage(text)
+	x := (int32(rl.GetScreenWidth()) - msg.Width) / 2
+	y := (int32(rl.GetScreenHeight()) - msg.Height) / 2
+	for !rl.WindowShouldClose() {
+		if rl.GetKeyPressed() != 0 {
+			break
+		}
+		if rl.IsWindowResized() {
+			x = (int32(rl.GetScreenWidth()) - msg.Width) / 2
+			y = (int32(rl.GetScreenHeight()) - msg.Height) / 2
+			menu.SetTarget(rl.Rectangle{Width: float32(rl.GetScreenWidth()), Height: float32(rl.GetScreenHeight())})
+		}
+		menu.Prerender()
+		rl.BeginDrawing()
+		rl.ClearBackground(color.RGBA{R: 64, G: 64, B: 64})
+		menu.Renderer()
+		rl.DrawRectangle(0, 0, int32(rl.GetScreenWidth()), int32(rl.GetScreenHeight()), color.RGBA{A: 128})
+		rl.DrawTexture(msg, x, y, rl.White)
+		rl.EndDrawing()
+	}
+	rl.UnloadTexture(msg)
 }

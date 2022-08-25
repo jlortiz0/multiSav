@@ -32,12 +32,12 @@ type imageMenuState int
 
 const (
 	IMSTATE_NORMAL     imageMenuState = 0
-	IMSTATE_SHOULDLOAD imageMenuState = 1
-	IMSTATE_LOADING    imageMenuState = 2
-	IMSTATE_ERROR      imageMenuState = 4
-	IMSTATE_ERRORMINOR imageMenuState = 8
-	IMSTATE_SHOULDEXIT imageMenuState = 16
-	IMSTATE_GOTO       imageMenuState = 32
+	IMSTATE_SHOULDLOAD imageMenuState = 1 << iota
+	IMSTATE_LOADING
+	IMSTATE_ERROR
+	IMSTATE_ERRORMINOR
+	IMSTATE_SHOULDEXIT
+	IMSTATE_GOTO
 )
 
 func minf32(a, b float32) float32 {
@@ -206,6 +206,11 @@ func (menu *ImageMenu) HandleKey(keycode int32) LoopStatus {
 			menu.cam.Target = rl.Vector2{Y: float32(menu.texture.Height) / 2, X: float32(menu.texture.Width) / 2}
 			menu.cam.Zoom = getZoomForTexture(menu.texture, menu.target)
 			menu.tol = rl.Vector2{Y: menu.cam.Offset.Y / menu.cam.Zoom, X: menu.cam.Offset.X / menu.cam.Zoom}
+		}
+	case rl.KeyZ:
+		s := menu.Producer.GetInfo(menu.Selected)
+		if s != "" {
+			displayMessage(wordWrapper(s), menu)
 		}
 	default:
 		call := 0

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"net/url"
 )
 
 type Subreddit struct {
@@ -62,7 +63,7 @@ func (sub *Subreddit) ListTop(limit int, t string) (*SubmissionIterator, error) 
 }
 
 func (sub *Subreddit) Search(limit int, q string, sort string, t string) (*SubmissionIterator, error) {
-	s := "r/" + sub.Display_name + "/search?q=" + q + "&restrict_sr=true"
+	s := "r/" + sub.Display_name + "/search?q=" + url.QueryEscape(q) + "&restrict_sr=true"
 	if t != "" {
 		s += "&t=" + t
 	}
