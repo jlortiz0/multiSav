@@ -177,31 +177,7 @@ func (menu *ImageMenu) HandleKey(keycode int32) LoopStatus {
 	if keycode == rl.KeyEscape {
 		return LOOP_BACK
 	}
-	if menu.state&IMSTATE_ERRORMINOR != 0 {
-		switch keycode {
-		case rl.KeyLeft:
-			if menu.Selected > 0 {
-				menu.Selected--
-				menu.state = IMSTATE_SHOULDLOAD
-			}
-		case rl.KeyRight:
-			if !menu.Producer.IsLazy() || menu.Selected+1 < menu.Producer.Len() {
-				menu.Selected++
-				menu.state = IMSTATE_SHOULDLOAD
-			}
-		case rl.KeyHome:
-			if menu.Selected != 0 {
-				menu.Selected = 0
-				menu.state = IMSTATE_SHOULDLOAD
-			}
-		case rl.KeyEnd:
-			if menu.Selected != menu.Producer.Len()-1 {
-				menu.Selected = menu.Producer.Len() - 1
-				menu.state = IMSTATE_SHOULDLOAD
-			}
-		}
-	}
-	if menu.state != IMSTATE_NORMAL {
+	if menu.state & ^IMSTATE_ERRORMINOR != IMSTATE_NORMAL {
 		return LOOP_CONT
 	}
 	switch keycode {
@@ -226,16 +202,18 @@ func (menu *ImageMenu) HandleKey(keycode int32) LoopStatus {
 			menu.state = IMSTATE_SHOULDLOAD
 		}
 	case rl.KeyF3:
-		menu.cam.Target = rl.Vector2{Y: float32(menu.texture.Height) / 2, X: float32(menu.texture.Width) / 2}
-		menu.cam.Zoom = getZoomForTexture(menu.texture, menu.target)
-		menu.tol = rl.Vector2{Y: menu.cam.Offset.Y / menu.cam.Zoom, X: menu.cam.Offset.X / menu.cam.Zoom}
+		if menu.state == IMSTATE_NORMAL {
+			menu.cam.Target = rl.Vector2{Y: float32(menu.texture.Height) / 2, X: float32(menu.texture.Width) / 2}
+			menu.cam.Zoom = getZoomForTexture(menu.texture, menu.target)
+			menu.tol = rl.Vector2{Y: menu.cam.Offset.Y / menu.cam.Zoom, X: menu.cam.Offset.X / menu.cam.Zoom}
+		}
 	default:
 		call := 0
 		state := ARET_AGAIN
 		for state&ARET_AGAIN != 0 {
 			state = menu.Producer.ActionHandler(keycode, menu.Selected, call)
 			if state&ARET_MOVEDOWN != 0 {
-				moveFactor := float32(25)
+				moveFactor := float32(26)
 				for menu.cam.Target.Y > menu.tol.Y-menu.target.Height-float32(menu.texture.Height) {
 					menu.cam.Target.Y -= moveFactor
 					if moveFactor < menu.target.Height {
@@ -247,7 +225,7 @@ func (menu *ImageMenu) HandleKey(keycode int32) LoopStatus {
 					rl.EndDrawing()
 				}
 			} else if state&ARET_MOVEUP != 0 {
-				moveFactor := float32(25)
+				moveFactor := float32(26)
 				for menu.cam.Target.Y < menu.tol.Y+float32(menu.texture.Height) {
 					menu.cam.Target.Y += moveFactor
 					if moveFactor < menu.target.Height {

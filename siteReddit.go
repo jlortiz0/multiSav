@@ -250,6 +250,10 @@ func (red *RedditImageEntry) GetPostURL() string {
 	return "https://reddit.com" + red.Permalink
 }
 
+func (red *RedditImageEntry) GetInfo() string {
+	return fmt.Sprintf("%s by u/%s (r/%s)\nScore: %d\nComments: %d", red.Title, red.Author, red.Subreddit, red.Score, red.Num_comments)
+}
+
 type RedditGalleryEntry struct {
 	RedditImageEntry
 	name string

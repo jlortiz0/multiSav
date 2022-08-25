@@ -76,6 +76,9 @@ func newSubmissionIteratorPayload(URL string, red *Reddit, data []byte, limit in
 	}
 	i.lastId = payload.Data.After
 	i.data = payload.Data.Children
+	if i.lastId == "" {
+		i.limit = len(i.data)
+	}
 	return i, nil
 }
 

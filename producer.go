@@ -101,6 +101,7 @@ type ImageEntry interface {
 	GetType() ImageEntryType
 	GetDimensions() (int, int)
 	GetPostURL() string
+	GetInfo() string
 }
 
 type ActionRet int
