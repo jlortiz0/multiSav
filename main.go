@@ -92,6 +92,7 @@ Outer:
 		menu.Renderer()
 		rl.EndDrawing()
 	}
+	menu.Destroy()
 	rl.UnloadFont(font)
 	rl.CloseWindow()
 	red.Destroy()

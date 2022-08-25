@@ -324,3 +324,20 @@ func (red *RedditProducer) ActionHandler(key int32, sel int, call int) ActionRet
 	}
 	return red.BufferedImageProducer.ActionHandler(key, sel, call)
 }
+
+func (red *RedditProducer) GetTitle() string {
+	switch red.kind {
+	case 0:
+		return "rediSav - Reddit - New: r/" + red.args[0].(string)
+	case 1:
+		return "rediSav - Reddit - New"
+	case 2:
+		return "rediSav - Reddit - Saved: u/" + red.site.Self().Name
+	case 3:
+		return "rediSav - Reddit - Search: r/" + red.args[0].(string) + " - " + red.args[1].(string)
+	case 4:
+		return "rediSav - Reddit - Search - " + red.args[0].(string)
+	default:
+		return "rediSav - Reddit - Unknown"
+	}
+}

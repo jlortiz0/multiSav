@@ -474,7 +474,7 @@ func (menu *ImageMenu) Renderer() {
 	}
 }
 
-func (menu *ImageMenu) Cleanup() {
+func (menu *ImageMenu) Destroy() {
 	if menu.texture.ID > 0 {
 		rl.UnloadTexture(menu.texture)
 	}
@@ -484,6 +484,7 @@ func (menu *ImageMenu) Cleanup() {
 	if menu.ffmpeg != nil {
 		menu.ffmpeg.Destroy()
 	}
+	menu.Producer.Destroy()
 }
 
 func (menu *ImageMenu) SetTarget(target rl.Rectangle) {

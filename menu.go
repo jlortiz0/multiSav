@@ -11,7 +11,7 @@ type Menu interface {
 	HandleKey(int32) LoopStatus
 	Prerender() LoopStatus
 	Renderer()
-	Cleanup()
+	Destroy()
 	SetTarget(rl.Rectangle)
 }
 
@@ -73,7 +73,7 @@ func (cm *ChoiceMenu) HandleKey(keycode int32) LoopStatus {
 	return LOOP_CONT
 }
 
-func (cm *ChoiceMenu) Cleanup() {}
+func (cm *ChoiceMenu) Destroy() {}
 
 func (cm *ChoiceMenu) SetTarget(target rl.Rectangle) {
 	cm.target = target

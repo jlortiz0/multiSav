@@ -126,10 +126,15 @@ func (buf *BufferedImageProducer) BoundsCheck(i int) bool {
 func (buf *BufferedImageProducer) Destroy() {
 	close(buf.selSender)
 	close(buf.selRecv)
+	for _, v := range buf.buffer {
+		if v != nil {
+			rl.UnloadImage(v)
+		}
+	}
 }
 
 func (buf *BufferedImageProducer) GetTitle() string {
-	return "heck if I know"
+	return "rediSav - Online"
 }
 
 func (buf *BufferedImageProducer) ActionHandler(key int32, sel int, call int) ActionRet {
