@@ -13,7 +13,7 @@ type RedditSite struct {
 }
 
 func NewRedditSite(clientId, clientSecret, user, pass string) *RedditSite {
-	red := redditapi.NewReddit("", clientId, clientSecret)
+	red := redditapi.NewReddit("linux:org.jlortiz.rediSav:v0.3.2 (by /u/jlortiz)", clientId, clientSecret)
 	if user != "" {
 		red.Login(user, pass)
 	}
@@ -145,6 +145,48 @@ func (red *RedditSite) GetListingInfo() []ListingInfo {
 			},
 			persistent: true,
 		},
+		{
+			name: "Redditor",
+			args: []ListingArgument{
+				{
+					name: "Username",
+				},
+				{
+					name: "Track Last",
+					kind: LARGTYPE_BOOL,
+				},
+			},
+			persistent: true,
+		},
+		{
+			name: "Personal subreddit",
+			args: []ListingArgument{
+				{
+					name: "Username",
+				},
+				{
+					name: "Track Last",
+					kind: LARGTYPE_BOOL,
+				},
+			},
+			persistent: true,
+		},
+		{
+			name: "Multireddit",
+			args: []ListingArgument{
+				{
+					name: "Username",
+				},
+				{
+					name: "Multi name",
+				},
+				{
+					name: "Track Last",
+					kind: LARGTYPE_BOOL,
+				},
+			},
+			persistent: true,
+		},
 	}
 }
 
@@ -192,6 +234,24 @@ func (red *RedditSite) GetListing(kind int, args []interface{}) (interface{}, []
 		}
 	case 7:
 		iter, err = red.Search(0, args[0].(string), "", "")
+	case 8:
+		var usr *redditapi.Redditor
+		usr, err = red.Redditor(args[0].(string))
+		if err == nil {
+			iter, err = usr.ListSubmissions(0)
+		}
+	case 9:
+		var usr *redditapi.Redditor
+		usr, err = red.Redditor(args[0].(string))
+		if err == nil {
+			iter, err = usr.UserSubredditListNew(0)
+		}
+	case 10:
+		var multi *redditapi.Multireddit
+		multi, err = red.Multireddit(args[0].(string), args[1].(string))
+		if err == nil {
+			iter, err = multi.ListNew(0)
+		}
 	}
 	if err != nil {
 		return err, nil
@@ -429,6 +489,12 @@ func (red *RedditProducer) GetTitle() string {
 		return "rediSav - Reddit - Search: r/" + red.args[0].(string) + " - " + red.args[1].(string)
 	case 7:
 		return "rediSav - Reddit - Search - " + red.args[0].(string)
+	case 8:
+		return "rediSav - Reddit - New: u/" + red.args[0].(string)
+	case 9:
+		return "rediSav - Reddit - New: r/u_" + red.args[0].(string)
+	case 10:
+		return "rediSav - Reddit - New: u/" + red.args[0].(string) + "/m/" + red.args[1].(string)
 	default:
 		return "rediSav - Reddit - Unknown"
 	}

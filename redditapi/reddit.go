@@ -189,6 +189,7 @@ func (r *Reddit) Self() *Redditor {
 	var user Redditor
 	json.Unmarshal(data, &user)
 	user.reddit = r
+	user.self = true
 	return &user
 }
 

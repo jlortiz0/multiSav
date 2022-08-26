@@ -15,6 +15,7 @@ type Redditor struct {
 	Subreddit                                   *Subreddit
 	Total_karma                                 int
 	reddit                                      *Reddit
+	self                                        bool
 }
 
 func (red *Reddit) Redditor(name string) (*Redditor, error) {
@@ -100,8 +101,8 @@ func (usr *Redditor) ListSaved(limit int) (*SubmissionIterator, error) {
 	return newSubmissionIterator("user/"+usr.Name+"/saved", usr.reddit, limit)
 }
 
-func (usr *Redditor) ListSavedComments(limit int) (*SubmissionIterator, error) {
-	return newSubmissionIterator("user/"+usr.Name+"/saved", usr.reddit, limit)
+func (usr *Redditor) ListSavedComments(limit int) (*CommentIterator, error) {
+	return newCommentIterator("user/"+usr.Name+"/saved", usr.reddit, limit)
 }
 
 func (usr *Redditor) ListUpvoted(limit int) (*SubmissionIterator, error) {
@@ -110,4 +111,16 @@ func (usr *Redditor) ListUpvoted(limit int) (*SubmissionIterator, error) {
 
 func (usr *Redditor) ListGilded(limit int) (*SubmissionIterator, error) {
 	return newSubmissionIterator("user/"+usr.Name+"/gilded", usr.reddit, limit)
+}
+
+func (usr *Redditor) Multireddits() ([]*Multireddit, error) {
+	if usr.self {
+		return multiredditSlice("api/multi/mine", usr.reddit)
+	} else {
+		return multiredditSlice("api/multi/user/"+usr.Name, usr.reddit)
+	}
+}
+
+func (usr *Redditor) UserSubredditListNew(limit int) (*SubmissionIterator, error) {
+	return newSubmissionIterator("user/"+usr.Name+"/search?q=author:"+usr.Name+"&restrict_sr=true&sort=new", usr.reddit, limit)
 }

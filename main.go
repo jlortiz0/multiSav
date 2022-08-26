@@ -36,7 +36,7 @@ func loginHelper() *RedditSite {
 	if err != nil {
 		panic(fmt.Errorf("failed to decode login data: %s", err.Error()))
 	}
-	red := redditapi.NewReddit("linux:org.jlortiz.test.GolangRedditAPI:v0.2.1 (by /u/jlortiz)", fields.Id, fields.Secret)
+	red := redditapi.NewReddit("linux:org.jlortiz.rediSav:v0.3.2 (by /u/jlortiz)", fields.Id, fields.Secret)
 	err = red.Login(fields.Login, fields.Password)
 	if err != nil {
 		panic(fmt.Errorf("failed to log in: %s", err.Error()))
@@ -68,7 +68,7 @@ func main() {
 	// 	panic(err)
 	// }
 	// producer := NewRedditProducer(red, 2, nil)
-	producer := NewRedditProducer(red, 3, []interface{}{"AbandonedThemeParks", "six flags"})
+	producer := NewRedditProducer(red, 10, []interface{}{"midnightrazorheart", "memes"})
 	menu := NewImageMenu(producer, rl.Rectangle{Height: 768, Width: 1024})
 	rl.SetExitKey(0)
 	rg.GuiSetFont(font)
