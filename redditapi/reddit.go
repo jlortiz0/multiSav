@@ -7,11 +7,8 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 )
-
-var nilReader *strings.Reader = strings.NewReader("")
 
 type Reddit struct {
 	Client *http.Client
@@ -180,7 +177,7 @@ func (r *Reddit) Search(limit int, q string, sort string, t string) (*Submission
 }
 
 func (r *Reddit) Self() *Redditor {
-	rq := r.buildRequest("GET", "api/v1/me", nilReader)
+	rq := r.buildRequest("GET", "api/v1/me", http.NoBody)
 	resp, err := r.Client.Do(rq)
 	if err != nil {
 		return nil

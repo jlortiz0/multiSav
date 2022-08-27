@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"strings"
 )
 
@@ -52,7 +53,7 @@ func newSubmissionIterator(URL string, red *Reddit, limit int) (*SubmissionItera
 		chr = '&'
 	}
 	url := fmt.Sprintf("%s%climit=%d", URL, chr, minPosInt(LISTING_PAGE_LIMIT, limit))
-	req := red.buildRequest("GET", url, nilReader)
+	req := red.buildRequest("GET", url, http.NoBody)
 	resp, err := red.Client.Do(req)
 	if err != nil {
 		return nil, err
@@ -92,7 +93,7 @@ func (iter *SubmissionIterator) Next() (*Submission, error) {
 			chr = '&'
 		}
 		url := fmt.Sprintf("%s%cafter=%s&count=%d&limit=%d", iter.URL, chr, iter.lastId, iter.count, minPosInt(LISTING_PAGE_LIMIT, iter.limit-iter.count))
-		resp, err := iter.Reddit.Client.Do(iter.Reddit.buildRequest("GET", url, nilReader))
+		resp, err := iter.Reddit.Client.Do(iter.Reddit.buildRequest("GET", url, http.NoBody))
 		if err != nil {
 			return nil, err
 		}
@@ -170,7 +171,7 @@ func newCommentIterator(URL string, red *Reddit, limit int) (*CommentIterator, e
 		chr = '&'
 	}
 	url := fmt.Sprintf("%s%climit=%d", URL, chr, minPosInt(LISTING_PAGE_LIMIT, limit))
-	req := red.buildRequest("GET", url, nilReader)
+	req := red.buildRequest("GET", url, http.NoBody)
 	resp, err := red.Client.Do(req)
 	if err != nil {
 		return nil, err
@@ -207,7 +208,7 @@ func (iter *CommentIterator) Next() (*Comment, error) {
 			chr = '&'
 		}
 		url := fmt.Sprintf("%s%cafter=%s&count=%d&limit=%d", iter.URL, chr, iter.lastId, iter.count, minPosInt(LISTING_PAGE_LIMIT, iter.limit-iter.count))
-		resp, err := iter.Reddit.Client.Do(iter.Reddit.buildRequest("GET", url, nilReader))
+		resp, err := iter.Reddit.Client.Do(iter.Reddit.buildRequest("GET", url, http.NoBody))
 		if err != nil {
 			return nil, err
 		}

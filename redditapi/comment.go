@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 )
 
@@ -41,7 +42,7 @@ func (c *Comment) ClearVote() error {
 }
 
 func (c *Comment) Save() error {
-	req := c.reddit.buildRequest("POST", "api/save?id="+c.Name, nilReader)
+	req := c.reddit.buildRequest("POST", "api/save?id="+c.Name, http.NoBody)
 	resp, err := c.reddit.Client.Do(req)
 	if err != nil {
 		return err
@@ -55,7 +56,7 @@ func (c *Comment) Save() error {
 }
 
 func (c *Comment) Unsave() error {
-	req := c.reddit.buildRequest("POST", "api/unsave?id="+c.Name, nilReader)
+	req := c.reddit.buildRequest("POST", "api/unsave?id="+c.Name, http.NoBody)
 	resp, err := c.reddit.Client.Do(req)
 	if err != nil {
 		return err
@@ -69,7 +70,7 @@ func (c *Comment) Unsave() error {
 }
 
 func (c *Comment) Edit(text string) error {
-	req := c.reddit.buildRequest("POST", fmt.Sprintf("api/editusertext?thing_id=%s&api_type=json&text=%s", c.Name, url.QueryEscape(text)), nilReader)
+	req := c.reddit.buildRequest("POST", fmt.Sprintf("api/editusertext?thing_id=%s&api_type=json&text=%s", c.Name, url.QueryEscape(text)), http.NoBody)
 	resp, err := c.reddit.Client.Do(req)
 	if err != nil {
 		return err
@@ -82,7 +83,7 @@ func (c *Comment) Edit(text string) error {
 }
 
 func (c *Comment) Delete() error {
-	req := c.reddit.buildRequest("POST", "api/del?id="+c.Name, nilReader)
+	req := c.reddit.buildRequest("POST", "api/del?id="+c.Name, http.NoBody)
 	resp, err := c.reddit.Client.Do(req)
 	if err != nil {
 		return err
@@ -98,7 +99,7 @@ func (c *Comment) Report(reason string) error {
 	if reason == "" {
 		return errors.New("non-empty reason required")
 	}
-	req := c.reddit.buildRequest("POST", fmt.Sprintf("api/report?thing_id=%s&reason=%s", c.Name, reason), nilReader)
+	req := c.reddit.buildRequest("POST", fmt.Sprintf("api/report?thing_id=%s&reason=%s", c.Name, reason), http.NoBody)
 	resp, err := c.reddit.Client.Do(req)
 	if err != nil {
 		return err

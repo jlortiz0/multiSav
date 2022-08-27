@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"net/http"
 	"net/url"
 )
 
@@ -25,7 +26,7 @@ func (red *Reddit) Subreddit(id string) (*Subreddit, error) {
 	var helper struct {
 		Data Subreddit
 	}
-	req := red.buildRequest("GET", "r/"+id+"/about", nilReader)
+	req := red.buildRequest("GET", "r/"+id+"/about", http.NoBody)
 	resp, _ := red.Client.Do(req)
 	data, _ := io.ReadAll(resp.Body)
 	req.Body.Close()
@@ -74,7 +75,7 @@ func (sub *Subreddit) Search(limit int, q string, sort string, t string) (*Submi
 }
 
 func (sub *Subreddit) Subscribe() error {
-	req := sub.reddit.buildRequest("POST", "api/subscribe?action=sub&sr="+sub.Name, nilReader)
+	req := sub.reddit.buildRequest("POST", "api/subscribe?action=sub&sr="+sub.Name, http.NoBody)
 	resp, err := sub.reddit.Client.Do(req)
 	if err != nil {
 		return err
@@ -88,7 +89,7 @@ func (sub *Subreddit) Subscribe() error {
 }
 
 func (sub *Subreddit) Unsubscribe() error {
-	req := sub.reddit.buildRequest("POST", "api/subscribe?action=unsub&sr="+sub.Name, nilReader)
+	req := sub.reddit.buildRequest("POST", "api/subscribe?action=unsub&sr="+sub.Name, http.NoBody)
 	resp, err := sub.reddit.Client.Do(req)
 	if err != nil {
 		return err

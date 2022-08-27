@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"net/http"
 )
 
 type Multireddit struct {
@@ -26,7 +27,7 @@ func (red *Reddit) Multireddit(user string, name string) (*Multireddit, error) {
 	var helper struct {
 		Data Multireddit
 	}
-	rq := red.buildRequest("GET", "api/multi/user/"+user+"/m/"+name, nilReader)
+	rq := red.buildRequest("GET", "api/multi/user/"+user+"/m/"+name, http.NoBody)
 	resp, err := red.Client.Do(rq)
 	if err != nil {
 		return nil, err
@@ -44,7 +45,7 @@ func (red *Reddit) Multireddit(user string, name string) (*Multireddit, error) {
 }
 
 func multiredditSlice(url string, red *Reddit) ([]*Multireddit, error) {
-	req := red.buildRequest("GET", url, nilReader)
+	req := red.buildRequest("GET", url, http.NoBody)
 	resp, err := red.Client.Do(req)
 	if err != nil {
 		return nil, err
