@@ -15,7 +15,7 @@ import (
 const TEXT_SIZE = 18
 const FRAME_RATE = 60
 
-func loginHelper() *RedditSite {
+func loginHelper() *HybridImgurRedditSite {
 	data := make([]byte, 256)
 	f, err := os.Open("redditapi/login.json")
 	if err != nil {
@@ -31,6 +31,7 @@ func loginHelper() *RedditSite {
 		Secret   string
 		Login    string
 		Password string
+		ImgurID  string
 	}
 	err = json.Unmarshal(data[:n], &fields)
 	if err != nil {
@@ -41,7 +42,7 @@ func loginHelper() *RedditSite {
 	if err != nil {
 		panic(fmt.Errorf("failed to log in: %s", err.Error()))
 	}
-	return &RedditSite{*red}
+	return &HybridImgurRedditSite{RedditSite{*red}, *NewImgurSite(fields.ImgurID)}
 }
 
 var font rl.Font
@@ -68,7 +69,7 @@ func main() {
 	// 	panic(err)
 	// }
 	// producer := NewRedditProducer(red, 2, nil)
-	producer := NewRedditProducer(red, 10, []interface{}{"midnightrazorheart", "memes"})
+	producer := NewHybridImgurRedditProducer(red, 0, []interface{}{"pics"})
 	menu := NewImageMenu(producer, rl.Rectangle{Height: 768, Width: 1024})
 	rl.SetExitKey(0)
 	rg.GuiSetFont(font)

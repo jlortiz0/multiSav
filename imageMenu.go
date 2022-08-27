@@ -141,7 +141,7 @@ func (menu *ImageMenu) loadImage() {
 				menu.Selected = menu.Producer.Len() - 1
 				menu.loadImage()
 			}
-		} else if menu.fName[:5] == "\\/err" {
+		} else if len(menu.fName) > 5 && menu.fName[:5] == "\\/err" {
 			menu.state = IMSTATE_ERRORMINOR
 			menu.fName = menu.fName[5:]
 		} else {
