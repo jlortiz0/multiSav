@@ -70,16 +70,40 @@ func GuiValueBox(bounds rl.Rectangle, title string, value *int, minValue, maxVal
 	return bool(C.GuiValueBox(cRectangle(bounds), cTitle, cIntPtr(value), C.int(minValue), C.int(maxValue), C.bool(editMode)))
 }
 
-func GuiTextBox(bounds rl.Rectangle, text string, textSize int, editMode bool) bool {
-	cText := C.CString(text)
-	defer C.free(unsafe.Pointer(cText))
-	return bool(C.GuiTextBox(cRectangle(bounds), cText, C.int(textSize), C.bool(editMode)))
+func GuiTextBox(bounds rl.Rectangle, text string, textSize int, editMode bool) (bool, string) {
+	var cText [256]C.char
+	for i, v := range text {
+		cText[i] = C.char(v)
+	}
+	ret := bool(C.GuiTextBox(cRectangle(bounds), &cText[0], C.int(textSize), C.bool(editMode)))
+	var data [256]byte
+	var i int
+	for _, v := range cText {
+		if v == 0 {
+			break
+		}
+		data[i] = byte(v)
+		i++
+	}
+	return ret, string(data[:i])
 }
 
-func GuiTextBoxMulti(bounds rl.Rectangle, text string, textSize int, editMode bool) bool {
-	cText := C.CString(text)
-	defer C.free(unsafe.Pointer(cText))
-	return bool(C.GuiTextBoxMulti(cRectangle(bounds), cText, C.int(textSize), C.bool(editMode)))
+func GuiTextBoxMulti(bounds rl.Rectangle, text string, textSize int, editMode bool) (bool, string) {
+	var cText [4096]C.char
+	for i, v := range text {
+		cText[i] = C.char(v)
+	}
+	ret := bool(C.GuiTextBoxMulti(cRectangle(bounds), &cText[0], C.int(textSize), C.bool(editMode)))
+	var data [4096]byte
+	var i int
+	for _, v := range cText {
+		if v == 0 {
+			break
+		}
+		data[i] = byte(v)
+		i++
+	}
+	return ret, string(data[:i])
 }
 
 func GuiSlider(bounds rl.Rectangle, textLeft, textRight string, value, minValue, maxValue float32) float32 {
