@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -121,6 +122,7 @@ func (img *ImgurImageEntry) GetURL() string {
 type HybridImgurRedditImageEntry struct {
 	RedditImageEntry
 	imgur ImgurImageEntry
+	title string
 }
 
 func (img *HybridImgurRedditImageEntry) GetInfo() string {
@@ -129,6 +131,13 @@ func (img *HybridImgurRedditImageEntry) GetInfo() string {
 
 func (img *HybridImgurRedditImageEntry) GetURL() string {
 	return img.imgur.GetURL()
+}
+
+func (entry *HybridImgurRedditImageEntry) GetName() string {
+	if entry.title != "" {
+		return entry.title
+	}
+	return entry.Title
 }
 
 type HybridImgurRedditSite struct {
@@ -148,8 +157,12 @@ func (img *HybridImgurRedditSite) imgurRedditHybridHelper(list []ImageEntry) []I
 			if err != nil {
 				continue
 			}
-			for _, w := range out {
-				data = append(data, &HybridImgurRedditImageEntry{*v.(*RedditImageEntry), *w.(*ImgurImageEntry)})
+			for i, w := range out {
+				title := ""
+				if len(out) > 1 {
+					title = fmt.Sprintf("%s (%d/%d)", v.(*RedditImageEntry).Title, i+1, len(out))
+				}
+				data = append(data, &HybridImgurRedditImageEntry{*v.(*RedditImageEntry), *w.(*ImgurImageEntry), title})
 			}
 		} else {
 			data = append(data, v)
