@@ -75,6 +75,19 @@ func main() {
 	rg.GuiSetFont(font)
 	rg.GuiSetStyle(rg.LABEL, rg.TEXT_COLOR_NORMAL, 0xf5f5f5ff)
 	rg.GuiSetStyle(rg.LABEL, rg.TEXT_ALIGNMENT, rg.TEXT_ALIGN_RIGHT)
+	args := make([]interface{}, len(red.GetListingInfo()[10].args))
+	flags := make([]bool, len(args))
+	for !rl.WindowShouldClose() {
+		rl.BeginDrawing()
+		rl.ClearBackground(color.RGBA{R: 64, G: 64, B: 64})
+		out := DrawArgumentsUI(rl.Rectangle{Height: 768, Width: 1024}, "Test Name", red.GetListingInfo()[10].args, args, flags)
+		if out != nil && len(out) == 0 {
+			break
+		} else if len(out) != 0 {
+			break
+		}
+		rl.EndDrawing()
+	}
 Outer:
 	for !rl.WindowShouldClose() {
 		key := rl.GetKeyPressed()

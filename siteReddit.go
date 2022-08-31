@@ -184,6 +184,14 @@ func (red *RedditSite) GetListingInfo() []ListingInfo {
 					name: "Track Last",
 					kind: LARGTYPE_BOOL,
 				},
+				// {
+				// 	name: "Test int",
+				// 	kind: LARGTYPE_INT,
+				// },
+				// {
+				// 	name: "Test url",
+				// 	kind: LARGTYPE_URL,
+				// },
 			},
 			persistent: true,
 		},

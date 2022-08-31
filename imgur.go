@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -147,12 +146,10 @@ func (img *HybridImgurRedditSite) imgurRedditHybridHelper(list []ImageEntry) []I
 			}
 			err, out := img.imgur.GetListing(2, []interface{}{v.(*RedditImageEntry).URL})
 			if err != nil {
-				fmt.Println(err.(error))
 				continue
 			}
 			for _, w := range out {
 				data = append(data, &HybridImgurRedditImageEntry{*v.(*RedditImageEntry), *w.(*ImgurImageEntry)})
-				fmt.Println(data[len(data)-1])
 			}
 		} else {
 			data = append(data, v)
