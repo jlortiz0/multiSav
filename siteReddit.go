@@ -456,7 +456,7 @@ func (red *RedditProducer) ActionHandler(key int32, sel int, call int) ActionRet
 		return red.BufferedImageProducer.ActionHandler(key, sel, call)
 	}
 	if key == rl.KeyX {
-		if red.kind == 2 {
+		if red.kind == 5 {
 			ret := red.BufferedImageProducer.ActionHandler(key, sel, call)
 			if ret&ARET_REMOVE != 0 {
 				useful.Unsave()
@@ -468,7 +468,7 @@ func (red *RedditProducer) ActionHandler(key int32, sel int, call int) ActionRet
 		red.remove(sel)
 		return ARET_MOVEUP | ARET_REMOVE
 	} else if key == rl.KeyC {
-		if red.kind == 2 {
+		if red.kind == 5 {
 			useful.Unsave()
 		} else {
 			useful.Hide()

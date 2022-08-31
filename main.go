@@ -138,7 +138,10 @@ func stdEventLoop(menu Menu, targetGen func() rl.Rectangle) LoopStatus {
 		if rl.IsWindowResized() {
 			menu.SetTarget(targetGen())
 		}
-		menu.Prerender()
+		ret := menu.Prerender()
+		if ret != LOOP_CONT {
+			return ret
+		}
 		rl.BeginDrawing()
 		rl.ClearBackground(color.RGBA{R: 64, G: 64, B: 64})
 		menu.Renderer()

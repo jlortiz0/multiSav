@@ -81,6 +81,9 @@ func DrawArgumentsUI(target rl.Rectangle, name string, args []ListingArgument, o
 	}
 	if rg.GuiButton(rl.Rectangle{X: target.Width/2 + target.X + 10, Y: vec2.Y, Height: TEXT_SIZE + 5, Width: target.Width/4 - 20}, "Confirm") {
 		for i := range out {
+			if len(args[i].options) != 0 {
+				continue
+			}
 			switch args[i].kind {
 			case LARGTYPE_STRING:
 				if out[i].(string) == "" {

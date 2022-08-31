@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 	"github.com/pkg/browser"
@@ -22,7 +23,7 @@ type BufferedImageProducer struct {
 	selRecv   chan bool
 	lazy      bool
 	buffer    []*rl.Image
-	extending bool
+	extending *sync.Once
 }
 
 func minint(a, b int) int {
@@ -50,6 +51,7 @@ func NewBufferedImageProducer(site ImageSite, kind int, args []interface{}) *Buf
 	buf.buffer = make([]*rl.Image, BIP_BUFAFTER+BIP_BUFBEFORE+1)
 	buf.selSender = make(chan int, 3)
 	buf.selRecv = make(chan bool)
+	buf.extending = new(sync.Once)
 	go func() {
 		var prevSel int
 		for {
@@ -195,17 +197,34 @@ func (buf *BufferedImageProducer) remove(sel int) {
 }
 
 func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegReader) string {
-	if sel+BIP_BUFAFTER >= len(buf.items) && !buf.extending {
-		buf.extending = true
-		go func() {
+	if sel+BIP_BUFAFTER >= len(buf.items) {
+		go buf.extending.Do(func() {
 			extend := buf.site.ExtendListing(buf.listing)
 			if len(extend) == 0 {
 				buf.lazy = false
 			} else {
 				buf.items = append(buf.items, extend...)
 			}
-			buf.extending = false
-		}()
+			buf.extending = new(sync.Once)
+		})
+	}
+	if sel >= len(buf.items) && buf.lazy {
+		// If the above function finishes after this check but before here, the Do will become unusable
+		// So we need to replace it anyway
+		// Due to GC this shouldn't be an issue, and because Do will not return until it is done there should not be a write conflict
+		buf.extending.Do(func() {})
+		buf.extending = new(sync.Once)
+		// Some might require multiple loads
+		if sel >= len(buf.items) && buf.lazy {
+			return buf.Get(sel, img, ffmpeg)
+		}
+	}
+	if sel >= len(buf.items) && !buf.lazy {
+		text := "You went too far!"
+		vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
+		*img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
+		rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
+		return "\\/errPress left please"
 	}
 	switch buf.items[sel].GetType() {
 	case IETYPE_GALLERY:

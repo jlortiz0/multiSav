@@ -133,6 +133,12 @@ func (menu *ImageMenu) loadImage() {
 		for range menu.ffmpegData {
 		}
 	}
+	if menu.Selected < 0 {
+		menu.Selected = 0
+	}
+	if !menu.Producer.BoundsCheck(menu.Selected) {
+		menu.Selected = menu.Producer.Len() - 1
+	}
 	menu.state = IMSTATE_LOADING
 	go func() {
 		menu.fName = menu.Producer.Get(menu.Selected, &menu.img, &menu.ffmpeg)
