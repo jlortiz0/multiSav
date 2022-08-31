@@ -59,6 +59,10 @@ func main() {
 	rl.InitWindow(1024, 768, "rediSav Test Window")
 	finder := sysfont.NewFinder(nil)
 	font = rl.LoadFontEx(finder.Match("Ubuntu").Filename, TEXT_SIZE, nil, 250)
+	rl.SetExitKey(0)
+	rg.GuiSetFont(font)
+	rg.GuiSetStyle(rg.LABEL, rg.TEXT_COLOR_NORMAL, 0xf5f5f5ff)
+	rg.GuiSetStyle(rg.LABEL, rg.TEXT_ALIGNMENT, rg.TEXT_ALIGN_RIGHT)
 	// menu := NewChoiceMenu([]string{"Hello", "World", "test1", "Sort", "Trash", "Options", "New..."}, rl.Rectangle{X: 100, Y: 200, Height: 200, Width: 500})
 	if _, err := os.Stat("jlortiz_TEST"); err == nil {
 		os.Chdir("jlortiz_TEST")
@@ -69,43 +73,19 @@ func main() {
 	// 	panic(err)
 	// }
 	// producer := NewRedditProducer(red, 2, nil)
-	producer := NewHybridImgurRedditProducer(red, 0, []interface{}{"pics"})
+	// producer := NewHybridImgurRedditProducer(red, 0, []interface{}{"pics"})
+	producer := SetUpProducer(red, func(i ImageSite, k int, a []interface{}) ImageProducer {
+		return NewHybridImgurRedditProducer(i.(*HybridImgurRedditSite), k, a)
+	})
+	if producer == nil {
+		red.Destroy()
+		rl.CloseWindow()
+		return
+	}
 	menu := NewImageMenu(producer, rl.Rectangle{Height: 768, Width: 1024})
-	rl.SetExitKey(0)
-	rg.GuiSetFont(font)
-	rg.GuiSetStyle(rg.LABEL, rg.TEXT_COLOR_NORMAL, 0xf5f5f5ff)
-	rg.GuiSetStyle(rg.LABEL, rg.TEXT_ALIGNMENT, rg.TEXT_ALIGN_RIGHT)
-	args := make([]interface{}, len(red.GetListingInfo()[10].args))
-	flags := make([]bool, len(args))
-	for !rl.WindowShouldClose() {
-		rl.BeginDrawing()
-		rl.ClearBackground(color.RGBA{R: 64, G: 64, B: 64})
-		out := DrawArgumentsUI(rl.Rectangle{Height: 768, Width: 1024}, "Test Name", red.GetListingInfo()[10].args, args, flags)
-		if out != nil && len(out) == 0 {
-			break
-		} else if len(out) != 0 {
-			break
-		}
-		rl.EndDrawing()
-	}
-Outer:
-	for !rl.WindowShouldClose() {
-		key := rl.GetKeyPressed()
-		for key != 0 {
-			if menu.HandleKey(key) != LOOP_CONT {
-				break Outer
-			}
-			key = rl.GetKeyPressed()
-		}
-		if rl.IsWindowResized() {
-			menu.SetTarget(rl.Rectangle{Width: float32(rl.GetScreenWidth()), Height: float32(rl.GetScreenHeight())})
-		}
-		menu.Prerender()
-		rl.BeginDrawing()
-		rl.ClearBackground(color.RGBA{R: 64, G: 64, B: 64})
-		menu.Renderer()
-		rl.EndDrawing()
-	}
+	stdEventLoop(menu, func() rl.Rectangle {
+		return rl.Rectangle{Width: float32(rl.GetScreenWidth()), Height: float32(rl.GetScreenHeight())}
+	})
 	menu.Destroy()
 	rl.UnloadFont(font)
 	rl.CloseWindow()
@@ -143,4 +123,26 @@ func displayMessage(text string, menu Menu) {
 		rl.EndDrawing()
 	}
 	rl.UnloadTexture(msg)
+}
+
+func stdEventLoop(menu Menu, targetGen func() rl.Rectangle) LoopStatus {
+	for !rl.WindowShouldClose() {
+		key := rl.GetKeyPressed()
+		for key != 0 {
+			ret := menu.HandleKey(key)
+			if ret != LOOP_CONT {
+				return ret
+			}
+			key = rl.GetKeyPressed()
+		}
+		if rl.IsWindowResized() {
+			menu.SetTarget(targetGen())
+		}
+		menu.Prerender()
+		rl.BeginDrawing()
+		rl.ClearBackground(color.RGBA{R: 64, G: 64, B: 64})
+		menu.Renderer()
+		rl.EndDrawing()
+	}
+	return LOOP_QUIT
 }

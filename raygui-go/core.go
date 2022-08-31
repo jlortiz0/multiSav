@@ -78,3 +78,11 @@ func GuiSetFont(font rl.Font) {
 func GuiSetStyle(control GuiControl, property GuiControlProperty, value int) {
 	C.GuiSetStyle(C.int(control), C.int(property), C.int(value))
 }
+
+func GuiLock() {
+	C.GuiLock()
+}
+
+func GuiUnlock() {
+	C.GuiUnlock()
+}
