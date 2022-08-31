@@ -109,6 +109,9 @@ func (iter *SubmissionIterator) Next() (*Submission, error) {
 		if len(iter.data) == 0 {
 			return nil, nil
 		}
+		if iter.lastId == "" {
+			iter.lastId = iter.data[len(iter.data)-1].Data.Name
+		}
 	}
 	iter.count++
 	iter.index++
