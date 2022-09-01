@@ -22,7 +22,7 @@ type BufferedImageProducer struct {
 	selSender chan int
 	selRecv   chan bool
 	lazy      bool
-	buffer    []*rl.Image
+	buffer    [][]byte
 	extending *sync.Once
 }
 
@@ -48,7 +48,7 @@ func NewBufferedImageProducer(site ImageSite, kind int, args []interface{}) *Buf
 		panic(buf.listing.(error))
 	}
 	buf.lazy = len(buf.items) != 0
-	buf.buffer = make([]*rl.Image, BIP_BUFAFTER+BIP_BUFBEFORE+1)
+	buf.buffer = make([][]byte, BIP_BUFAFTER+BIP_BUFBEFORE+1)
 	buf.selSender = make(chan int, 3)
 	buf.selRecv = make(chan bool)
 	buf.extending = new(sync.Once)
@@ -61,22 +61,12 @@ func NewBufferedImageProducer(site ImageSite, kind int, args []interface{}) *Buf
 			}
 			if sel < prevSel {
 				x := prevSel - sel
-				for i := maxint(len(buf.buffer)-x, 0); i < len(buf.buffer); i++ {
-					if buf.buffer[i] != nil {
-						rl.UnloadImage(buf.buffer[i])
-					}
-				}
 				copy(buf.buffer[minint(x, len(buf.buffer)):], buf.buffer)
 				for i := 0; i < minint(x, len(buf.buffer)); i++ {
 					buf.buffer[i] = nil
 				}
 			} else {
 				x := sel - prevSel
-				for i := 0; i < minint(x, len(buf.buffer)); i++ {
-					if buf.buffer[i] != nil {
-						rl.UnloadImage(buf.buffer[i])
-					}
-				}
 				copy(buf.buffer, buf.buffer[minint(x, len(buf.buffer)):])
 				for i := maxint(len(buf.buffer)-x, 0); i < len(buf.buffer); i++ {
 					buf.buffer[i] = nil
@@ -98,12 +88,14 @@ func NewBufferedImageProducer(site ImageSite, kind int, args []interface{}) *Buf
 					fallthrough
 				case "jpg":
 					fallthrough
+				case "jpeg":
+					fallthrough
 				case "bmp":
 					resp, err := http.Get(url)
 					if err == nil {
 						data, err := io.ReadAll(resp.Body)
 						if err == nil {
-							buf.buffer[i] = rl.LoadImageFromMemory(ext, data, int32(len(data)))
+							buf.buffer[i] = data
 						}
 					}
 				}
@@ -128,11 +120,7 @@ func (buf *BufferedImageProducer) BoundsCheck(i int) bool {
 func (buf *BufferedImageProducer) Destroy() {
 	close(buf.selSender)
 	close(buf.selRecv)
-	for _, v := range buf.buffer {
-		if v != nil {
-			rl.UnloadImage(v)
-		}
-	}
+	buf.buffer = nil
 }
 
 func (buf *BufferedImageProducer) GetTitle() string {
@@ -178,7 +166,22 @@ func (buf *BufferedImageProducer) ActionHandler(key int32, sel int, call int) Ac
 				return ARET_NOTHING
 			}
 		} else {
-			rl.ExportImage(*buf.buffer[BIP_BUFBEFORE], name)
+			f, err := os.OpenFile(name, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0600)
+			if err == nil {
+				data := buf.buffer[BIP_BUFBEFORE]
+				for len(data) > 0 {
+					data2 := data
+					if len(data) > 4096 {
+						data2 = data2[:4096]
+					}
+					n, err := f.Write(data2)
+					if err != nil {
+						break
+					}
+					data = data[n:]
+				}
+			}
+			f.Close()
 		}
 		buf.remove(sel)
 		return ARET_MOVEUP | ARET_REMOVE
@@ -187,9 +190,6 @@ func (buf *BufferedImageProducer) ActionHandler(key int32, sel int, call int) Ac
 }
 
 func (buf *BufferedImageProducer) remove(sel int) {
-	if buf.buffer[BIP_BUFBEFORE] != nil {
-		rl.UnloadImage(buf.buffer[BIP_BUFBEFORE])
-	}
 	copy(buf.buffer[BIP_BUFBEFORE:], buf.buffer[BIP_BUFBEFORE+1:])
 	buf.buffer[BIP_BUFAFTER+BIP_BUFBEFORE] = nil
 	copy(buf.items[sel:], buf.items[sel+1:])
@@ -230,18 +230,19 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 	case IETYPE_GALLERY:
 		data := buf.items[sel].GetGalleryInfo()
 		if sel+1 != len(buf.items) {
-			buf.items = append(buf.items[:sel+len(data)-1], buf.items[sel:]...)
+			buf.items = append(buf.items[:sel+len(data)], buf.items[sel+1:]...)
 			for i, x := range data {
 				buf.items[sel+i] = x
 			}
-			for i := maxint(BIP_BUFBEFORE, len(buf.buffer)-len(data)); i < len(buf.buffer); i++ {
-				if buf.buffer[i] != nil {
-					rl.UnloadImage(buf.buffer[i])
+			if len(data) < BIP_BUFAFTER+1 {
+				copy(buf.buffer[BIP_BUFBEFORE+len(data):], buf.buffer[BIP_BUFBEFORE+1:])
+				for i := 0; i < len(data); i++ {
+					buf.buffer[BIP_BUFBEFORE+i] = nil
 				}
-			}
-			copy(buf.buffer[BIP_BUFBEFORE+minint(len(data), BIP_BUFAFTER+1):], buf.buffer[BIP_BUFBEFORE:])
-			for i := 0; i < minint(len(data), BIP_BUFAFTER+1); i++ {
-				buf.buffer[i+BIP_BUFBEFORE] = nil
+			} else {
+				for i := BIP_BUFBEFORE; i < BIP_BUFBEFORE+BIP_BUFAFTER+1; i++ {
+					buf.buffer[i] = nil
+				}
 			}
 		} else {
 			buf.items = append(buf.items, data...)
@@ -278,9 +279,16 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 		} else {
 			*ffmpeg = NewFfmpegReader(url)
 		}
-		tmp := buf.buffer[BIP_BUFBEFORE]
-		if tmp != nil {
-			*img = rl.ImageCopy(tmp)
+		data := buf.buffer[BIP_BUFBEFORE]
+		if data != nil {
+			*img = rl.LoadImageFromMemory(ext, data, int32(len(data)))
+			if (*img).Height == 0 {
+				text := "Failed to load image?"
+				vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
+				*img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
+				rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
+				return "\\/err" + buf.items[sel].GetName()
+			}
 		} else {
 			s := minint(int((*ffmpeg).w), int((*ffmpeg).h))
 			*img = rl.GenImageChecked(int((*ffmpeg).w), int((*ffmpeg).h), s/16, s/16, rl.Magenta, rl.Black)
@@ -289,30 +297,30 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 		fallthrough
 	case "jpg":
 		fallthrough
+	case "jpeg":
+		fallthrough
 	case "bmp":
-		tmp := buf.buffer[BIP_BUFBEFORE]
-		if tmp != nil {
-			*img = rl.ImageCopy(tmp)
-			break
-		}
-		resp, err := http.Get(url)
-		if err != nil {
-			text := err.Error()
-			vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
-			*img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
-			rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
-			return "\\/err" + buf.items[sel].GetName()
-		}
-		// f, _ := os.OpenFile("out.dat", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
-		// defer f.Close()
-		// data, err := io.ReadAll(io.TeeReader(resp.Body, f))
-		data, err := io.ReadAll(resp.Body)
-		if err != nil {
-			text := err.Error()
-			vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
-			*img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
-			rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
-			return "\\/err" + buf.items[sel].GetName()
+		data := buf.buffer[BIP_BUFBEFORE]
+		if data == nil {
+			resp, err := http.Get(url)
+			if err != nil {
+				text := err.Error()
+				vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
+				*img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
+				rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
+				return "\\/err" + buf.items[sel].GetName()
+			}
+			// f, _ := os.OpenFile("out.dat", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+			// defer f.Close()
+			// data, err := io.ReadAll(io.TeeReader(resp.Body, f))
+			data, err = io.ReadAll(resp.Body)
+			if err != nil {
+				text := err.Error()
+				vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
+				*img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
+				rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
+				return "\\/err" + buf.items[sel].GetName()
+			}
 		}
 		*img = rl.LoadImageFromMemory(ext, data, int32(len(data)))
 		if (*img).Height == 0 {
