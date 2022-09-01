@@ -86,7 +86,6 @@ func (red *RedditSite) GetListingInfo() []ListingInfo {
 				},
 				{
 					name: "Best of this",
-
 					options: []interface{}{
 						"hour",
 						"day",
@@ -198,7 +197,22 @@ func (red *RedditSite) GetListingInfo() []ListingInfo {
 	}
 }
 
-func (red *RedditSite) GetListing(kind int, args []interface{}) (interface{}, []ImageEntry) {
+type RedditImageListing struct {
+	*redditapi.SubmissionIterator
+	kind int
+	args []interface{}
+	seen string
+}
+
+func (red *RedditImageListing) GetInfo() (int, []interface{}) {
+	return red.kind, red.args
+}
+
+func (red *RedditImageListing) GetPersistent() interface{} {
+	return red.seen
+}
+
+func (red *RedditSite) GetListing(kind int, args []interface{}, persistent interface{}) (ImageListing, []ImageEntry) {
 	var iter *redditapi.SubmissionIterator
 	var err error
 	switch kind {
@@ -262,16 +276,21 @@ func (red *RedditSite) GetListing(kind int, args []interface{}) (interface{}, []
 		}
 	}
 	if err != nil {
-		return err, nil
+		return &ErrorListing{err}, nil
 	}
-	return iter, red.ExtendListing(iter)
+	if persistent == nil {
+		persistent = ""
+	}
+	iter2 := &RedditImageListing{iter, kind, args, persistent.(string)}
+	return iter2, red.ExtendListing(iter2)
 }
 
-func (red *RedditSite) ExtendListing(cont interface{}) []ImageEntry {
-	iter, ok := cont.(*redditapi.SubmissionIterator)
+func (red *RedditSite) ExtendListing(cont ImageListing) []ImageEntry {
+	iter2, ok := cont.(*RedditImageListing)
 	if !ok {
 		return nil
 	}
+	iter := iter2.SubmissionIterator
 	x, err := iter.Next()
 	if err != nil || x == nil {
 		return nil
@@ -282,7 +301,18 @@ func (red *RedditSite) ExtendListing(cont interface{}) []ImageEntry {
 		x, err = iter.Next()
 		if err == nil {
 			if len(x.Crosspost_parent_list) != 0 {
-				x = x.Crosspost_parent_list[len(x.Crosspost_parent_list)-1]
+				// Hack to allow requests to work with crossposts while still loading important fields
+				// For instance, fgallery data is only populated for the original post, but just replacing the object can lead to issues saving
+				x2 := x.Crosspost_parent_list[len(x.Crosspost_parent_list)-1]
+				x.Gallery_data = x2.Gallery_data
+				x.Media_metadata = x2.Media_metadata
+				x.Preview = x2.Preview
+				x.Author = x2.Author
+				x.Hidden = x.Hidden || x2.Hidden
+				x.Crosspost_parent_list = nil
+				x.Is_gallery = x.Is_gallery || x2.Is_gallery
+				x.Subreddit = x2.Subreddit
+				x.Selftext = x2.Selftext
 			}
 			if x.Hidden {
 				continue
@@ -437,12 +467,10 @@ func (*RedditGalleryEntry) GetType() ImageEntryType {
 type RedditProducer struct {
 	*BufferedImageProducer
 	site *RedditSite
-	kind int
-	args []interface{}
 }
 
-func NewRedditProducer(site *RedditSite, kind int, args []interface{}) *RedditProducer {
-	return &RedditProducer{NewBufferedImageProducer(site, kind, args), site, kind, args}
+func NewRedditProducer(site *RedditSite, kind int, args []interface{}, persistent interface{}) *RedditProducer {
+	return &RedditProducer{NewBufferedImageProducer(site, kind, args, persistent), site}
 }
 
 func (red *RedditProducer) ActionHandler(key int32, sel int, call int) ActionRet {
@@ -455,8 +483,10 @@ func (red *RedditProducer) ActionHandler(key int32, sel int, call int) ActionRet
 	default:
 		return red.BufferedImageProducer.ActionHandler(key, sel, call)
 	}
+	// TODO: Account for galleries when removing
+	// Or should I do this in prodBuf?
 	if key == rl.KeyX {
-		if red.kind == 5 {
+		if red.listing.(*RedditImageListing).kind == 5 {
 			ret := red.BufferedImageProducer.ActionHandler(key, sel, call)
 			if ret&ARET_REMOVE != 0 {
 				useful.Unsave()
@@ -468,8 +498,8 @@ func (red *RedditProducer) ActionHandler(key int32, sel int, call int) ActionRet
 		red.remove(sel)
 		return ARET_MOVEUP | ARET_REMOVE
 	} else if key == rl.KeyC {
-		if red.kind == 5 {
-			useful.Unsave()
+		if red.listing.(*RedditImageListing).kind == 5 {
+			fmt.Println(useful.Unsave())
 		} else {
 			useful.Hide()
 		}
@@ -480,29 +510,30 @@ func (red *RedditProducer) ActionHandler(key int32, sel int, call int) ActionRet
 }
 
 func (red *RedditProducer) GetTitle() string {
-	switch red.kind {
+	useful := red.listing.(*RedditImageListing)
+	switch useful.kind {
 	case 0:
-		return "rediSav - Reddit - New: r/" + red.args[0].(string)
+		return "rediSav - Reddit - New: r/" + useful.args[0].(string)
 	case 1:
-		return "rediSav - Reddit - Hot: r/" + red.args[0].(string)
+		return "rediSav - Reddit - Hot: r/" + useful.args[0].(string)
 	case 2:
-		return "rediSav - Reddit - Rising: r/" + red.args[0].(string)
+		return "rediSav - Reddit - Rising: r/" + useful.args[0].(string)
 	case 3:
-		return "rediSav - Reddit - Controversial: r/" + red.args[0].(string)
+		return "rediSav - Reddit - Controversial: r/" + useful.args[0].(string)
 	case 4:
-		return "rediSav - Reddit - Top: r/" + red.args[0].(string)
+		return "rediSav - Reddit - Top: r/" + useful.args[0].(string)
 	case 5:
 		return "rediSav - Reddit - Saved: u/" + red.site.Self().Name
 	case 6:
-		return "rediSav - Reddit - Search: r/" + red.args[0].(string) + " - " + red.args[1].(string)
+		return "rediSav - Reddit - Search: r/" + useful.args[0].(string) + " - " + useful.args[1].(string)
 	case 7:
-		return "rediSav - Reddit - Search - " + red.args[0].(string)
+		return "rediSav - Reddit - Search - " + useful.args[0].(string)
 	case 8:
-		return "rediSav - Reddit - New: u/" + red.args[0].(string)
+		return "rediSav - Reddit - New: u/" + useful.args[0].(string)
 	case 9:
-		return "rediSav - Reddit - New: r/u_" + red.args[0].(string)
+		return "rediSav - Reddit - New: r/u_" + useful.args[0].(string)
 	case 10:
-		return "rediSav - Reddit - New: u/" + red.args[0].(string) + "/m/" + red.args[1].(string)
+		return "rediSav - Reddit - New: u/" + useful.args[0].(string) + "/m/" + useful.args[1].(string)
 	default:
 		return "rediSav - Reddit - Unknown"
 	}

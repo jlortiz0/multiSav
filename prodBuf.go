@@ -17,7 +17,7 @@ const BIP_BUFAFTER = 5
 
 type BufferedImageProducer struct {
 	items     []ImageEntry
-	listing   interface{}
+	listing   ImageListing
 	site      ImageSite
 	selSender chan int
 	selRecv   chan bool
@@ -40,12 +40,12 @@ func maxint(a, b int) int {
 	return a
 }
 
-func NewBufferedImageProducer(site ImageSite, kind int, args []interface{}) *BufferedImageProducer {
+func NewBufferedImageProducer(site ImageSite, kind int, args []interface{}, persistent interface{}) *BufferedImageProducer {
 	buf := new(BufferedImageProducer)
 	buf.site = site
-	buf.listing, buf.items = site.GetListing(kind, args)
+	buf.listing, buf.items = site.GetListing(kind, args, persistent)
 	if buf.items == nil {
-		panic(buf.listing.(error))
+		panic(buf.listing.(*ErrorListing).err)
 	}
 	buf.lazy = len(buf.items) != 0
 	buf.buffer = make([][]byte, BIP_BUFAFTER+BIP_BUFBEFORE+1)

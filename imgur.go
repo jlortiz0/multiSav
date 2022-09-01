@@ -171,16 +171,16 @@ func (img *HybridImgurRedditSite) imgurRedditHybridHelper(list []ImageEntry) []I
 	return data
 }
 
-func (img *HybridImgurRedditSite) GetListing(kind int, args []interface{}) (interface{}, []ImageEntry) {
-	inter, list := img.RedditSite.GetListing(kind, args)
+func (img *HybridImgurRedditSite) GetListing(kind int, args []interface{}, persistent interface{}) (ImageListing, []ImageEntry) {
+	inter, list := img.RedditSite.GetListing(kind, args, persistent)
 	return inter, img.imgurRedditHybridHelper(list)
 }
 
-func (img *HybridImgurRedditSite) ExtendListing(cont interface{}) []ImageEntry {
+func (img *HybridImgurRedditSite) ExtendListing(cont ImageListing) []ImageEntry {
 	list := img.RedditSite.ExtendListing(cont)
 	return img.imgurRedditHybridHelper(list)
 }
 
-func NewHybridImgurRedditProducer(site *HybridImgurRedditSite, kind int, args []interface{}) *RedditProducer {
-	return &RedditProducer{NewBufferedImageProducer(site, kind, args), &site.RedditSite, kind, args}
+func NewHybridImgurRedditProducer(site *HybridImgurRedditSite, kind int, args []interface{}, persistent interface{}) *RedditProducer {
+	return &RedditProducer{NewBufferedImageProducer(site, kind, args, persistent), &site.RedditSite}
 }

@@ -11,8 +11,6 @@ import (
 )
 
 // An image producer produces images given a listing
-// TODO: figure out if I should make producers or consumers buffer image objects
-// Given the design of this at this time, maybe producer should
 type ImageProducer interface {
 	// Get the length of this producer
 	// This may incrase if the producer is lazy and not everything is loaded yet
@@ -69,6 +67,23 @@ type ListingInfo struct {
 	persistent bool
 }
 
+type ImageListing interface {
+	GetInfo() (int, []interface{})
+	GetPersistent() interface{}
+}
+
+type ErrorListing struct {
+	err error
+}
+
+func (*ErrorListing) GetInfo() (int, []interface{}) {
+	return -1, nil
+}
+
+func (err *ErrorListing) GetPersistent() interface{} {
+	return err.err
+}
+
 // A website where images can be retrived from
 // Might not actually be a site (cough cough LocalFSImageSite)
 type ImageSite interface {
@@ -77,14 +92,14 @@ type ImageSite interface {
 	// Different listing types may get images in different ways
 	// If this list has only one item, force the user to use that type
 	GetListingInfo() []ListingInfo
-	// First argument is listing type, second argument is slice of parameters
-	// Unneeded parameters may be left blank or ommitted if towards the end
+	// First argument is listing type, second argument is slice of parameters, third argument is any persistent data
+	// Unneeded parameters in args should be zeroed. Unused persistent data should be nil
 	// Returns a listing continuance object, which can be used to extend later, and a slice of urls
-	// In case of an error, slice will be nil and interface will be an error
-	GetListing(int, []interface{}) (interface{}, []ImageEntry)
+	// In case of an error, slice will be nil and listing will be an ErrorListing
+	GetListing(int, []interface{}, interface{}) (ImageListing, []ImageEntry)
 	// Return further objects from a listing using a continuance object
 	// If the returned slice is empty or nil, the listing has concluded
-	ExtendListing(interface{}) []ImageEntry
+	ExtendListing(ImageListing) []ImageEntry
 }
 
 type ImageEntryType int
