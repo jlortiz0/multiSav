@@ -115,7 +115,7 @@ func DrawArgumentsUI(target rl.Rectangle, name string, args []ListingArgument, o
 	return nil
 }
 
-func SetUpProducer(site ImageSite, prodinit func(ImageSite, int, []interface{}) ImageProducer) ImageProducer {
+func SetUpListing(site ImageSite) (int, []interface{}) {
 	choices := site.GetListingInfo()
 	names := make([]string, len(choices)+1)
 	for i, v := range choices {
@@ -123,19 +123,19 @@ func SetUpProducer(site ImageSite, prodinit func(ImageSite, int, []interface{}) 
 	}
 	names[len(choices)] = "Cancel"
 cm:
-	cm := NewChoiceMenu(names, rl.Rectangle{X: float32(rl.GetScreenWidth() / 4), Y: float32(rl.GetScreenHeight() / 8), Height: float32(rl.GetScreenHeight()) * 0.75, Width: float32(rl.GetScreenWidth() / 2)})
+	cm := NewChoiceMenu(names, rl.Rectangle{X: float32(rl.GetScreenWidth() / 4), Y: float32(rl.GetScreenHeight() / 3), Height: float32(rl.GetScreenHeight()) * 0.75, Width: float32(rl.GetScreenWidth() / 2)})
 	if stdEventLoop(cm, func() rl.Rectangle {
-		return rl.Rectangle{X: float32(rl.GetScreenWidth() / 4), Y: float32(rl.GetScreenHeight() / 8), Height: float32(rl.GetScreenHeight()) * 0.75, Width: float32(rl.GetScreenWidth() / 2)}
+		return rl.Rectangle{X: float32(rl.GetScreenWidth() / 4), Y: float32(rl.GetScreenHeight() / 3), Height: float32(rl.GetScreenHeight()) * 0.75, Width: float32(rl.GetScreenWidth() / 2)}
 	}) == LOOP_QUIT {
-		return nil
+		return -1, nil
 	}
 	kind := cm.Selected
 	cm.Destroy()
 	if kind == len(choices) {
-		return nil
+		return -1, nil
 	}
 	if len(choices[kind].args) == 0 {
-		return prodinit(site, kind, nil)
+		return kind, nil
 	}
 	args := make([]interface{}, len(choices[kind].args))
 	flags := make([]bool, len(choices[kind].args))
@@ -147,8 +147,16 @@ cm:
 		if out != nil && len(out) == 0 {
 			goto cm
 		} else if len(out) != 0 {
-			return prodinit(site, kind, args)
+			return kind, args
 		}
 	}
-	return nil
+	return -1, nil
+}
+
+func SetUpProducer(site ImageSite, prodinit func(ImageSite, int, []interface{}) ImageProducer) ImageProducer {
+	kind, args := SetUpListing(site)
+	if kind == -1 {
+		return nil
+	}
+	return prodinit(site, kind, args)
 }

@@ -72,8 +72,6 @@ func main() {
 	// if err != nil {
 	// 	panic(err)
 	// }
-	// producer := NewRedditProducer(red, 2, nil)
-	// producer := NewHybridImgurRedditProducer(red, 0, []interface{}{"pics"})
 	producer := SetUpProducer(red, func(i ImageSite, k int, a []interface{}) ImageProducer {
 		return NewHybridImgurRedditProducer(i.(*HybridImgurRedditSite), k, a, nil)
 	})
