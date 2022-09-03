@@ -343,3 +343,7 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 func (buf *BufferedImageProducer) GetInfo(sel int) string {
 	return buf.items[sel].GetInfo()
 }
+
+func (buf *BufferedImageProducer) GetListing() ImageListing {
+	return buf.listing
+}

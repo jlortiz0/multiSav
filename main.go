@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"image/color"
+	"io"
 	"os"
 
 	"github.com/adrg/sysfont"
@@ -47,13 +48,54 @@ func loginHelper() *HybridImgurRedditSite {
 
 var font rl.Font
 
+type SavedListing struct {
+	Kind       int
+	Args       []interface{}
+	Persistent interface{}
+}
+
+var saveData struct {
+	Listings []SavedListing
+}
+
+func loadSaveData() error {
+	f, err := os.Open("rediSav.json")
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	defer f.Close()
+	data, err := io.ReadAll(f)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, &saveData)
+}
+
+func saveSaveData() error {
+	data, err := json.Marshal(saveData)
+	if err != nil {
+		return err
+	}
+	f, err := os.OpenFile("rediSav.json", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+	if err != nil {
+		return err
+	}
+	for len(data) > 0 {
+		n, err := f.Write(data)
+		if err != nil {
+			f.Close()
+			return err
+		}
+		data = data[n:]
+	}
+	return f.Close()
+}
+
 func main() {
 	red := loginHelper()
-	// sub, _ := red.Subreddit("cats")
-	// iter, _ := sub.ListHot(300)
-	// ls := NewLazySubmissionList(iter)
-	// NewLazyImageMenu(ls)
-	// red.Logout()
 	rl.SetConfigFlags(rl.FlagVsyncHint)
 	rl.SetConfigFlags(rl.FlagWindowResizable)
 	rl.InitWindow(1024, 768, "rediSav Test Window")
@@ -63,31 +105,46 @@ func main() {
 	rg.GuiSetFont(font)
 	rg.GuiSetStyle(rg.LABEL, rg.TEXT_COLOR_NORMAL, 0xf5f5f5ff)
 	rg.GuiSetStyle(rg.LABEL, rg.TEXT_ALIGNMENT, rg.TEXT_ALIGN_RIGHT)
-	// menu := NewChoiceMenu([]string{"Hello", "World", "test1", "Sort", "Trash", "Options", "New..."}, rl.Rectangle{X: 100, Y: 200, Height: 200, Width: 500})
 	if _, err := os.Stat("jlortiz_TEST"); err == nil {
 		os.Chdir("jlortiz_TEST")
 	}
 	os.Mkdir("Downloads", 0700)
-	// menu, err := NewOfflineImageMenu("Sort", rl.Rectangle{Height: 768, Width: 1024})
-	// if err != nil {
-	// 	panic(err)
-	// }
-	producer := SetUpProducer(red, func(i ImageSite, k int, a []interface{}) ImageProducer {
-		return NewHybridImgurRedditProducer(i.(*HybridImgurRedditSite), k, a, nil)
-	})
-	if producer == nil {
-		red.Destroy()
-		rl.CloseWindow()
-		return
+	err := loadSaveData()
+	if err != nil {
+		panic(err)
+	}
+	var producer ImageProducer
+	if len(saveData.Listings) > 0 {
+		data := saveData.Listings[0]
+		producer = NewHybridImgurRedditProducer(red, data.Kind, data.Args, data.Persistent)
+	} else {
+		kind, args := SetUpListing(red)
+		if kind == -1 {
+			red.Destroy()
+			rl.CloseWindow()
+			return
+		}
+		saveData.Listings = append(saveData.Listings, SavedListing{Kind: kind, Args: args})
+		producer = NewHybridImgurRedditProducer(red, kind, args, nil)
 	}
 	menu := NewImageMenu(producer, rl.Rectangle{Height: 768, Width: 1024})
 	stdEventLoop(menu, func() rl.Rectangle {
 		return rl.Rectangle{Width: float32(rl.GetScreenWidth()), Height: float32(rl.GetScreenHeight())}
 	})
+	listing := producer.GetListing()
+	if listing != nil {
+		// Ideally a listing should not mutate either of these and only persistent data should need saving
+		// saveData.Listings[0].Kind, saveData.Listings[0].Args = listing.GetInfo()
+		saveData.Listings[0].Persistent = listing.GetPersistent()
+	}
 	menu.Destroy()
 	rl.UnloadFont(font)
 	rl.CloseWindow()
 	red.Destroy()
+	err = saveSaveData()
+	if err != nil {
+		panic(err)
+	}
 }
 
 func drawMessage(text string) rl.Texture2D {

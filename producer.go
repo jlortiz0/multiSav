@@ -34,6 +34,9 @@ type ImageProducer interface {
 	// This info will be displayed to the user in a Message
 	// If the returned string is empty, the Message will not be opened
 	GetInfo(int) string
+	// Returns the listing for saving purposes
+	// The returned listing should not be modified
+	GetListing() ImageListing
 }
 
 type ListingArgumentType int
@@ -261,3 +264,5 @@ func (prod *OfflineImageProducer) GetInfo(sel int) string {
 		return fmt.Sprintf("%s\n%s", prod.items[sel], err.Error())
 	}
 }
+
+func (*OfflineImageProducer) GetListing() ImageListing { return nil }
