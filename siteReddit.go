@@ -303,10 +303,6 @@ func (red *RedditSite) ExtendListing(cont ImageListing) []ImageEntry {
 	for !iter.NextRequiresFetch() {
 		x, err = iter.Next()
 		if err == nil {
-			if x.Name == iter2.seen {
-				iter2.SubmissionIterator = nil
-				break
-			}
 			if len(x.Crosspost_parent_list) != 0 {
 				// Hack to allow requests to work with crossposts while still loading important fields
 				// For instance, fgallery data is only populated for the original post, but just replacing the object can lead to issues saving
@@ -328,6 +324,10 @@ func (red *RedditSite) ExtendListing(cont ImageListing) []ImageEntry {
 				x.URL = x.URL[:len(x.URL)-1]
 			}
 			data = append(data, &RedditImageEntry{x})
+			if x.Name == iter2.seen {
+				iter2.SubmissionIterator = nil
+				break
+			}
 		}
 	}
 	return data
@@ -517,6 +517,11 @@ func (red *RedditProducer) ActionHandler(key int32, sel int, call int) ActionRet
 			args := red.listing.(*RedditImageListing).args
 			if args[len(args)-1].(bool) {
 				red.listing.(*RedditImageListing).seen = useful.Name
+				red.items = red.items[:sel+1]
+				for i := BIP_BUFBEFORE + 1; i < BIP_BUFBEFORE+1+BIP_BUFAFTER; i++ {
+					red.buffer[i] = nil
+				}
+				red.listing.(*RedditImageListing).SubmissionIterator = nil
 				return ARET_MOVEUP
 			}
 		}

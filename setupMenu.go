@@ -137,12 +137,16 @@ cm:
 	if len(choices[kind].args) == 0 {
 		return kind, nil
 	}
-	args := make([]interface{}, len(choices[kind].args))
-	flags := make([]bool, len(choices[kind].args))
+	args := make([]interface{}, len(choices[kind].args)+1)
+	flags := make([]bool, len(choices[kind].args)+1)
+	cArgs := make([]ListingArgument, 1, len(choices[kind].args)+1)
+	cArgs[0].name = "Name"
+	cArgs[0].kind = LARGTYPE_STRING
+	cArgs = append(cArgs, choices[kind].args...)
 	for !rl.WindowShouldClose() {
 		rl.BeginDrawing()
 		rl.ClearBackground(color.RGBA{R: 64, G: 64, B: 64})
-		out := DrawArgumentsUI(rl.Rectangle{Width: float32(rl.GetScreenWidth()), Height: float32(rl.GetScreenHeight())}, choices[kind].name, choices[kind].args, args, flags)
+		out := DrawArgumentsUI(rl.Rectangle{Width: float32(rl.GetScreenWidth()), Height: float32(rl.GetScreenHeight())}, choices[kind].name, cArgs, args, flags)
 		rl.EndDrawing()
 		if out != nil && len(out) == 0 {
 			goto cm
@@ -151,12 +155,4 @@ cm:
 		}
 	}
 	return -1, nil
-}
-
-func SetUpProducer(site ImageSite, prodinit func(ImageSite, int, []interface{}) ImageProducer) ImageProducer {
-	kind, args := SetUpListing(site)
-	if kind == -1 {
-		return nil
-	}
-	return prodinit(site, kind, args)
 }

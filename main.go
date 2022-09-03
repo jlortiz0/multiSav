@@ -49,6 +49,7 @@ func loginHelper() *HybridImgurRedditSite {
 var font rl.Font
 
 type SavedListing struct {
+	Name       string
 	Kind       int
 	Args       []interface{}
 	Persistent interface{}
@@ -113,31 +114,70 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	var producer ImageProducer
-	if len(saveData.Listings) > 0 {
-		data := saveData.Listings[0]
-		producer = NewHybridImgurRedditProducer(red, data.Kind, data.Args, data.Persistent)
-	} else {
-		kind, args := SetUpListing(red)
-		if kind == -1 {
-			red.Destroy()
-			rl.CloseWindow()
-			return
+MainLoop:
+	for {
+		names := make([]string, len(saveData.Listings), len(saveData.Listings)+4)
+		for i, v := range saveData.Listings {
+			names[i] = v.Name
 		}
-		saveData.Listings = append(saveData.Listings, SavedListing{Kind: kind, Args: args})
-		producer = NewHybridImgurRedditProducer(red, kind, args, nil)
+		names = append(names, "Reset Lisiting", "Delete Listing", "New Listing", "Quit")
+		cm := NewChoiceMenu(names, GetCenteredCoiceMenuRect(len(saveData.Listings)+4, float32(rl.GetScreenWidth()), float32(rl.GetScreenHeight())))
+		stdEventLoop(cm, func() rl.Rectangle {
+			return GetCenteredCoiceMenuRect(len(saveData.Listings)+4, float32(rl.GetScreenWidth()), float32(rl.GetScreenHeight()))
+		})
+		sel := cm.Selected
+		cm.Destroy()
+		if sel >= len(saveData.Listings) {
+			switch sel - len(saveData.Listings) {
+			case 0:
+				names[len(names)-4] = "Back"
+				cm := NewChoiceMenu(names[:len(names)-3], GetCenteredCoiceMenuRect(len(names)-3, float32(rl.GetScreenWidth()), float32(rl.GetScreenHeight())))
+				stdEventLoop(cm, func() rl.Rectangle {
+					return GetCenteredCoiceMenuRect(len(saveData.Listings)+4, float32(rl.GetScreenWidth()), float32(rl.GetScreenHeight()))
+				})
+				sel := cm.Selected
+				cm.Destroy()
+				if sel != len(names)-1 {
+					saveData.Listings[sel].Persistent = nil
+				}
+			case 1:
+				names[len(names)-4] = "Back"
+				cm := NewChoiceMenu(names[:len(names)-3], GetCenteredCoiceMenuRect(len(names)-3, float32(rl.GetScreenWidth()), float32(rl.GetScreenHeight())))
+				stdEventLoop(cm, func() rl.Rectangle {
+					return GetCenteredCoiceMenuRect(len(saveData.Listings)+4, float32(rl.GetScreenWidth()), float32(rl.GetScreenHeight()))
+				})
+				sel := cm.Selected
+				cm.Destroy()
+				if sel != len(names)-1 {
+					copy(saveData.Listings[sel:], saveData.Listings[sel+1:])
+					saveData.Listings = saveData.Listings[:len(saveData.Listings)-1]
+				}
+			case 2:
+				kind, args := SetUpListing(red)
+				if kind != -1 {
+					var actualArgs []interface{}
+					if len(args) > 1 {
+						actualArgs = args[1:]
+					}
+					saveData.Listings = append(saveData.Listings, SavedListing{Kind: kind, Args: actualArgs, Name: args[0].(string)})
+				}
+			case 3:
+				break MainLoop
+			}
+		} else {
+			data := saveData.Listings[0]
+			producer := NewHybridImgurRedditProducer(red, data.Kind, data.Args, data.Persistent)
+			menu := NewImageMenu(producer, rl.Rectangle{Height: 768, Width: 1024})
+			stdEventLoop(menu, func() rl.Rectangle {
+				return rl.Rectangle{Width: float32(rl.GetScreenWidth()), Height: float32(rl.GetScreenHeight())}
+			})
+			listing := producer.GetListing()
+			if listing != nil {
+				saveData.Listings[0].Persistent = listing.GetPersistent()
+			}
+			menu.Destroy()
+		}
 	}
-	menu := NewImageMenu(producer, rl.Rectangle{Height: 768, Width: 1024})
-	stdEventLoop(menu, func() rl.Rectangle {
-		return rl.Rectangle{Width: float32(rl.GetScreenWidth()), Height: float32(rl.GetScreenHeight())}
-	})
-	listing := producer.GetListing()
-	if listing != nil {
-		// Ideally a listing should not mutate either of these and only persistent data should need saving
-		// saveData.Listings[0].Kind, saveData.Listings[0].Args = listing.GetInfo()
-		saveData.Listings[0].Persistent = listing.GetPersistent()
-	}
-	menu.Destroy()
 	rl.UnloadFont(font)
 	rl.CloseWindow()
 	red.Destroy()

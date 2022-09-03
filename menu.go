@@ -88,3 +88,17 @@ func (cm *ChoiceMenu) Destroy() {}
 func (cm *ChoiceMenu) SetTarget(target rl.Rectangle) {
 	cm.target = target
 }
+
+func GetCenteredCoiceMenuRect(len int, width float32, height float32) rl.Rectangle {
+	rect := rl.Rectangle{X: width / 4, Width: width / 2}
+	mHeight := float32(len * (TEXT_SIZE + CHOICEMENU_SPACE_BETWEEN_ITEM))
+	// Padding area of height / 8 on both borders
+	if mHeight >= height*0.75 {
+		rect.Y = height / 8
+		rect.Height = height * 0.75
+	} else {
+		rect.Height = mHeight
+		rect.Y = (height - mHeight) / 2
+	}
+	return rect
+}

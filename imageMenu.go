@@ -223,12 +223,13 @@ func (menu *ImageMenu) HandleKey(keycode int32) LoopStatus {
 		state := ARET_AGAIN
 		for state&ARET_AGAIN != 0 {
 			state = menu.Producer.ActionHandler(keycode, menu.Selected, call)
+			cam := menu.cam
 			if state&ARET_MOVEDOWN != 0 {
 				moveFactor := float32(26)
 				for menu.cam.Target.Y > menu.tol.Y-menu.target.Height-float32(menu.texture.Height) {
-					menu.cam.Target.Y -= moveFactor
+					menu.cam.Target.Y -= moveFactor / menu.cam.Zoom
 					if moveFactor < menu.target.Height {
-						moveFactor *= 1.18
+						moveFactor *= 1.1
 					}
 					rl.BeginDrawing()
 					rl.DrawRectangleRec(menu.target, color.RGBA{R: 64, G: 64, B: 64, A: 255})
@@ -238,9 +239,9 @@ func (menu *ImageMenu) HandleKey(keycode int32) LoopStatus {
 			} else if state&ARET_MOVEUP != 0 {
 				moveFactor := float32(26)
 				for menu.cam.Target.Y < menu.tol.Y+float32(menu.texture.Height) {
-					menu.cam.Target.Y += moveFactor
+					menu.cam.Target.Y += moveFactor / menu.cam.Zoom
 					if moveFactor < menu.target.Height {
-						moveFactor *= 1.18
+						moveFactor *= 1.1
 					}
 					rl.BeginDrawing()
 					rl.DrawRectangleRec(menu.target, color.RGBA{R: 64, G: 64, B: 64, A: 255})
@@ -254,6 +255,9 @@ func (menu *ImageMenu) HandleKey(keycode int32) LoopStatus {
 			}
 			if state&ARET_REMOVE != 0 {
 				menu.state = IMSTATE_SHOULDLOAD
+				menu.cam.Zoom = 0
+			} else {
+				menu.cam = cam
 			}
 			call += 1
 		}
