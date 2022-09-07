@@ -321,6 +321,7 @@ func (red *RedditSite) ExtendListing(cont ImageListing) []ImageEntry {
 				continue
 			}
 			if strings.HasSuffix(x.URL, ".gifv") {
+				// TODO: this doesn't seem to work properly...
 				x.URL = x.URL[:len(x.URL)-1]
 			}
 			data = append(data, &RedditImageEntry{x})
@@ -350,9 +351,12 @@ func (red *RedditImageEntry) GetType() ImageEntryType {
 	return IETYPE_REGULAR
 }
 
-func (red *RedditImageEntry) GetGalleryInfo() []ImageEntry {
+func (red *RedditImageEntry) GetGalleryInfo(lazy bool) []ImageEntry {
 	if !red.Is_gallery {
 		return nil
+	}
+	if lazy {
+		return make([]ImageEntry, len(red.Media_metadata))
 	}
 	data := make([]ImageEntry, 0, len(red.Media_metadata))
 	for i, s := range red.Gallery_data.Items {
@@ -506,7 +510,7 @@ func (red *RedditProducer) ActionHandler(key int32, sel int, call int) ActionRet
 		return ARET_MOVEUP | ARET_REMOVE
 	} else if key == rl.KeyC {
 		if red.listing.(*RedditImageListing).kind == 5 {
-			fmt.Println(useful.Unsave())
+			useful.Unsave()
 		} else {
 			useful.Hide()
 		}

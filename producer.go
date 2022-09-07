@@ -120,7 +120,9 @@ type ImageEntry interface {
 	GetName() string
 	GetURL() string
 	GetText() string
-	GetGalleryInfo() []ImageEntry
+	// If true is passed, no network requests should be made
+	// Additionally, the returned slice need only be the correct length; it can otherwise be blank
+	GetGalleryInfo(bool) []ImageEntry
 	GetType() ImageEntryType
 	GetDimensions() (int, int)
 	GetPostURL() string
@@ -136,6 +138,7 @@ const (
 	ARET_AGAIN
 	ARET_REMOVE
 	ARET_CLOSEFFMPEG
+	ARET_BEGONE
 )
 
 type OfflineImageProducer struct {

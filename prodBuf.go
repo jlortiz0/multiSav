@@ -43,11 +43,13 @@ func maxint(a, b int) int {
 func NewBufferedImageProducer(site ImageSite, kind int, args []interface{}, persistent interface{}) *BufferedImageProducer {
 	buf := new(BufferedImageProducer)
 	buf.site = site
-	buf.listing, buf.items = site.GetListing(kind, args, persistent)
-	if buf.items == nil {
-		panic(buf.listing.(*ErrorListing).err)
+	if site != nil {
+		buf.listing, buf.items = site.GetListing(kind, args, persistent)
+		if buf.items == nil {
+			panic(buf.listing.(*ErrorListing).err)
+		}
+		buf.lazy = len(buf.items) != 0
 	}
-	buf.lazy = len(buf.items) != 0
 	buf.buffer = make([][]byte, BIP_BUFAFTER+BIP_BUFBEFORE+1)
 	buf.selSender = make(chan int, 3)
 	buf.selRecv = make(chan bool)
@@ -132,6 +134,9 @@ func (buf *BufferedImageProducer) ActionHandler(key int32, sel int, call int) Ac
 		browser.OpenURL(buf.items[sel].GetURL())
 	} else if key == rl.KeyH {
 		browser.OpenURL(buf.items[sel].GetPostURL())
+	} else if key == rl.KeyC {
+		buf.remove(sel)
+		return ARET_MOVEDOWN | ARET_REMOVE
 	} else if key == rl.KeyX {
 		name := buf.items[sel].GetURL()
 		ind := strings.IndexByte(name, '?')
@@ -185,6 +190,17 @@ func (buf *BufferedImageProducer) ActionHandler(key int32, sel int, call int) Ac
 		}
 		buf.remove(sel)
 		return ARET_MOVEUP | ARET_REMOVE
+	} else if key == rl.KeyEnter {
+		if buf.items[sel].GetType() == IETYPE_GALLERY {
+			menu := NewGalleryMenu(buf.items[sel], rl.Rectangle{Width: float32(rl.GetScreenWidth()), Height: float32(rl.GetScreenHeight())})
+			ret := stdEventLoop(menu, func() rl.Rectangle {
+				return rl.Rectangle{Width: float32(rl.GetScreenWidth()), Height: float32(rl.GetScreenHeight())}
+			})
+			menu.Destroy()
+			if ret == LOOP_QUIT {
+				return ARET_BEGONE
+			}
+		}
 	}
 	return ARET_NOTHING
 }
@@ -197,7 +213,7 @@ func (buf *BufferedImageProducer) remove(sel int) {
 }
 
 func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegReader) string {
-	if sel+BIP_BUFAFTER >= len(buf.items) {
+	if sel+BIP_BUFAFTER >= len(buf.items) && buf.site != nil {
 		go buf.extending.Do(func() {
 			extend := buf.site.ExtendListing(buf.listing)
 			if len(extend) == 0 {
@@ -228,25 +244,30 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 	}
 	switch buf.items[sel].GetType() {
 	case IETYPE_GALLERY:
-		data := buf.items[sel].GetGalleryInfo()
-		if sel+1 != len(buf.items) {
-			buf.items = append(buf.items[:sel+len(data)], buf.items[sel+1:]...)
-			for i, x := range data {
-				buf.items[sel+i] = x
-			}
-			if len(data) < BIP_BUFAFTER+1 {
-				copy(buf.buffer[BIP_BUFBEFORE+len(data):], buf.buffer[BIP_BUFBEFORE+1:])
-				for i := 0; i < len(data); i++ {
-					buf.buffer[BIP_BUFBEFORE+i] = nil
-				}
-			} else {
-				for i := BIP_BUFBEFORE; i < BIP_BUFBEFORE+BIP_BUFAFTER+1; i++ {
-					buf.buffer[i] = nil
-				}
-			}
-		} else {
-			buf.items = append(buf.items, data...)
-		}
+		text := fmt.Sprintf("Press Enter for gallery viewer\n%d images", len(buf.items[sel].GetGalleryInfo(true)))
+		vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
+		*img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
+		rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
+		return "\\/err" + buf.items[sel].GetName()
+		// data := buf.items[sel].GetGalleryInfo()
+		// if sel+1 != len(buf.items) {
+		// 	buf.items = append(buf.items[:sel+len(data)], buf.items[sel+1:]...)
+		// 	for i, x := range data {
+		// 		buf.items[sel+i] = x
+		// 	}
+		// 	if len(data) < BIP_BUFAFTER+1 {
+		// 		copy(buf.buffer[BIP_BUFBEFORE+len(data):], buf.buffer[BIP_BUFBEFORE+1:])
+		// 		for i := 0; i < len(data); i++ {
+		// 			buf.buffer[BIP_BUFBEFORE+i] = nil
+		// 		}
+		// 	} else {
+		// 		for i := BIP_BUFBEFORE; i < BIP_BUFBEFORE+BIP_BUFAFTER+1; i++ {
+		// 			buf.buffer[i] = nil
+		// 		}
+		// 	}
+		// } else {
+		// 	buf.items = append(buf.items, data...)
+		// }
 	case IETYPE_TEXT:
 		text := buf.items[sel].GetText()
 		vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
@@ -346,4 +367,13 @@ func (buf *BufferedImageProducer) GetInfo(sel int) string {
 
 func (buf *BufferedImageProducer) GetListing() ImageListing {
 	return buf.listing
+}
+
+func NewGalleryMenu(img ImageEntry, target rl.Rectangle) *ImageMenu {
+	prod := NewBufferedImageProducer(nil, 0, nil, nil)
+	prod.items = img.GetGalleryInfo(false)
+	prod.extending = nil
+	prod.lazy = false
+	menu := NewImageMenu(prod, target)
+	return menu
 }

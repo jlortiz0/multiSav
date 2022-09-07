@@ -124,6 +124,7 @@ func (menu *ImageMenu) loadImage() {
 	if menu.Producer.Len() == 0 {
 		if !menu.Producer.IsLazy() || !menu.Producer.BoundsCheck(0) {
 			menu.state = IMSTATE_SHOULDEXIT
+			// TODO: user friendliness
 			return
 		}
 	}
@@ -224,6 +225,9 @@ func (menu *ImageMenu) HandleKey(keycode int32) LoopStatus {
 		for state&ARET_AGAIN != 0 {
 			state = menu.Producer.ActionHandler(keycode, menu.Selected, call)
 			cam := menu.cam
+			if state&ARET_BEGONE != 0 {
+				return LOOP_QUIT
+			}
 			if state&ARET_MOVEDOWN != 0 {
 				moveFactor := float32(26)
 				for menu.cam.Target.Y > menu.tol.Y-menu.target.Height-float32(menu.texture.Height) {

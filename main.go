@@ -114,6 +114,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	// TODO: Allow the user to see (and maybe edit) the parameters of an existing listing
 MainLoop:
 	for {
 		names := make([]string, len(saveData.Listings), len(saveData.Listings)+4)
@@ -122,9 +123,11 @@ MainLoop:
 		}
 		names = append(names, "Reset Lisiting", "Delete Listing", "New Listing", "Quit")
 		cm := NewChoiceMenu(names, GetCenteredCoiceMenuRect(len(saveData.Listings)+4, float32(rl.GetScreenWidth()), float32(rl.GetScreenHeight())))
-		stdEventLoop(cm, func() rl.Rectangle {
+		if stdEventLoop(cm, func() rl.Rectangle {
 			return GetCenteredCoiceMenuRect(len(saveData.Listings)+4, float32(rl.GetScreenWidth()), float32(rl.GetScreenHeight()))
-		})
+		}) != LOOP_EXIT {
+			break
+		}
 		sel := cm.Selected
 		cm.Destroy()
 		if sel >= len(saveData.Listings) {
@@ -155,17 +158,13 @@ MainLoop:
 			case 2:
 				kind, args := SetUpListing(red)
 				if kind != -1 {
-					var actualArgs []interface{}
-					if len(args) > 1 {
-						actualArgs = args[1:]
-					}
-					saveData.Listings = append(saveData.Listings, SavedListing{Kind: kind, Args: actualArgs, Name: args[0].(string)})
+					saveData.Listings = append(saveData.Listings, SavedListing{Kind: kind, Args: args[1:], Name: args[0].(string)})
 				}
 			case 3:
 				break MainLoop
 			}
 		} else {
-			data := saveData.Listings[0]
+			data := saveData.Listings[sel]
 			producer := NewHybridImgurRedditProducer(red, data.Kind, data.Args, data.Persistent)
 			menu := NewImageMenu(producer, rl.Rectangle{Height: 768, Width: 1024})
 			stdEventLoop(menu, func() rl.Rectangle {

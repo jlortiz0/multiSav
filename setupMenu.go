@@ -87,20 +87,17 @@ func DrawArgumentsUI(target rl.Rectangle, name string, args []ListingArgument, o
 			switch args[i].kind {
 			case LARGTYPE_STRING:
 				if out[i].(string) == "" {
-					// fmt.Println("Empty string")
 					return nil
 				}
 			case LARGTYPE_INT:
 				// Do I need to do any verification here? 0 is probably valid...
 			// case LARGTYPE_TIME:
 			// 	if out[i].(time.Time).IsZero() {
-			// 		fmt.Println("OUTATIME")
 			// 		return nil
 			// 	}
 			case LARGTYPE_URL:
 				_, err := url.ParseRequestURI(out[i].(string))
 				if err != nil {
-					// fmt.Println(err)
 					return nil
 				}
 			}
@@ -134,9 +131,9 @@ cm:
 	if kind == len(choices) {
 		return -1, nil
 	}
-	if len(choices[kind].args) == 0 {
-		return kind, nil
-	}
+	// if len(choices[kind].args) == 0 {
+	// 	return kind, nil
+	// }
 	args := make([]interface{}, len(choices[kind].args)+1)
 	flags := make([]bool, len(choices[kind].args)+1)
 	cArgs := make([]ListingArgument, 1, len(choices[kind].args)+1)
