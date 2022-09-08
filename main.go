@@ -49,10 +49,11 @@ func loginHelper() *HybridImgurRedditSite {
 var font rl.Font
 
 type SavedListing struct {
-	Name       string
+	Name string
+	// Site int
 	Kind       int
 	Args       []interface{}
-	Persistent interface{}
+	Persistent interface{} `json:",omitempty"`
 }
 
 var saveData struct {
@@ -140,7 +141,7 @@ MainLoop:
 				})
 				sel := cm.Selected
 				cm.Destroy()
-				if sel != len(names)-1 {
+				if sel != len(names)-4 {
 					saveData.Listings[sel].Persistent = nil
 				}
 			case 1:
@@ -151,7 +152,7 @@ MainLoop:
 				})
 				sel := cm.Selected
 				cm.Destroy()
-				if sel != len(names)-1 {
+				if sel != len(names)-4 {
 					copy(saveData.Listings[sel:], saveData.Listings[sel+1:])
 					saveData.Listings = saveData.Listings[:len(saveData.Listings)-1]
 				}
@@ -166,15 +167,16 @@ MainLoop:
 		} else {
 			data := saveData.Listings[sel]
 			producer := NewHybridImgurRedditProducer(red, data.Kind, data.Args, data.Persistent)
-			menu := NewImageMenu(producer, rl.Rectangle{Height: 768, Width: 1024})
+			menu := NewImageMenu(producer, rl.Rectangle{Width: float32(rl.GetScreenWidth()), Height: float32(rl.GetScreenHeight())})
 			stdEventLoop(menu, func() rl.Rectangle {
 				return rl.Rectangle{Width: float32(rl.GetScreenWidth()), Height: float32(rl.GetScreenHeight())}
 			})
 			listing := producer.GetListing()
 			if listing != nil {
-				saveData.Listings[0].Persistent = listing.GetPersistent()
+				saveData.Listings[sel].Persistent = listing.GetPersistent()
 			}
 			menu.Destroy()
+			rl.SetWindowTitle("rediSav Test Window")
 		}
 	}
 	rl.UnloadFont(font)

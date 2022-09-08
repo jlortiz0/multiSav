@@ -183,16 +183,11 @@ func (red *RedditSite) GetListingInfo() []ListingInfo {
 					name: "Track Last",
 					kind: LARGTYPE_BOOL,
 				},
-				// {
-				// 	name: "Test int",
-				// 	kind: LARGTYPE_INT,
-				// },
-				// {
-				// 	name: "Test url",
-				// 	kind: LARGTYPE_URL,
-				// },
 			},
 			persistent: true,
+		},
+		{
+			name: "Hidden",
 		},
 	}
 }
@@ -209,6 +204,9 @@ func (red *RedditImageListing) GetInfo() (int, []interface{}) {
 }
 
 func (red *RedditImageListing) GetPersistent() interface{} {
+	if red.seen == "" {
+		return nil
+	}
 	return red.seen
 }
 
@@ -274,6 +272,8 @@ func (red *RedditSite) GetListing(kind int, args []interface{}, persistent inter
 		if err == nil {
 			iter, err = multi.ListNew(0)
 		}
+	case 11:
+		iter, err = red.Self().ListHidden(0)
 	}
 	if err != nil {
 		return &ErrorListing{err}, nil
@@ -303,6 +303,9 @@ func (red *RedditSite) ExtendListing(cont ImageListing) []ImageEntry {
 	for !iter.NextRequiresFetch() {
 		x, err = iter.Next()
 		if err == nil {
+			if x == nil {
+				break
+			}
 			if len(x.Crosspost_parent_list) != 0 {
 				// Hack to allow requests to work with crossposts while still loading important fields
 				// For instance, fgallery data is only populated for the original post, but just replacing the object can lead to issues saving
@@ -494,8 +497,6 @@ func (red *RedditProducer) ActionHandler(key int32, sel int, call int) ActionRet
 	default:
 		return red.BufferedImageProducer.ActionHandler(key, sel, call)
 	}
-	// TODO: Account for galleries when removing
-	// Or should I do this in prodBuf?
 	if key == rl.KeyX {
 		if red.listing.(*RedditImageListing).kind == 5 {
 			ret := red.BufferedImageProducer.ActionHandler(key, sel, call)
@@ -511,6 +512,8 @@ func (red *RedditProducer) ActionHandler(key int32, sel int, call int) ActionRet
 	} else if key == rl.KeyC {
 		if red.listing.(*RedditImageListing).kind == 5 {
 			useful.Unsave()
+		} else if red.listing.(*RedditImageListing).kind == 11 {
+			useful.Unhide()
 		} else {
 			useful.Hide()
 		}
@@ -529,6 +532,10 @@ func (red *RedditProducer) ActionHandler(key int32, sel int, call int) ActionRet
 				return ARET_MOVEUP
 			}
 		}
+	} else if key == rl.KeyEnter {
+		ret := red.BufferedImageProducer.ActionHandler(key, sel, call)
+		rl.SetWindowTitle(red.GetTitle())
+		return ret
 	}
 	return red.BufferedImageProducer.ActionHandler(key, sel, call)
 }
@@ -558,6 +565,8 @@ func (red *RedditProducer) GetTitle() string {
 		return "rediSav - Reddit - New: r/u_" + useful.args[0].(string)
 	case 10:
 		return "rediSav - Reddit - New: u/" + useful.args[0].(string) + "/m/" + useful.args[1].(string)
+	case 11:
+		return "rediSav - Reddit - Trash: u/" + red.site.Self().Name
 	default:
 		return "rediSav - Reddit - Unknown"
 	}
