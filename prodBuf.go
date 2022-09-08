@@ -51,14 +51,16 @@ func NewBufferedImageProducer(site ImageSite, kind int, args []interface{}, pers
 		buf.lazy = len(buf.items) != 0
 	}
 	buf.buffer = make([][]byte, BIP_BUFAFTER+BIP_BUFBEFORE+1)
-	buf.selSender = make(chan int, 3)
-	buf.selRecv = make(chan bool)
+	buf.selSender = make(chan int, 2)
+	buf.selRecv = make(chan bool, 1)
 	buf.extending = new(sync.Once)
 	go func() {
 		var prevSel int
 		for {
 			sel, ok := <-buf.selSender
 			if !ok {
+				close(buf.selRecv)
+				buf.buffer = nil
 				break
 			}
 			if sel < prevSel {
@@ -80,6 +82,11 @@ func NewBufferedImageProducer(site ImageSite, kind int, args []interface{}, pers
 					continue
 				}
 				url := buf.items[sel+i-BIP_BUFBEFORE].GetURL()
+				if buf.items[sel+i-BIP_BUFBEFORE].GetType() == IETYPE_GALLERY {
+					url = buf.items[sel+i-BIP_BUFBEFORE].GetGalleryInfo(false)[0].GetURL()
+				} else if buf.items[sel+i-BIP_BUFBEFORE].GetType() != IETYPE_REGULAR {
+					continue
+				}
 				ind := strings.LastIndexByte(url, '.')
 				if ind == -1 {
 					continue
@@ -121,8 +128,6 @@ func (buf *BufferedImageProducer) BoundsCheck(i int) bool {
 
 func (buf *BufferedImageProducer) Destroy() {
 	close(buf.selSender)
-	close(buf.selRecv)
-	buf.buffer = nil
 }
 
 func (buf *BufferedImageProducer) GetTitle() string {
@@ -200,6 +205,7 @@ func (buf *BufferedImageProducer) ActionHandler(key int32, sel int, call int) Ac
 			if ret == LOOP_QUIT {
 				return ARET_QUIT
 			}
+			rl.SetWindowTitle(buf.GetTitle())
 		}
 	}
 	return ARET_NOTHING
@@ -242,47 +248,27 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 		rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
 		return "\\/errPress left please"
 	}
-	switch buf.items[sel].GetType() {
-	case IETYPE_GALLERY:
-		text := fmt.Sprintf("Press Enter for gallery viewer\n%d images", len(buf.items[sel].GetGalleryInfo(true)))
-		vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
-		*img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
-		rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
-		return "\\/err" + buf.items[sel].GetName()
-		// data := buf.items[sel].GetGalleryInfo()
-		// if sel+1 != len(buf.items) {
-		// 	buf.items = append(buf.items[:sel+len(data)], buf.items[sel+1:]...)
-		// 	for i, x := range data {
-		// 		buf.items[sel+i] = x
-		// 	}
-		// 	if len(data) < BIP_BUFAFTER+1 {
-		// 		copy(buf.buffer[BIP_BUFBEFORE+len(data):], buf.buffer[BIP_BUFBEFORE+1:])
-		// 		for i := 0; i < len(data); i++ {
-		// 			buf.buffer[BIP_BUFBEFORE+i] = nil
-		// 		}
-		// 	} else {
-		// 		for i := BIP_BUFBEFORE; i < BIP_BUFBEFORE+BIP_BUFAFTER+1; i++ {
-		// 			buf.buffer[i] = nil
-		// 		}
-		// 	}
-		// } else {
-		// 	buf.items = append(buf.items, data...)
-		// }
-	case IETYPE_TEXT:
+	// The buffer should be kept updated even if we won't be reading it this time around
+	buf.selSender <- sel
+	if buf.items[sel].GetType() == IETYPE_TEXT {
 		text := buf.items[sel].GetText()
 		vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
 		*img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
 		rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
+		// We still need to recieve to ensure the buffer is updated, but no need to do it synchronously
+		go func() { <-buf.selRecv }()
 		return buf.items[sel].GetName()
 	}
 	url := buf.items[sel].GetURL()
+	if buf.items[sel].GetType() == IETYPE_GALLERY {
+		url = buf.items[sel].GetGalleryInfo(false)[0].GetURL()
+	}
 	ind := strings.LastIndexByte(url, '.')
 	if ind == -1 {
 		fmt.Println(buf.items[sel].GetName(), buf.items[sel].GetType())
 		panic(url)
 	}
 	ext := strings.ToLower(url[ind:])
-	buf.selSender <- sel
 	<-buf.selRecv
 	switch ext[1:] {
 	case "mp4":
@@ -331,9 +317,6 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 				rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
 				return "\\/err" + buf.items[sel].GetName()
 			}
-			// f, _ := os.OpenFile("out.dat", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
-			// defer f.Close()
-			// data, err := io.ReadAll(io.TeeReader(resp.Body, f))
 			data, err = io.ReadAll(resp.Body)
 			if err != nil {
 				text := err.Error()
@@ -345,7 +328,7 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 		}
 		*img = rl.LoadImageFromMemory(ext, data, int32(len(data)))
 		if (*img).Height == 0 {
-			text := "Failed to load image?"
+			text := "Failed to load image?\n" + url
 			vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
 			*img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
 			rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
@@ -357,6 +340,27 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 		*img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
 		rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
 		return "\\/err" + buf.items[sel].GetName()
+	}
+	if buf.items[sel].GetType() == IETYPE_GALLERY {
+		if *ffmpeg != nil {
+			// TODO: Make this suck less
+			// Actually make any instance of missing textures suck less
+			(*ffmpeg).Destroy()
+			*ffmpeg = nil
+			rl.UnloadImage(*img)
+			text := fmt.Sprintf("Press Enter for gallery viewer (%d images)", len(buf.items[sel].GetGalleryInfo(true)))
+			vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
+			*img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
+			rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
+			return "\\/err" + buf.items[sel].GetName()
+		}
+		// TODO: on small images (<500 px?) text is not centered and drawn too low
+		size := float32((**img).Height) / 32
+		text := fmt.Sprintf("Press Enter for gallery viewer (%d images)", len(buf.items[sel].GetGalleryInfo(true)))
+		vec := rl.MeasureTextEx(font, text, size, 0)
+		rl.ImageDrawRectangle(*img, 0, (**img).Height-int32(vec.Y)-10, (**img).Width, int32(vec.Y)+10, rl.RayWhite)
+		rl.ImageDrawTextEx(*img, rl.Vector2{X: (float32((**img).Width)-vec.X)/2 - 2, Y: float32((**img).Height) - vec.Y - 5}, font, text, size, 0, rl.Black)
+		return buf.items[sel].GetName()
 	}
 	return buf.items[sel].GetName()
 }
