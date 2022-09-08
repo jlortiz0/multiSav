@@ -321,7 +321,7 @@ func (red *RedditSite) ExtendListing(cont ImageListing) []ImageEntry {
 				continue
 			}
 			if strings.HasSuffix(x.URL, ".gifv") {
-				// TODO: this doesn't seem to work properly...
+				// TODO: this doesn't seem to work properly, maybe try substituting .webm instead?
 				x.URL = x.URL[:len(x.URL)-1]
 			}
 			data = append(data, &RedditImageEntry{x})

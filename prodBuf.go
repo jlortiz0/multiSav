@@ -198,7 +198,7 @@ func (buf *BufferedImageProducer) ActionHandler(key int32, sel int, call int) Ac
 			})
 			menu.Destroy()
 			if ret == LOOP_QUIT {
-				return ARET_BEGONE
+				return ARET_QUIT
 			}
 		}
 	}

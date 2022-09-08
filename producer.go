@@ -138,7 +138,7 @@ const (
 	ARET_AGAIN
 	ARET_REMOVE
 	ARET_CLOSEFFMPEG
-	ARET_BEGONE
+	ARET_QUIT
 )
 
 type OfflineImageProducer struct {

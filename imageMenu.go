@@ -123,8 +123,12 @@ func NewImageMenu(prod ImageProducer, target rl.Rectangle) *ImageMenu {
 func (menu *ImageMenu) loadImage() {
 	if menu.Producer.Len() == 0 {
 		if !menu.Producer.IsLazy() || !menu.Producer.BoundsCheck(0) {
-			menu.state = IMSTATE_SHOULDEXIT
-			// TODO: user friendliness
+			// TODO: probably should make some kind of MessageMenu that hides the UI elements
+			menu.state = IMSTATE_ERRORMINOR
+			text := "No images!"
+			vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
+			menu.img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
+			rl.ImageDrawTextEx(menu.img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
 			return
 		}
 	}
@@ -225,7 +229,7 @@ func (menu *ImageMenu) HandleKey(keycode int32) LoopStatus {
 		for state&ARET_AGAIN != 0 {
 			state = menu.Producer.ActionHandler(keycode, menu.Selected, call)
 			cam := menu.cam
-			if state&ARET_BEGONE != 0 {
+			if state&ARET_QUIT != 0 {
 				return LOOP_QUIT
 			}
 			if state&ARET_MOVEDOWN != 0 {
