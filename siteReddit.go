@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -337,6 +338,51 @@ func (red *RedditSite) ExtendListing(cont ImageListing) []ImageEntry {
 	return data
 }
 
+func (red *RedditSite) ResolveURL(URL string) (string, ImageEntry) {
+	u, err := url.Parse(URL)
+	if err != nil {
+		return "", nil
+	}
+	switch u.Hostname() {
+	case "redd.it":
+		s := u.Path
+		if s[0] == '/' {
+			s = s[1:]
+		}
+		sub, err := red.Submission(s)
+		if err != nil {
+			return "", nil
+		}
+		return sub.URL, nil
+	case "reddit.com":
+		s := u.Path
+		if s[0] == '/' {
+			s = s[1:]
+		}
+		if s[0] == 'u' || s[0] == 'r' {
+			ind := strings.Index(s, "comments")
+			if ind == -1 {
+				return "", nil
+			}
+			s = s[ind+9 : ind+9+6]
+			sub, err := red.Submission(s)
+			if err != nil {
+				return "", nil
+			}
+			return sub.URL, nil
+		}
+	case "preview.redd.it":
+		fallthrough
+	case "i.redd.it":
+		return RESOLVE_FINAL, nil
+	}
+	return "", nil
+}
+
+func (*RedditSite) GetResolvableDomains() []string {
+	return []string{"reddit.com", "preview.redd.it", "redd.it", "i.redd.it"}
+}
+
 type RedditImageEntry struct {
 	*redditapi.Submission
 }
@@ -520,7 +566,9 @@ func (red *RedditProducer) ActionHandler(key int32, sel int, call int) ActionRet
 		red.remove(sel)
 		return ARET_MOVEDOWN | ARET_REMOVE
 	} else if key == rl.KeyL {
-		if red.listing.(*RedditImageListing).kind != 5 {
+		if red.listing.(*RedditImageListing).kind == 11 {
+			// TODO: Clear hidden? It would fit with the "Trash" metaphor...
+		} else if red.listing.(*RedditImageListing).kind != 5 {
 			args := red.listing.(*RedditImageListing).args
 			if args[len(args)-1].(bool) {
 				red.listing.(*RedditImageListing).seen = useful.Name

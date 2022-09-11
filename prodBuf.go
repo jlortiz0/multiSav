@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -259,16 +260,68 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 		go func() { <-buf.selRecv }()
 		return buf.items[sel].GetName()
 	}
-	url := buf.items[sel].GetURL()
-	if buf.items[sel].GetType() == IETYPE_GALLERY {
-		url = buf.items[sel].GetGalleryInfo(false)[0].GetURL()
+	URL := buf.items[sel].GetURL()
+	_, ok := buf.items[sel].(*WrapperImageEntry)
+	if !ok {
+	Outer:
+		for {
+			ind := strings.LastIndexByte(URL, '.')
+			if ind == -1 {
+				fmt.Println(buf.items[sel].GetName(), buf.items[sel].GetType())
+				panic(URL)
+			}
+			ext := strings.ToLower(URL[ind:])
+			switch ext[1:] {
+			case "mp4":
+				fallthrough
+			case "webm":
+				fallthrough
+			case "gif":
+				fallthrough
+			case "gifv":
+				fallthrough
+			case "mov":
+				fallthrough
+			case "png":
+				fallthrough
+			case "jpg":
+				fallthrough
+			case "jpeg":
+				fallthrough
+			case "bmp":
+				break Outer
+			}
+			domain, _ := url.Parse(URL)
+			res, ok := resolveMap[domain.Hostname()]
+			if !ok {
+				break
+			}
+			newURL, newIE := res.ResolveURL(URL)
+			if newURL == RESOLVE_FINAL {
+				buf.items[sel] = &WrapperImageEntry{buf.items[sel], URL}
+				break
+			}
+			// TODO: Make some kind of hybrid image entry
+			// Or maybe call a function of the original image entry to "absorb" the new one while keeping all old data as needed
+			if newIE != nil {
+				URL = newIE.GetURL()
+				buf.items[sel] = newIE
+				break
+			} else if newURL == "" {
+				break
+			}
+			URL = newURL
+		}
 	}
-	ind := strings.LastIndexByte(url, '.')
+	if buf.items[sel].GetType() == IETYPE_GALLERY {
+		URL = buf.items[sel].GetGalleryInfo(false)[0].GetURL()
+	}
+	ind := strings.LastIndexByte(URL, '.')
 	if ind == -1 {
 		fmt.Println(buf.items[sel].GetName(), buf.items[sel].GetType())
-		panic(url)
+		panic(URL)
 	}
-	ext := strings.ToLower(url[ind:])
+	ext := strings.ToLower(URL[ind:])
 	<-buf.selRecv
 	switch ext[1:] {
 	case "mp4":
@@ -282,9 +335,9 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 	case "mov":
 		x, y := buf.items[sel].GetDimensions()
 		if x != 0 {
-			*ffmpeg = NewFfmpegReaderKnownSize(url, int32(x), int32(y))
+			*ffmpeg = NewFfmpegReaderKnownSize(URL, int32(x), int32(y))
 		} else {
-			*ffmpeg = NewFfmpegReader(url)
+			*ffmpeg = NewFfmpegReader(URL)
 		}
 		data := buf.buffer[BIP_BUFBEFORE]
 		if data != nil {
@@ -309,7 +362,7 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 	case "bmp":
 		data := buf.buffer[BIP_BUFBEFORE]
 		if data == nil {
-			resp, err := http.Get(url)
+			resp, err := http.Get(URL)
 			if err != nil {
 				text := err.Error()
 				vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
@@ -328,14 +381,14 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 		}
 		*img = rl.LoadImageFromMemory(ext, data, int32(len(data)))
 		if (*img).Height == 0 {
-			text := "Failed to load image?\n" + url
+			text := "Failed to load image?\n" + URL
 			vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
 			*img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
 			rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
 			return "\\/err" + buf.items[sel].GetName()
 		}
 	default:
-		text := "Image format not supported\n" + url
+		text := "Image format not supported\n" + URL
 		vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
 		*img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
 		rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)

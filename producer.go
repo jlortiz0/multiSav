@@ -90,7 +90,7 @@ func (err *ErrorListing) GetPersistent() interface{} {
 // A website where images can be retrived from
 // Might not actually be a site (cough cough LocalFSImageSite)
 type ImageSite interface {
-	Destroy()
+	Resolver
 	// Get a list of user-friendly listing types
 	// Different listing types may get images in different ways
 	// If this list has only one item, force the user to use that type
@@ -104,6 +104,18 @@ type ImageSite interface {
 	// If the returned slice is empty or nil, the listing has concluded
 	ExtendListing(ImageListing) []ImageEntry
 }
+
+type Resolver interface {
+	Destroy()
+	// Resolve a URL to another URL, which is hopefully one step closer to getting us an image
+	// If the URL is a link to an image, this function should return RESOLVE_FINAL
+	// To avoid unneeded calls, the caller should check the extension of the URL first
+	ResolveURL(string) (string, ImageEntry)
+	// Get a list of all domains that this site can resolve for
+	GetResolvableDomains() []string
+}
+
+const RESOLVE_FINAL = "finalfinalfinal"
 
 type ImageEntryType int
 
@@ -127,6 +139,15 @@ type ImageEntry interface {
 	GetDimensions() (int, int)
 	GetPostURL() string
 	GetInfo() string
+}
+
+type WrapperImageEntry struct {
+	ImageEntry
+	url string
+}
+
+func (w *WrapperImageEntry) GetURL() string {
+	return w.url
 }
 
 type ActionRet int

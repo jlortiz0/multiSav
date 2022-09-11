@@ -13,10 +13,16 @@ import (
 	"jlortiz.org/redisav/redditapi"
 )
 
+var resolveMap map[string]Resolver
+
+// TODO: consider switching to resolver format
+// every site has a "resolver" that turns a URL into an entry
+// Listings can be either of raw entries or URLs that need resolution
+// if a link points off-site another resolver can be used
 const TEXT_SIZE = 18
 const FRAME_RATE = 60
 
-func loginHelper() *HybridImgurRedditSite {
+func loginHelper() *RedditSite {
 	data := make([]byte, 256)
 	f, err := os.Open("redditapi/login.json")
 	if err != nil {
@@ -43,7 +49,16 @@ func loginHelper() *HybridImgurRedditSite {
 	if err != nil {
 		panic(fmt.Errorf("failed to log in: %s", err.Error()))
 	}
-	return &HybridImgurRedditSite{RedditSite{*red}, *NewImgurSite(fields.ImgurID)}
+	r := &RedditSite{*red}
+	resolveMap = make(map[string]Resolver)
+	for _, x := range r.GetResolvableDomains() {
+		resolveMap[x] = r
+	}
+	img := NewImgurResolver(fields.ImgurID)
+	for _, x := range img.GetResolvableDomains() {
+		resolveMap[x] = img
+	}
+	return r
 }
 
 var font rl.Font
@@ -166,7 +181,7 @@ MainLoop:
 			}
 		} else {
 			data := saveData.Listings[sel]
-			producer := NewHybridImgurRedditProducer(red, data.Kind, data.Args, data.Persistent)
+			producer := NewRedditProducer(red, data.Kind, data.Args, data.Persistent)
 			menu := NewImageMenu(producer, rl.Rectangle{Width: float32(rl.GetScreenWidth()), Height: float32(rl.GetScreenHeight())})
 			stdEventLoop(menu, func() rl.Rectangle {
 				return rl.Rectangle{Width: float32(rl.GetScreenWidth()), Height: float32(rl.GetScreenHeight())}
