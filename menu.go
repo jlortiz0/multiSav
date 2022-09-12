@@ -1,6 +1,8 @@
 package main
 
 import (
+	"image/color"
+
 	rl "github.com/gen2brain/raylib-go/raylib"
 	rg "jlortiz.org/redisav/raygui-go"
 )
@@ -101,4 +103,42 @@ func GetCenteredCoiceMenuRect(len int, width float32, height float32) rl.Rectang
 		rect.Y = (height - mHeight) / 2
 	}
 	return rect
+}
+
+var fadeScreen rl.RenderTexture2D
+
+func fadeOut(renderer func()) {
+	if fadeScreen.ID == 0 {
+		fadeScreen = rl.LoadRenderTexture(int32(rl.GetScreenWidth()), int32(rl.GetScreenHeight()))
+	} else if fadeScreen.Texture.Height != int32(rl.GetScreenHeight()) || fadeScreen.Texture.Width != int32(rl.GetScreenWidth()) {
+		rl.UnloadRenderTexture(fadeScreen)
+		fadeScreen = rl.LoadRenderTexture(int32(rl.GetScreenWidth()), int32(rl.GetScreenHeight()))
+	}
+	rl.BeginTextureMode(fadeScreen)
+	rl.ClearBackground(color.RGBA{})
+	renderer()
+	rl.EndTextureMode()
+}
+
+func fadeIn(renderer func()) {
+	if fadeScreen.ID == 0 {
+		return
+	}
+	render2 := rl.LoadRenderTexture(int32(rl.GetScreenWidth()), int32(rl.GetScreenHeight()))
+	w, h := float32(rl.GetScreenWidth()), float32(rl.GetScreenHeight())
+	rl.BeginTextureMode(render2)
+	rl.ClearBackground(color.RGBA{})
+	renderer()
+	rl.EndTextureMode()
+	i2 := uint8(0)
+	for i := uint8(0); i >= i2; i += 24 {
+		// just let me check the overflow flag
+		i2 = i
+		rl.BeginDrawing()
+		rl.ClearBackground(color.RGBA{64, 64, 64, 0})
+		rl.DrawTextureRec(fadeScreen.Texture, rl.Rectangle{Height: -h, Width: w}, rl.Vector2{}, color.RGBA{255, 255, 255, ^i})
+		rl.DrawTextureRec(render2.Texture, rl.Rectangle{Height: -h, Width: w}, rl.Vector2{}, color.RGBA{255, 255, 255, i})
+		rl.EndDrawing()
+	}
+	rl.UnloadRenderTexture(render2)
 }

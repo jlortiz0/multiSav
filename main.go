@@ -15,10 +15,6 @@ import (
 
 var resolveMap map[string]Resolver
 
-// TODO: consider switching to resolver format
-// every site has a "resolver" that turns a URL into an entry
-// Listings can be either of raw entries or URLs that need resolution
-// if a link points off-site another resolver can be used
 const TEXT_SIZE = 18
 const FRAME_RATE = 60
 
@@ -115,7 +111,7 @@ func main() {
 	red := loginHelper()
 	rl.SetConfigFlags(rl.FlagVsyncHint)
 	rl.SetConfigFlags(rl.FlagWindowResizable)
-	rl.InitWindow(1024, 768, "rediSav Test Window")
+	rl.InitWindow(1024, 768, "rediSav")
 	finder := sysfont.NewFinder(nil)
 	font = rl.LoadFontEx(finder.Match("Ubuntu").Filename, TEXT_SIZE, nil, 250)
 	rl.SetExitKey(0)
@@ -130,6 +126,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	fadeOut(func() {})
 	// TODO: Allow the user to see (and maybe edit) the parameters of an existing listing
 MainLoop:
 	for {
@@ -191,9 +188,10 @@ MainLoop:
 				saveData.Listings[sel].Persistent = listing.GetPersistent()
 			}
 			menu.Destroy()
-			rl.SetWindowTitle("rediSav Test Window")
+			rl.SetWindowTitle("rediSav")
 		}
 	}
+	fadeIn(func() {})
 	rl.UnloadFont(font)
 	rl.CloseWindow()
 	red.Destroy()
@@ -237,11 +235,13 @@ func displayMessage(text string, menu Menu) {
 }
 
 func stdEventLoop(menu Menu, targetGen func() rl.Rectangle) LoopStatus {
+	fadeIn(menu.Renderer)
 	for !rl.WindowShouldClose() {
 		key := rl.GetKeyPressed()
 		for key != 0 {
 			ret := menu.HandleKey(key)
 			if ret != LOOP_CONT {
+				fadeOut(menu.Renderer)
 				return ret
 			}
 			key = rl.GetKeyPressed()
@@ -251,6 +251,7 @@ func stdEventLoop(menu Menu, targetGen func() rl.Rectangle) LoopStatus {
 		}
 		ret := menu.Prerender()
 		if ret != LOOP_CONT {
+			fadeOut(menu.Renderer)
 			return ret
 		}
 		rl.BeginDrawing()
