@@ -28,6 +28,7 @@ import (
 	"strconv"
 )
 
+// TODO: This sucks. Use libavformat if possible.
 type ffmpegReader struct {
 	*exec.Cmd
 	h, w         int32

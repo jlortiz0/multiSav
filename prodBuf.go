@@ -350,8 +350,10 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 				return "\\/err" + buf.items[sel].GetName()
 			}
 		} else {
-			s := minint(int((*ffmpeg).w), int((*ffmpeg).h))
-			*img = rl.GenImageChecked(int((*ffmpeg).w), int((*ffmpeg).h), s/16, s/16, rl.Magenta, rl.Black)
+			// s := minint(int((*ffmpeg).w), int((*ffmpeg).h))
+			// *img = rl.GenImageChecked(int((*ffmpeg).w), int((*ffmpeg).h), s/16, s/16, rl.Magenta, rl.Black)
+			d, _ := (*ffmpeg).Read()
+			*img = rl.NewImage(d, (*ffmpeg).w, (*ffmpeg).h, 2, rl.UncompressedR8g8b8a8)
 		}
 	case "png":
 		fallthrough
@@ -396,16 +398,14 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 	}
 	if buf.items[sel].GetType() == IETYPE_GALLERY {
 		if *ffmpeg != nil {
-			// TODO: Make this suck less
-			// Actually make any instance of missing textures suck less
 			(*ffmpeg).Destroy()
 			*ffmpeg = nil
-			rl.UnloadImage(*img)
-			text := fmt.Sprintf("Press Enter for gallery viewer (%d images)", len(buf.items[sel].GetGalleryInfo(true)))
-			vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
-			*img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
-			rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
-			return "\\/err" + buf.items[sel].GetName()
+			// rl.UnloadImage(*img)
+			// text := fmt.Sprintf("Press Enter for gallery viewer (%d images)", len(buf.items[sel].GetGalleryInfo(true)))
+			// vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
+			// *img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
+			// rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
+			// return "\\/err" + buf.items[sel].GetName()
 		}
 		// TODO: on small images (<500 px?) text is not centered and drawn too low
 		size := float32((**img).Height) / 32

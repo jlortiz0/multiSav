@@ -36,7 +36,7 @@ func (img *ImgurResolver) ResolveURL(URL string) (string, ImageEntry) {
 		if URL[ind-1] == 'a' {
 			URL = "https://api.imgur.com/3/album/" + URL[ind+1:]
 		} else {
-			URL = "https://api.imgur.com/3/imgur/" + URL[ind+1:]
+			URL = "https://api.imgur.com/3/image/" + URL[ind+1:]
 		}
 		rq, err := http.NewRequest("GET", URL, http.NoBody)
 		if err != nil {
