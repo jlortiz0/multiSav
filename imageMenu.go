@@ -12,12 +12,12 @@ import (
 )
 
 type ImageMenu struct {
-	Selected int
-	Producer ImageProducer
-	target   rl.Rectangle
-	img      *rl.Image
-	texture  rl.Texture2D
-	// prevMoveDir  bool
+	Selected     int
+	Producer     ImageProducer
+	target       rl.Rectangle
+	img          *rl.Image
+	texture      rl.Texture2D
+	prevMoveDir  bool
 	state        imageMenuState
 	loadingFrame int
 	cam          rl.Camera2D
@@ -196,11 +196,13 @@ func (menu *ImageMenu) HandleKey(keycode int32) LoopStatus {
 		if menu.Selected > 0 {
 			menu.Selected--
 			menu.state = IMSTATE_SHOULDLOAD
+			menu.prevMoveDir = true
 		}
 	case rl.KeyRight:
 		if menu.Producer.IsLazy() || menu.Selected+1 < menu.Producer.Len() {
 			menu.Selected++
 			menu.state = IMSTATE_SHOULDLOAD
+			menu.prevMoveDir = false
 		}
 	case rl.KeyHome:
 		if menu.Selected != 0 {
@@ -264,6 +266,9 @@ func (menu *ImageMenu) HandleKey(keycode int32) LoopStatus {
 			if state&ARET_REMOVE != 0 {
 				menu.state = IMSTATE_SHOULDLOAD
 				menu.cam.Zoom = 0
+				if menu.prevMoveDir && menu.Selected != 0 {
+					menu.Selected--
+				}
 			} else {
 				menu.cam = cam
 			}
