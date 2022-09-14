@@ -59,15 +59,30 @@ func loginHelper() *RedditSite {
 
 var font rl.Font
 
+const (
+	SITE_LOCAL = iota
+	SITE_REDDIT
+	// SITE_IMGUR
+	SITE_TWITTER
+	SITE_PIXIV
+)
+
 type SavedListing struct {
-	Name string
-	// Site int
+	Name       string
+	Site       int
 	Kind       int
-	Args       []interface{}
-	Persistent interface{} `json:",omitempty"`
+	Args       []interface{} `json:",omitempty"`
+	Persistent interface{}   `json:",omitempty"`
 }
 
 var saveData struct {
+	Reddit struct {
+		Id       string
+		Secret   string
+		Login    string
+		Password string
+	}
+	Imgur    string
 	Listings []SavedListing
 }
 
@@ -75,6 +90,7 @@ func loadSaveData() error {
 	f, err := os.Open("rediSav.json")
 	if err != nil {
 		if os.IsNotExist(err) {
+			saveData.Listings = []SavedListing{{"Downloads", SITE_LOCAL, 0, []interface{}{"Downloads"}, nil}}
 			return nil
 		}
 		return err
@@ -171,14 +187,20 @@ MainLoop:
 			case 2:
 				kind, args := SetUpListing(red)
 				if kind != -1 {
-					saveData.Listings = append(saveData.Listings, SavedListing{Kind: kind, Args: args[1:], Name: args[0].(string)})
+					saveData.Listings = append(saveData.Listings, SavedListing{Kind: kind, Site: 1, Args: args[1:], Name: args[0].(string)})
 				}
 			case 3:
 				break MainLoop
 			}
 		} else {
 			data := saveData.Listings[sel]
-			producer := NewRedditProducer(red, data.Kind, data.Args, data.Persistent)
+			var producer ImageProducer
+			switch data.Site {
+			case SITE_LOCAL:
+				producer = NewOfflineImageProducer(data.Args[0].(string))
+			case SITE_REDDIT:
+				producer = NewRedditProducer(red, data.Kind, data.Args, data.Persistent)
+			}
 			menu := NewImageMenu(producer, rl.Rectangle{Width: float32(rl.GetScreenWidth()), Height: float32(rl.GetScreenHeight())})
 			stdEventLoop(menu, func() rl.Rectangle {
 				return rl.Rectangle{Width: float32(rl.GetScreenWidth()), Height: float32(rl.GetScreenHeight())}
