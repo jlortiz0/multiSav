@@ -152,35 +152,42 @@ func (menu *ImageMenu) loadImage() {
 				menu.Selected = menu.Producer.Len() - 1
 				menu.loadImage()
 			}
+			return
 		} else if len(menu.fName) > 5 && menu.fName[:5] == "\\/err" {
 			menu.state = IMSTATE_ERRORMINOR
 			menu.fName = menu.fName[5:]
-		} else {
-			menu.state = IMSTATE_NORMAL
-		}
-		if menu.ffmpeg == nil {
 			return
-		}
-		menu.ffmpegData = make(chan []color.RGBA)
-		for menu.ffmpeg != nil {
-			data, err := menu.ffmpeg.Read()
-			if err != nil {
-				menu.ffmpeg.Destroy()
-				menu.ffmpeg = nil
-				text := err.Error()
-				vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
-				menu.img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
-				rl.ImageDrawTextEx(menu.img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
-				menu.state = IMSTATE_ERRORMINOR
-				break
-			}
+		} else if menu.ffmpeg == nil {
+			menu.state = IMSTATE_NORMAL
+		} else {
+			menu.ffmpegData = make(chan []color.RGBA)
+			data, _ := menu.ffmpeg.Read()
 			data2 := make([]color.RGBA, len(data)/3)
 			for i := range data2 {
 				data2[i] = color.RGBA{R: data[i*3], G: data[i*3+1], B: data[i*3+2], A: 255}
 			}
+			menu.state = IMSTATE_NORMAL
 			menu.ffmpegData <- data2
+			for menu.ffmpeg != nil {
+				data, err := menu.ffmpeg.Read()
+				if err != nil {
+					menu.ffmpeg.Destroy()
+					menu.ffmpeg = nil
+					text := err.Error()
+					vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
+					menu.img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
+					rl.ImageDrawTextEx(menu.img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
+					menu.state = IMSTATE_ERRORMINOR
+					break
+				}
+				data2 := make([]color.RGBA, len(data)/3)
+				for i := range data2 {
+					data2[i] = color.RGBA{R: data[i*3], G: data[i*3+1], B: data[i*3+2], A: 255}
+				}
+				menu.ffmpegData <- data2
+			}
+			close(menu.ffmpegData)
 		}
-		close(menu.ffmpegData)
 	}()
 }
 
@@ -225,6 +232,8 @@ func (menu *ImageMenu) HandleKey(keycode int32) LoopStatus {
 		if s != "" {
 			displayMessage(wordWrapper(s), menu)
 		}
+	case rl.KeyG:
+		menu.state |= IMSTATE_GOTO
 	default:
 		call := 0
 		state := ARET_AGAIN
@@ -233,6 +242,9 @@ func (menu *ImageMenu) HandleKey(keycode int32) LoopStatus {
 			cam := menu.cam
 			if state&ARET_QUIT != 0 {
 				return LOOP_QUIT
+			}
+			if state&ARET_FADEIN != 0 {
+				fadeIn(menu.Renderer)
 			}
 			if state&ARET_MOVEDOWN != 0 {
 				moveFactor := float32(26)
@@ -272,6 +284,9 @@ func (menu *ImageMenu) HandleKey(keycode int32) LoopStatus {
 			} else {
 				menu.cam = cam
 			}
+			if state&ARET_FADEOUT != 0 {
+				fadeOut(menu.Renderer)
+			}
 			call += 1
 		}
 	}
@@ -309,7 +324,11 @@ func (menu *ImageMenu) Prerender() LoopStatus {
 			rl.UnloadTexture(menu.texture)
 		}
 		menu.texture = rl.LoadTextureFromImage(menu.img)
-		rl.UnloadImage(menu.img)
+		if menu.ffmpeg == nil {
+			// When ffmpeg is not nil, menu.img was allocated in Go
+			// Thus trying to free it using C will probably segfault
+			rl.UnloadImage(menu.img)
+		}
 		menu.img = nil
 		rl.SetTextureFilter(menu.texture, rl.FilterBilinear)
 		menu.cam.Target = rl.Vector2{Y: float32(menu.texture.Height) / 2, X: float32(menu.texture.Width) / 2}
@@ -348,6 +367,7 @@ func (menu *ImageMenu) Prerender() LoopStatus {
 		}
 	}
 	if rl.IsKeyDown(rl.KeyDown) && menu.cam.Zoom > 0.1 {
+		// TODO: Change this to be a more consistent zoom speed
 		menu.cam.Zoom -= 0.03125
 		menu.tol = rl.Vector2{Y: menu.cam.Offset.Y / menu.cam.Zoom, X: menu.cam.Offset.X / menu.cam.Zoom}
 		if menu.tol.Y > float32(menu.texture.Height)/2 {

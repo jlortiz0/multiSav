@@ -198,15 +198,20 @@ func (buf *BufferedImageProducer) ActionHandler(key int32, sel int, call int) Ac
 		return ARET_MOVEUP | ARET_REMOVE
 	} else if key == rl.KeyEnter {
 		if buf.items[sel].GetType() == IETYPE_GALLERY {
+			if call == 0 {
+				return ARET_FADEOUT | ARET_AGAIN
+			}
 			menu := NewGalleryMenu(buf.items[sel], rl.Rectangle{Width: float32(rl.GetScreenWidth()), Height: float32(rl.GetScreenHeight())})
 			ret := stdEventLoop(menu, func() rl.Rectangle {
 				return rl.Rectangle{Width: float32(rl.GetScreenWidth()), Height: float32(rl.GetScreenHeight())}
 			})
 			menu.Destroy()
+			fadeOut(menu.Renderer)
 			if ret == LOOP_QUIT {
 				return ARET_QUIT
 			}
 			rl.SetWindowTitle(buf.GetTitle())
+			return ARET_FADEIN
 		}
 	}
 	return ARET_NOTHING
@@ -267,8 +272,7 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 		for {
 			ind := strings.LastIndexByte(URL, '.')
 			if ind == -1 {
-				fmt.Println(buf.items[sel].GetName(), buf.items[sel].GetType())
-				panic(URL)
+				ind = len(URL) - 1
 			}
 			ext := strings.ToLower(URL[ind:])
 			switch ext[1:] {
@@ -305,7 +309,7 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 			// Or maybe call a function of the original image entry to "absorb" the new one while keeping all old data as needed
 			if newIE != nil {
 				URL = newIE.GetURL()
-				buf.items[sel] = newIE
+				buf.items[sel].Combine(newIE)
 				break
 			} else if newURL == "" {
 				break
@@ -350,10 +354,7 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 				return "\\/err" + buf.items[sel].GetName()
 			}
 		} else {
-			// s := minint(int((*ffmpeg).w), int((*ffmpeg).h))
-			// *img = rl.GenImageChecked(int((*ffmpeg).w), int((*ffmpeg).h), s/16, s/16, rl.Magenta, rl.Black)
-			d, _ := (*ffmpeg).Read()
-			*img = rl.NewImage(d, (*ffmpeg).w, (*ffmpeg).h, 2, rl.UncompressedR8g8b8a8)
+			*img = rl.GenImageColor(int((*ffmpeg).w), int((*ffmpeg).h), rl.Black)
 		}
 	case "png":
 		fallthrough
