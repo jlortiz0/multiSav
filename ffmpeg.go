@@ -18,11 +18,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 package main
 
 import (
-	"bufio"
 	"errors"
 	"image"
 	"io"
-	"os"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -31,10 +29,9 @@ import (
 // TODO: This sucks. Use libavformat if possible.
 type ffmpegReader struct {
 	*exec.Cmd
-	h, w         int32
-	bytesToRead  int32
-	stdoutCloser func() error
-	bufReader    *bufio.Reader
+	h, w   int32
+	buf    []byte
+	reader io.ReadCloser
 }
 
 func NewFfmpegReader(path string) *ffmpegReader {
@@ -46,11 +43,9 @@ func NewFfmpegReader(path string) *ffmpegReader {
 	if err != nil {
 		panic(err)
 	}
-	ffmpeg.Stderr = os.Stderr
-	ffmpeg.stdoutCloser = f.Close
-	ffmpeg.bufReader = bufio.NewReader(f)
+	ffmpeg.reader = f
 	ffmpeg.h, ffmpeg.w = ffprobeFile(path)
-	ffmpeg.bytesToRead = ffmpeg.h * ffmpeg.w * 3
+	ffmpeg.buf = make([]byte, ffmpeg.h*ffmpeg.w*3)
 	ffmpeg.Start()
 	return ffmpeg
 }
@@ -64,17 +59,16 @@ func NewFfmpegReaderKnownSize(path string, x, y int32) *ffmpegReader {
 	if err != nil {
 		panic(err)
 	}
-	ffmpeg.Stderr = os.Stderr
-	ffmpeg.stdoutCloser = f.Close
-	ffmpeg.bufReader = bufio.NewReader(f)
+	ffmpeg.reader = f
 	ffmpeg.h, ffmpeg.w = y, x
-	ffmpeg.bytesToRead = ffmpeg.h * ffmpeg.w * 3
+	ffmpeg.buf = make([]byte, ffmpeg.h*ffmpeg.w*3)
 	ffmpeg.Start()
 	return ffmpeg
 }
 
 func (ffmpeg *ffmpegReader) Destroy() error {
-	ffmpeg.stdoutCloser()
+	ffmpeg.reader.Close()
+	ffmpeg.buf = nil
 	err := ffmpeg.Process.Kill()
 	if err != nil {
 		return err
@@ -83,9 +77,8 @@ func (ffmpeg *ffmpegReader) Destroy() error {
 }
 
 func (ffmpeg *ffmpegReader) Read() ([]byte, error) {
-	arr := make([]byte, ffmpeg.bytesToRead)
-	_, err := io.ReadFull(ffmpeg.bufReader, arr)
-	return arr, err
+	_, err := io.ReadFull(ffmpeg.reader, ffmpeg.buf)
+	return ffmpeg.buf, err
 }
 
 var ffprobeRegex *regexp.Regexp = regexp.MustCompile(`Video: [^,]+, [^,].+, (\d+)x(\d+)`)
