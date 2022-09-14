@@ -305,8 +305,6 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 				buf.items[sel] = &WrapperImageEntry{buf.items[sel], URL}
 				break
 			}
-			// TODO: Make some kind of hybrid image entry
-			// Or maybe call a function of the original image entry to "absorb" the new one while keeping all old data as needed
 			if newIE != nil {
 				URL = newIE.GetURL()
 				buf.items[sel].Combine(newIE)

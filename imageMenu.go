@@ -3,9 +3,6 @@ package main
 import (
 	"fmt"
 	"image/color"
-	"os"
-	"sort"
-	"strings"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 	rg "jlortiz.org/redisav/raygui-go"
@@ -40,6 +37,9 @@ const (
 	IMSTATE_GOTO
 )
 
+// 2^(1/24)
+const ZOOM_STEP = 1.02930224
+
 func minf32(a, b float32) float32 {
 	if a < b {
 		return a
@@ -49,63 +49,6 @@ func minf32(a, b float32) float32 {
 
 func getZoomForTexture(tex rl.Texture2D, target rl.Rectangle) float32 {
 	return minf32(target.Height/float32(tex.Height), target.Width/float32(tex.Width))
-}
-
-func NewOfflineImageMenu(fldr string, target rl.Rectangle) (*ImageMenu, error) {
-	f, err := os.Open(fldr)
-	if err != nil {
-		return nil, err
-	}
-	entries, err := f.ReadDir(0)
-	if err != nil {
-		return nil, err
-	}
-	ls := make([]string, 0, len(entries))
-	for _, v := range entries {
-		if !v.IsDir() {
-			ind := strings.LastIndexByte(v.Name(), '.')
-			if ind == -1 {
-				continue
-			}
-			switch strings.ToLower(v.Name()[ind+1:]) {
-			case "mp4":
-				fallthrough
-			case "webm":
-				fallthrough
-			case "gif":
-				fallthrough
-			case "mov":
-				fallthrough
-			case "bmp":
-				fallthrough
-			case "jpg":
-				fallthrough
-			case "png":
-				fallthrough
-			case "jpeg":
-				ls = append(ls, v.Name())
-			}
-		}
-	}
-	sort.Strings(ls)
-	menu := new(ImageMenu)
-	menu.Producer = &OfflineImageProducer{ls, fldr}
-	rl.SetWindowTitle(menu.Producer.GetTitle())
-	menu.state = IMSTATE_SHOULDLOAD
-	menu.target = target
-	menu.target.Height -= TEXT_SIZE + 10
-	menu.cam.Offset = rl.Vector2{Y: target.Height/2 - 5 - TEXT_SIZE/2, X: target.Width / 2}
-	menu.cam.Zoom = 1
-	if len(ls) == 0 {
-		menu.state = IMSTATE_ERROR
-		if len(entries) == 0 {
-			menu.texture = drawMessage("No supported files found.")
-		} else {
-			menu.texture = drawMessage("Empty.")
-		}
-		menu.cam.Target = rl.Vector2{Y: float32(menu.texture.Height) / 2, X: float32(menu.texture.Width) / 2}
-	}
-	return menu, nil
 }
 
 func NewImageMenu(prod ImageProducer, target rl.Rectangle) *ImageMenu {
@@ -135,8 +78,7 @@ func (menu *ImageMenu) loadImage() {
 	if menu.ffmpeg != nil {
 		menu.ffmpeg.Destroy()
 		menu.ffmpeg = nil
-		for range menu.ffmpegData {
-		}
+		<-menu.ffmpegData
 	}
 	if menu.Selected < 0 {
 		menu.Selected = 0
@@ -367,8 +309,7 @@ func (menu *ImageMenu) Prerender() LoopStatus {
 		}
 	}
 	if rl.IsKeyDown(rl.KeyDown) && menu.cam.Zoom > 0.1 {
-		// TODO: Change this to be a more consistent zoom speed
-		menu.cam.Zoom -= 0.03125
+		menu.cam.Zoom /= ZOOM_STEP
 		menu.tol = rl.Vector2{Y: menu.cam.Offset.Y / menu.cam.Zoom, X: menu.cam.Offset.X / menu.cam.Zoom}
 		if menu.tol.Y > float32(menu.texture.Height)/2 {
 			menu.cam.Target.Y = float32(menu.texture.Height) / 2
@@ -386,7 +327,7 @@ func (menu *ImageMenu) Prerender() LoopStatus {
 		}
 	}
 	if rl.IsKeyDown(rl.KeyUp) && menu.cam.Zoom < 6 {
-		menu.cam.Zoom += 0.03125
+		menu.cam.Zoom *= ZOOM_STEP
 		menu.tol = rl.Vector2{Y: menu.cam.Offset.Y / menu.cam.Zoom, X: menu.cam.Offset.X / menu.cam.Zoom}
 	}
 	if rl.IsMouseButtonPressed(rl.MouseLeftButton) {

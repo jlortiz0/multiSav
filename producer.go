@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"sort"
 	"strings"
 	"syscall"
 
@@ -170,15 +171,80 @@ const (
 type OfflineImageProducer struct {
 	items []string
 	fldr  string
+	empty uint8
+}
+
+func NewOfflineImageProducer(fldr string) *OfflineImageProducer {
+	f, err := os.Open(fldr)
+	if err != nil {
+		return nil
+	}
+	entries, err := f.ReadDir(0)
+	if err != nil {
+		return nil
+	}
+	ls := make([]string, 0, len(entries))
+	for _, v := range entries {
+		if !v.IsDir() {
+			ind := strings.LastIndexByte(v.Name(), '.')
+			if ind == -1 {
+				continue
+			}
+			switch strings.ToLower(v.Name()[ind+1:]) {
+			case "mp4":
+				fallthrough
+			case "webm":
+				fallthrough
+			case "gif":
+				fallthrough
+			case "mov":
+				fallthrough
+			case "bmp":
+				fallthrough
+			case "jpg":
+				fallthrough
+			case "png":
+				fallthrough
+			case "jpeg":
+				ls = append(ls, v.Name())
+			}
+		}
+	}
+	sort.Strings(ls)
+	var b uint8
+	if len(ls) == 0 {
+		b = 1
+		if len(entries) != 0 {
+			b |= 2
+		}
+	}
+	return &OfflineImageProducer{ls, fldr, b}
+	// if len(ls) == 0 {
+	// 	menu.state = IMSTATE_ERROR
+	// 	if len(entries) != 0 {
+	// 		menu.texture = drawMessage("No supported files found.")
+	// 	} else {
+	// 		menu.texture = drawMessage("Empty.")
+	// 	}
+	// 	menu.cam.Target = rl.Vector2{Y: float32(menu.texture.Height) / 2, X: float32(menu.texture.Width) / 2}
+	// }
 }
 
 func (*OfflineImageProducer) Destroy() {}
 
 func (*OfflineImageProducer) IsLazy() bool { return false }
 
-func (prod *OfflineImageProducer) Len() int { return len(prod.items) }
+func (prod *OfflineImageProducer) Len() int {
+	if prod.empty != 0 {
+		return 1
+	}
+	return len(prod.items)
+}
 
 func (prod *OfflineImageProducer) ActionHandler(keycode int32, sel int, call int) ActionRet {
+	if prod.empty != 0 {
+		return ARET_NOTHING
+	}
 	if keycode == rl.KeyX || keycode == rl.KeyC {
 		if call != 0 {
 			targetFldr := "Sort" + string(os.PathSeparator)
@@ -234,6 +300,16 @@ func (prod *OfflineImageProducer) BoundsCheck(i int) bool {
 
 func (prod *OfflineImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegReader) string {
 	if !prod.BoundsCheck(sel) {
+		if prod.empty != 0 {
+			text := "No supported images"
+			if prod.empty&2 == 0 {
+				text = "Folder is empty"
+			}
+			vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
+			*img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
+			rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
+			return "\\/errNo place to go, nothing to do"
+		}
 		return ""
 	}
 	_, err := os.Stat(prod.fldr + string(os.PathSeparator) + prod.items[sel])
