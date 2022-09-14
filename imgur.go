@@ -65,9 +65,14 @@ func (img *ImgurResolver) ResolveURL(URL string) (string, ImageEntry) {
 		}
 		return "", &ImgurGalleryEntry{
 			ID: payload.Data.ID, Title: payload.Data.Title, Description: payload.Data.Description,
-			Link: payload.Data.Description, Images: payload.Data.Images,
+			Link: payload.Data.Link, Images: payload.Data.Images,
 		}
 	case "i.imgur.com":
+		if strings.HasSuffix(URL, ".gifv") {
+			// TODO: determine if I could just change .gifv to .webm
+			suff := URL[strings.LastIndexByte(URL, '/')+1:]
+			return img.ResolveURL("https://imgur.com/" + suff[:len(suff)-5])
+		}
 		return RESOLVE_FINAL, nil
 	}
 	return "", nil
@@ -84,6 +89,8 @@ type ImgurGalleryEntry struct {
 func (*ImgurGalleryEntry) GetType() ImageEntryType { return IETYPE_GALLERY }
 
 func (*ImgurGalleryEntry) GetText() string { return "" }
+
+func (*ImgurGalleryEntry) Combine(ImageEntry) {}
 
 func (img *ImgurGalleryEntry) GetGalleryInfo(lazy bool) []ImageEntry {
 	data := make([]ImageEntry, len(img.Images))
@@ -125,6 +132,8 @@ type ImgurImageEntry struct {
 func (*ImgurImageEntry) GetType() ImageEntryType { return IETYPE_REGULAR }
 
 func (*ImgurImageEntry) GetText() string { return "" }
+
+func (*ImgurImageEntry) Combine(ImageEntry) {}
 
 func (*ImgurImageEntry) GetGalleryInfo(bool) []ImageEntry { return nil }
 

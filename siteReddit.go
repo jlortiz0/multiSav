@@ -300,7 +300,7 @@ func (red *RedditSite) ExtendListing(cont ImageListing) []ImageEntry {
 		return nil
 	}
 	data := make([]ImageEntry, 1, iter.Buffered()+1)
-	data[0] = &RedditImageEntry{x}
+	data[0] = &RedditImageEntry{Submission: x}
 	for !iter.NextRequiresFetch() {
 		x, err = iter.Next()
 		if err == nil {
@@ -324,11 +324,10 @@ func (red *RedditSite) ExtendListing(cont ImageListing) []ImageEntry {
 			if x.Hidden {
 				continue
 			}
-			if strings.HasSuffix(x.URL, ".gifv") {
-				// TODO: this doesn't seem to work properly, maybe try substituting .webm instead?
-				x.URL = x.URL[:len(x.URL)-1]
+			if x.Saved && iter2.kind != 5 {
+				continue
 			}
-			data = append(data, &RedditImageEntry{x})
+			data = append(data, &RedditImageEntry{Submission: x})
 			if x.Name == iter2.seen {
 				iter2.SubmissionIterator = nil
 				break
@@ -385,13 +384,15 @@ func (*RedditSite) GetResolvableDomains() []string {
 
 type RedditImageEntry struct {
 	*redditapi.Submission
+	info string
+	data []ImageEntry
 }
 
 func (red *RedditImageEntry) GetType() ImageEntryType {
 	if red.Is_self {
 		return IETYPE_TEXT
 	}
-	if red.Is_gallery {
+	if red.Is_gallery || red.data != nil {
 		return IETYPE_GALLERY
 	}
 	if red.Is_video {
@@ -401,6 +402,9 @@ func (red *RedditImageEntry) GetType() ImageEntryType {
 }
 
 func (red *RedditImageEntry) GetGalleryInfo(lazy bool) []ImageEntry {
+	if red.data != nil {
+		return red.data
+	}
 	if !red.Is_gallery {
 		return nil
 	}
@@ -477,6 +481,8 @@ func wordWrapper(s string) string {
 	return s2.String()
 }
 
+// TODO: something to try and grab URLs from text posts
+// it should only trigger when said URL is the only word in the post, ignoring spacing codes such as &nbsp
 func (red *RedditImageEntry) GetText() string {
 	return wordWrapper(red.Selftext)
 }
@@ -498,7 +504,27 @@ func (red *RedditImageEntry) GetPostURL() string {
 }
 
 func (red *RedditImageEntry) GetInfo() string {
-	return fmt.Sprintf("%s by u/%s (r/%s)\nScore: %d\nComments: %d", red.Title, red.Author, red.Subreddit, red.Score, red.Num_comments)
+	if red.info == "" {
+		red.info = fmt.Sprintf("%s by u/%s (r/%s)\nScore: %d\nComments: %d", red.Title, red.Author, red.Subreddit, red.Score, red.Num_comments)
+	}
+	return red.info
+}
+
+func (red *RedditImageEntry) Combine(ie ImageEntry) {
+	red.GetInfo()
+	s := ie.GetInfo()
+	if s != "" {
+		red.info += "\n" + s
+	}
+	red.URL = ie.GetURL()
+	s = ie.GetName()
+	if s != "" {
+		red.Title = s
+	}
+	red.data = ie.GetGalleryInfo(false)
+	if len(red.data) == 0 {
+		red.data = nil
+	}
 }
 
 type RedditGalleryEntry struct {

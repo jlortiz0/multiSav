@@ -139,6 +139,9 @@ type ImageEntry interface {
 	GetDimensions() (int, int)
 	GetPostURL() string
 	GetInfo() string
+	// Modify the current ImageEntry inplace to contain some fields from this new one
+	// What gets copied is up to the implementation
+	Combine(ImageEntry)
 }
 
 type WrapperImageEntry struct {
@@ -160,6 +163,8 @@ const (
 	ARET_REMOVE
 	ARET_CLOSEFFMPEG
 	ARET_QUIT
+	ARET_FADEOUT
+	ARET_FADEIN
 )
 
 type OfflineImageProducer struct {
