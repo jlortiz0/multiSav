@@ -12,7 +12,7 @@ import (
 
 const ARGUI_SPACING = CHOICEMENU_SPACE_BETWEEN_ITEM * 2
 
-func DrawArgumentsUI(target rl.Rectangle, name string, args []ListingArgument, out []interface{}, flags []bool) []interface{} {
+func DrawArgumentsUI(name string, args []ListingArgument, out []interface{}, flags []bool) []interface{} {
 	if out[0] == nil {
 		for i, v := range args {
 			if len(v.options) != 0 {
@@ -33,42 +33,47 @@ func DrawArgumentsUI(target rl.Rectangle, name string, args []ListingArgument, o
 			}
 		}
 	}
+	target := rl.Vector2{X: float32(rl.GetScreenWidth()), Y: float32(rl.GetScreenHeight())}
 	vec := rl.MeasureTextEx(font, name, TEXT_SIZE, 0)
-	vec2 := rl.Vector2{X: target.X + ((target.Width - vec.X) / 2), Y: target.Y + target.Height/2 - (TEXT_SIZE+ARGUI_SPACING)*float32(len(args)+1)/2}
-	rl.DrawRectangle(int32(target.Width/4+target.X), int32(vec2.Y)-5, int32(target.Width)/2, (TEXT_SIZE+ARGUI_SPACING)*int32(len(args)+1)+10, rl.RayWhite)
+	vec2 := rl.Vector2{X: ((target.X - vec.X) / 2), Y: target.Y/2 - (TEXT_SIZE+ARGUI_SPACING)*float32(len(args)+1)/2}
+	rl.DrawRectangle(int32(target.X/4), int32(vec2.Y)-5, int32(target.X)/2, (TEXT_SIZE+ARGUI_SPACING)*int32(len(args)+1)+10, rl.RayWhite)
 	vec2.Y += (CHOICEMENU_SPACE_BETWEEN_ITEM + TEXT_SIZE) / 4
 	rl.DrawTextEx(font, name, vec2, TEXT_SIZE, 0, rl.Black)
 	for i, v := range args {
 		vec2.Y += CHOICEMENU_SPACE_BETWEEN_ITEM + TEXT_SIZE
 		name := v.name + ":"
 		vec = rl.MeasureTextEx(font, name, TEXT_SIZE, 0)
-		vec2.X = target.Width/2 + target.X - vec.X - 5
+		vec2.X = target.X/2 - vec.X - 5
 		rl.DrawTextEx(font, name, vec2, TEXT_SIZE, 0, rl.Black)
 		if len(v.options) != 0 {
+			if v.kind == LARGTYPE_LABEL {
+				rl.DrawTextEx(font, args[i].options[0].(string), rl.Vector2{X: target.X/2 + 5, Y: vec2.Y}, TEXT_SIZE, 0, rl.Black)
+				continue
+			}
 			name := strings.Builder{}
 			name.WriteString(fmt.Sprint(v.options[0]))
 			for _, n := range v.options[1:] {
 				name.WriteByte(';')
 				name.WriteString(fmt.Sprint(n))
 			}
-			out[i] = rg.GuiComboBox(rl.Rectangle{X: target.Width/2 + target.X + 5, Y: vec2.Y - 5, Width: target.Width/4 - 10, Height: TEXT_SIZE + 10}, name.String(), out[i].(int))
+			out[i] = rg.GuiComboBox(rl.Rectangle{X: target.X/2 + 5, Y: vec2.Y - 5, Width: target.X/4 - 10, Height: TEXT_SIZE + 10}, name.String(), out[i].(int))
 		} else {
 			switch v.kind {
 			case LARGTYPE_BOOL:
-				out[i] = rg.GuiCheckBox(rl.Rectangle{X: target.Width/2 + target.X + 5, Y: vec2.Y - 3, Width: TEXT_SIZE + 5, Height: TEXT_SIZE + 5}, "", out[i].(bool))
+				out[i] = rg.GuiCheckBox(rl.Rectangle{X: target.X/2 + 5, Y: vec2.Y - 3, Width: TEXT_SIZE + 5, Height: TEXT_SIZE + 5}, "", out[i].(bool))
 			case LARGTYPE_URL:
 				// Character limit seems too small for a url
 				// Further investigation needed
 				fallthrough
 			case LARGTYPE_STRING:
 				var ret bool
-				ret, out[i] = rg.GuiTextBox(rl.Rectangle{X: target.Width/2 + target.X + 5, Y: vec2.Y - 5, Width: target.Width/4 - 10, Height: TEXT_SIZE + 10}, out[i].(string), TEXT_SIZE, flags[i])
+				ret, out[i] = rg.GuiTextBox(rl.Rectangle{X: target.X/2 + 5, Y: vec2.Y - 5, Width: target.X/4 - 10, Height: TEXT_SIZE + 10}, out[i].(string), TEXT_SIZE, flags[i])
 				if ret {
 					flags[i] = !flags[i]
 				}
 			case LARGTYPE_INT:
 				temp := out[i].(int)
-				if rg.GuiValueBox(rl.Rectangle{X: target.Width/2 + target.X + 5, Y: vec2.Y - 5, Width: target.Width/8 - 10, Height: TEXT_SIZE + 10}, "", &temp, -999, 999, flags[i]) {
+				if rg.GuiValueBox(rl.Rectangle{X: target.X/2 + 5, Y: vec2.Y - 5, Width: target.X/8 - 10, Height: TEXT_SIZE + 10}, "", &temp, -999, 999, flags[i]) {
 					flags[i] = !flags[i]
 				}
 				out[i] = temp
@@ -76,10 +81,10 @@ func DrawArgumentsUI(target rl.Rectangle, name string, args []ListingArgument, o
 		}
 	}
 	vec2.Y += (CHOICEMENU_SPACE_BETWEEN_ITEM + TEXT_SIZE)
-	if rg.GuiButton(rl.Rectangle{X: target.Width/4 + target.X + 10, Y: vec2.Y, Height: TEXT_SIZE + 5, Width: target.Width/4 - 20}, "Cancel") {
+	if rg.GuiButton(rl.Rectangle{X: target.X/4 + 10, Y: vec2.Y, Height: TEXT_SIZE + 5, Width: target.X/4 - 20}, "Cancel") {
 		return []interface{}{}
 	}
-	if rg.GuiButton(rl.Rectangle{X: target.Width/2 + target.X + 10, Y: vec2.Y, Height: TEXT_SIZE + 5, Width: target.Width/4 - 20}, "Confirm") {
+	if rg.GuiButton(rl.Rectangle{X: target.X/2 + 10, Y: vec2.Y, Height: TEXT_SIZE + 5, Width: target.X/4 - 20}, "Confirm") {
 		for i := range out {
 			if len(args[i].options) != 0 {
 				continue
@@ -120,10 +125,8 @@ func SetUpListing(site ImageSite) (int, []interface{}) {
 	}
 	names[len(choices)] = "Cancel"
 cm:
-	cm := NewChoiceMenu(names, rl.Rectangle{X: float32(rl.GetScreenWidth() / 4), Y: float32(rl.GetScreenHeight() / 3), Height: float32(rl.GetScreenHeight()) * 0.75, Width: float32(rl.GetScreenWidth() / 2)})
-	if stdEventLoop(cm, func() rl.Rectangle {
-		return rl.Rectangle{X: float32(rl.GetScreenWidth() / 4), Y: float32(rl.GetScreenHeight() / 3), Height: float32(rl.GetScreenHeight()) * 0.75, Width: float32(rl.GetScreenWidth() / 2)}
-	}) == LOOP_QUIT {
+	cm := NewChoiceMenu(names)
+	if stdEventLoop(cm) == LOOP_QUIT {
 		return -1, nil
 	}
 	kind := cm.Selected
@@ -143,7 +146,7 @@ cm:
 	for !rl.WindowShouldClose() {
 		rl.BeginDrawing()
 		rl.ClearBackground(color.RGBA{R: 64, G: 64, B: 64})
-		out := DrawArgumentsUI(rl.Rectangle{Width: float32(rl.GetScreenWidth()), Height: float32(rl.GetScreenHeight())}, choices[kind].name, cArgs, args, flags)
+		out := DrawArgumentsUI(choices[kind].name, cArgs, args, flags)
 		rl.EndDrawing()
 		if out != nil && len(out) == 0 {
 			goto cm

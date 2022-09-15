@@ -14,7 +14,7 @@ type Menu interface {
 	Prerender() LoopStatus
 	Renderer()
 	Destroy()
-	SetTarget(rl.Rectangle)
+	RecalcTarget()
 }
 
 type LoopStatus int
@@ -35,10 +35,10 @@ type ChoiceMenu struct {
 	status   LoopStatus
 }
 
-func NewChoiceMenu(items []string, target rl.Rectangle) *ChoiceMenu {
+func NewChoiceMenu(items []string) *ChoiceMenu {
 	menu := new(ChoiceMenu)
 	menu.itemList = items
-	menu.target = target
+	menu.target = GetCenteredCoiceMenuRect(len(items), float32(rl.GetScreenWidth()), float32(rl.GetScreenHeight()))
 	menu.height = float32(len(items) * (TEXT_SIZE + CHOICEMENU_SPACE_BETWEEN_ITEM))
 	menu.status = LOOP_CONT
 	return menu
@@ -70,8 +70,6 @@ func (cm *ChoiceMenu) Renderer() {
 		rl.EndScissorMode()
 		cm.target.Width += 10
 	}
-	// DEBUG
-	// rl.DrawRectangleLinesEx(rl.Rectangle{X: cm.target.X - 5, Y: cm.target.Y - 5, Width: cm.target.Width + 10, Height: cm.target.Height + 10}, 5, rl.Magenta)
 }
 
 func (cm *ChoiceMenu) Prerender() LoopStatus {
@@ -85,10 +83,10 @@ func (cm *ChoiceMenu) HandleKey(keycode int32) LoopStatus {
 	return LOOP_CONT
 }
 
-func (cm *ChoiceMenu) Destroy() {}
+func (*ChoiceMenu) Destroy() {}
 
-func (cm *ChoiceMenu) SetTarget(target rl.Rectangle) {
-	cm.target = target
+func (cm *ChoiceMenu) RecalcTarget() {
+	cm.target = GetCenteredCoiceMenuRect(len(cm.itemList), float32(rl.GetScreenWidth()), float32(rl.GetScreenHeight()))
 }
 
 func GetCenteredCoiceMenuRect(len int, width float32, height float32) rl.Rectangle {
@@ -141,4 +139,37 @@ func fadeIn(renderer func()) {
 		rl.EndDrawing()
 	}
 	rl.UnloadRenderTexture(render2)
+}
+
+type Message struct {
+	txt rl.Texture2D
+}
+
+func NewMessage(msg string) *Message {
+	img := drawMessage(msg)
+	out := &Message{rl.LoadTextureFromImage(img)}
+	rl.UnloadImage(img)
+	return out
+}
+
+func (*Message) Prerender() LoopStatus { return LOOP_CONT }
+
+func (*Message) RecalcTarget() {}
+
+func (msg *Message) Destroy() { rl.UnloadTexture(msg.txt) }
+
+func (msg *Message) Renderer() {
+	x := (int32(rl.GetScreenWidth()) - msg.txt.Width) / 2
+	y := (int32(rl.GetScreenHeight()) - msg.txt.Height) / 2
+	rl.DrawTexture(msg.txt, x, y, rl.White)
+}
+
+func (*Message) HandleKey(keycode int32) LoopStatus {
+	if keycode == rl.KeyX || keycode == rl.KeyEscape {
+		return LOOP_BACK
+	}
+	if keycode == rl.KeyZ || keycode == rl.KeyEnter {
+		return LOOP_EXIT
+	}
+	return LOOP_CONT
 }

@@ -201,15 +201,13 @@ func (buf *BufferedImageProducer) ActionHandler(key int32, sel int, call int) Ac
 			if call == 0 {
 				return ARET_FADEOUT | ARET_AGAIN
 			}
-			menu := NewGalleryMenu(buf.items[sel], rl.Rectangle{Width: float32(rl.GetScreenWidth()), Height: float32(rl.GetScreenHeight())})
-			ret := stdEventLoop(menu, func() rl.Rectangle {
-				return rl.Rectangle{Width: float32(rl.GetScreenWidth()), Height: float32(rl.GetScreenHeight())}
-			})
+			menu := NewGalleryMenu(buf.items[sel])
+			ret := stdEventLoop(menu)
 			menu.Destroy()
-			fadeOut(menu.Renderer)
 			if ret == LOOP_QUIT {
 				return ARET_QUIT
 			}
+			fadeOut(menu.Renderer)
 			rl.SetWindowTitle(buf.GetTitle())
 			return ARET_FADEIN
 		}
@@ -425,11 +423,11 @@ func (buf *BufferedImageProducer) GetListing() ImageListing {
 	return buf.listing
 }
 
-func NewGalleryMenu(img ImageEntry, target rl.Rectangle) *ImageMenu {
+func NewGalleryMenu(img ImageEntry) *ImageMenu {
 	prod := NewBufferedImageProducer(nil, 0, nil, nil)
 	prod.items = img.GetGalleryInfo(false)
 	prod.extending = nil
 	prod.lazy = false
-	menu := NewImageMenu(prod, target)
+	menu := NewImageMenu(prod)
 	return menu
 }

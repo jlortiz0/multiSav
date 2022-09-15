@@ -50,6 +50,9 @@ const (
 	// LARGTYPE_FLOAT
 	// LARGTYPE_CHAR
 	LARGTYPE_URL
+	// To display information
+	// options must be a 1-length slice where the first option is a string with the info
+	LARGTYPE_LABEL
 )
 
 type ListingArgument struct {

@@ -11,7 +11,7 @@ import (
 type ImageMenu struct {
 	Selected     int
 	Producer     ImageProducer
-	target       rl.Rectangle
+	target       rl.Vector2
 	img          *rl.Image
 	texture      rl.Texture2D
 	prevMoveDir  bool
@@ -47,18 +47,18 @@ func minf32(a, b float32) float32 {
 	return b
 }
 
-func getZoomForTexture(tex rl.Texture2D, target rl.Rectangle) float32 {
-	return minf32(target.Height/float32(tex.Height), target.Width/float32(tex.Width))
+func getZoomForTexture(tex rl.Texture2D, target rl.Vector2) float32 {
+	return minf32(target.Y/float32(tex.Height), target.X/float32(tex.Width))
 }
 
-func NewImageMenu(prod ImageProducer, target rl.Rectangle) *ImageMenu {
+func NewImageMenu(prod ImageProducer) *ImageMenu {
 	menu := new(ImageMenu)
 	menu.Producer = prod
 	rl.SetWindowTitle(menu.Producer.GetTitle())
 	menu.state = IMSTATE_SHOULDLOAD
-	menu.target = target
-	menu.target.Height -= TEXT_SIZE + 10
-	menu.cam.Offset = rl.Vector2{Y: target.Height/2 - 5 - TEXT_SIZE/2, X: target.Width / 2}
+	menu.target = rl.Vector2{X: float32(rl.GetScreenWidth()), Y: float32(rl.GetScreenHeight())}
+	menu.target.Y -= TEXT_SIZE + 10
+	menu.cam.Offset = rl.Vector2{Y: menu.target.Y / 2, X: menu.target.X / 2}
 	menu.cam.Zoom = 1
 	return menu
 }
@@ -66,7 +66,7 @@ func NewImageMenu(prod ImageProducer, target rl.Rectangle) *ImageMenu {
 func (menu *ImageMenu) loadImage() {
 	if menu.Producer.Len() == 0 {
 		if !menu.Producer.IsLazy() || !menu.Producer.BoundsCheck(0) {
-			// TODO: probably should make some kind of MessageMenu that hides the UI elements
+			// TODO: should this be a Message?
 			menu.state = IMSTATE_ERRORMINOR
 			text := "No images!"
 			vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
@@ -172,7 +172,7 @@ func (menu *ImageMenu) HandleKey(keycode int32) LoopStatus {
 	case rl.KeyZ:
 		s := menu.Producer.GetInfo(menu.Selected)
 		if s != "" {
-			displayMessage(wordWrapper(s), menu)
+			messageOverlay(wordWrapper(s), menu)
 		}
 	case rl.KeyG:
 		menu.state |= IMSTATE_GOTO
@@ -190,13 +190,13 @@ func (menu *ImageMenu) HandleKey(keycode int32) LoopStatus {
 			}
 			if state&ARET_MOVEDOWN != 0 {
 				moveFactor := float32(26)
-				for menu.cam.Target.Y > menu.tol.Y-menu.target.Height-float32(menu.texture.Height) {
+				for menu.cam.Target.Y > menu.tol.Y-menu.target.Y-float32(menu.texture.Height) {
 					menu.cam.Target.Y -= moveFactor / menu.cam.Zoom
-					if moveFactor < menu.target.Height {
+					if moveFactor < menu.target.Y {
 						moveFactor *= 1.1
 					}
 					rl.BeginDrawing()
-					rl.DrawRectangleRec(menu.target, color.RGBA{R: 64, G: 64, B: 64, A: 255})
+					rl.DrawRectangleV(rl.Vector2{}, menu.target, color.RGBA{R: 64, G: 64, B: 64, A: 255})
 					menu.Renderer()
 					rl.EndDrawing()
 				}
@@ -204,11 +204,11 @@ func (menu *ImageMenu) HandleKey(keycode int32) LoopStatus {
 				moveFactor := float32(26)
 				for menu.cam.Target.Y < menu.tol.Y+float32(menu.texture.Height) {
 					menu.cam.Target.Y += moveFactor / menu.cam.Zoom
-					if moveFactor < menu.target.Height {
+					if moveFactor < menu.target.Y {
 						moveFactor *= 1.1
 					}
 					rl.BeginDrawing()
-					rl.DrawRectangleRec(menu.target, color.RGBA{R: 64, G: 64, B: 64, A: 255})
+					rl.DrawRectangleV(rl.Vector2{}, menu.target, color.RGBA{R: 64, G: 64, B: 64, A: 255})
 					menu.Renderer()
 					rl.EndDrawing()
 				}
@@ -284,25 +284,25 @@ func (menu *ImageMenu) Prerender() LoopStatus {
 		}
 	default:
 	}
-	if rl.IsKeyDown(rl.KeyA) && menu.cam.Zoom*float32(menu.texture.Width) > menu.target.Width {
+	if rl.IsKeyDown(rl.KeyA) && menu.cam.Zoom*float32(menu.texture.Width) > menu.target.X {
 		menu.cam.Target.X -= 6.5 / menu.cam.Zoom
 		if menu.cam.Target.X < menu.tol.X {
 			menu.cam.Target.X = menu.tol.X
 		}
 	}
-	if rl.IsKeyDown(rl.KeyD) && menu.cam.Zoom*float32(menu.texture.Width) > menu.target.Width {
+	if rl.IsKeyDown(rl.KeyD) && menu.cam.Zoom*float32(menu.texture.Width) > menu.target.X {
 		menu.cam.Target.X += 6.5 / menu.cam.Zoom
 		if float32(menu.texture.Width)-menu.cam.Target.X < menu.tol.X {
 			menu.cam.Target.X = float32(menu.texture.Width) - menu.tol.X
 		}
 	}
-	if rl.IsKeyDown(rl.KeyW) && menu.cam.Zoom*float32(menu.texture.Height) > menu.target.Height {
+	if rl.IsKeyDown(rl.KeyW) && menu.cam.Zoom*float32(menu.texture.Height) > menu.target.Y {
 		menu.cam.Target.Y -= 6.5 / menu.cam.Zoom
 		if menu.cam.Target.Y < menu.tol.Y {
 			menu.cam.Target.Y = menu.tol.Y
 		}
 	}
-	if rl.IsKeyDown(rl.KeyS) && menu.cam.Zoom*float32(menu.texture.Height) > menu.target.Height {
+	if rl.IsKeyDown(rl.KeyS) && menu.cam.Zoom*float32(menu.texture.Height) > menu.target.Y {
 		menu.cam.Target.Y += 6.5 / menu.cam.Zoom
 		if float32(menu.texture.Height)-menu.cam.Target.Y < menu.tol.Y {
 			menu.cam.Target.Y = float32(menu.texture.Height) - menu.tol.Y
@@ -332,14 +332,12 @@ func (menu *ImageMenu) Prerender() LoopStatus {
 	}
 	if rl.IsMouseButtonPressed(rl.MouseLeftButton) {
 		v := rl.GetMousePosition()
-		v.X -= menu.target.X
-		v.Y -= menu.target.Y
-		if v.X < menu.target.Width/16 {
-			if rl.CheckCollisionPointCircle(v, rl.Vector2{Y: menu.target.Height / 2}, TEXT_SIZE*2) {
+		if v.X < menu.target.X/16 {
+			if rl.CheckCollisionPointCircle(v, rl.Vector2{Y: menu.target.Y / 2}, TEXT_SIZE*2) {
 				menu.HandleKey(rl.KeyLeft)
 			}
-		} else if v.X-menu.target.Width > -menu.target.Width/16 {
-			if rl.CheckCollisionPointCircle(v, rl.NewVector2(menu.target.Width, menu.target.Height/2), TEXT_SIZE*2) {
+		} else if v.X-menu.target.X > -menu.target.X/16 {
+			if rl.CheckCollisionPointCircle(v, rl.NewVector2(menu.target.X, menu.target.Y/2), TEXT_SIZE*2) {
 				menu.HandleKey(rl.KeyRight)
 			}
 		}
@@ -352,8 +350,8 @@ func (menu *ImageMenu) Renderer() {
 		rl.BeginMode2D(menu.cam)
 		rl.DrawTexture(menu.texture, 0, 0, rl.White)
 		rl.EndMode2D()
-		// x := int32(menu.target.Width)/2 - 50 + int32(menu.target.X)
-		// y := int32(menu.target.Height)/2 - 50 + int32(menu.target.Y)
+		// x := int32(menu.target.X)/2 - 50
+		// y := int32(menu.target.Y)/2 - 50
 		// rl.DrawRectangle(x, y, 100, 100, rl.RayWhite)
 		// if menu.loadingFrame < 10 {
 		// 	rl.DrawRectangle(x+int32(menu.loadingFrame)*5, y, 50, 50, rl.Black)
@@ -370,19 +368,19 @@ func (menu *ImageMenu) Renderer() {
 		// }
 		// menu.loadingFrame++
 		// menu.loadingFrame %= 32
-		rl.DrawRectangle(int32(menu.target.X), int32(menu.target.Height), int32(menu.target.Width), TEXT_SIZE+10, rl.Black)
+		rl.DrawRectangle(0, int32(menu.target.Y), int32(menu.target.X), TEXT_SIZE+10, rl.Black)
 		if menu.loadingFrame < 0 {
-			rl.DrawRectangle(int32(menu.target.X)-int32(menu.loadingFrame)*5, int32(menu.target.Height)+5, TEXT_SIZE, TEXT_SIZE, rl.Green)
-			rl.DrawRectangle(int32(menu.target.X)-int32(menu.loadingFrame+4)*5, int32(menu.target.Height)+5, TEXT_SIZE, TEXT_SIZE, rl.Green)
-			rl.DrawRectangle(int32(menu.target.X)-int32(menu.loadingFrame+8)*5, int32(menu.target.Height)+5, TEXT_SIZE, TEXT_SIZE, rl.Green)
+			rl.DrawRectangle(-int32(menu.loadingFrame)*5, int32(menu.target.Y)+5, TEXT_SIZE, TEXT_SIZE, rl.Green)
+			rl.DrawRectangle(-int32(menu.loadingFrame+4)*5, int32(menu.target.Y)+5, TEXT_SIZE, TEXT_SIZE, rl.Green)
+			rl.DrawRectangle(-int32(menu.loadingFrame+8)*5, int32(menu.target.Y)+5, TEXT_SIZE, TEXT_SIZE, rl.Green)
 			if menu.loadingFrame == -9 {
 				menu.loadingFrame = -1
 			}
 		} else {
-			rl.DrawRectangle(int32(menu.target.X)+int32(menu.loadingFrame+1)*5, int32(menu.target.Height)+5, TEXT_SIZE, TEXT_SIZE, rl.Green)
-			rl.DrawRectangle(int32(menu.target.X)+int32(menu.loadingFrame+5)*5, int32(menu.target.Height)+5, TEXT_SIZE, TEXT_SIZE, rl.Green)
-			rl.DrawRectangle(int32(menu.target.X)+int32(menu.loadingFrame+9)*5, int32(menu.target.Height)+5, TEXT_SIZE, TEXT_SIZE, rl.Green)
-			if TEXT_SIZE+(menu.loadingFrame+9)*5 > int(menu.target.Width) {
+			rl.DrawRectangle(int32(menu.loadingFrame+1)*5, int32(menu.target.Y)+5, TEXT_SIZE, TEXT_SIZE, rl.Green)
+			rl.DrawRectangle(int32(menu.loadingFrame+5)*5, int32(menu.target.Y)+5, TEXT_SIZE, TEXT_SIZE, rl.Green)
+			rl.DrawRectangle(int32(menu.loadingFrame+9)*5, int32(menu.target.Y)+5, TEXT_SIZE, TEXT_SIZE, rl.Green)
+			if TEXT_SIZE+(menu.loadingFrame+9)*5 > int(menu.target.X) {
 				menu.loadingFrame = -menu.loadingFrame - 7
 			}
 		}
@@ -392,26 +390,26 @@ func (menu *ImageMenu) Renderer() {
 		rl.DrawTexture(menu.texture, 0, 0, rl.White)
 		rl.EndMode2D()
 		if menu.state&IMSTATE_ERROR == 0 {
-			rl.DrawRectangle(int32(menu.target.X), int32(menu.target.Height), int32(menu.target.Width), TEXT_SIZE+10, rl.Black)
+			rl.DrawRectangle(0, int32(menu.target.Y), int32(menu.target.X), TEXT_SIZE+10, rl.Black)
 			s := fmt.Sprintf("%dx%d (%.0fx%.0f)", menu.texture.Width, menu.texture.Height,
 				float32(menu.texture.Width)*menu.cam.Zoom, float32(menu.texture.Height)*menu.cam.Zoom)
-			vec := rl.NewVector2(5+menu.target.X, menu.target.Height+5+menu.target.Y)
+			vec := rl.NewVector2(5, menu.target.Y+5)
 			rl.DrawTextEx(font, s, vec, TEXT_SIZE, 0, rl.RayWhite)
 			vec = rl.MeasureTextEx(font, menu.fName, TEXT_SIZE, 0)
-			vec.Y = menu.target.Height + 5 + menu.target.Y
-			vec.X = menu.target.X + menu.target.Width/2 - vec.X/2
+			vec.Y = menu.target.Y + 5
+			vec.X = menu.target.X/2 - vec.X/2
 			rl.DrawTextEx(font, menu.fName, vec, TEXT_SIZE, 0, rl.RayWhite)
 			if menu.state&IMSTATE_GOTO == 0 {
 				s := fmt.Sprintf("%d/%d", menu.Selected+1, menu.Producer.Len())
 				if menu.Producer.IsLazy() {
 					s += "+"
 				}
-				if (rg.GuiLabelButton(rl.Rectangle{X: menu.target.X + menu.target.Width - 75, Y: menu.target.Height, Width: 70, Height: TEXT_SIZE + 10}, s)) {
+				if (rg.GuiLabelButton(rl.Rectangle{X: menu.target.X - 75, Y: menu.target.Y, Width: 70, Height: TEXT_SIZE + 10}, s)) {
 					menu.state |= IMSTATE_GOTO
 					menu.tempSel = menu.Selected + 1
 				}
 			} else {
-				if rg.GuiValueBox(rl.Rectangle{X: menu.target.X + menu.target.Width - 75, Y: menu.target.Height, Width: 75, Height: TEXT_SIZE + 10}, "goto", &menu.tempSel, 1, menu.Producer.Len(), true) {
+				if rg.GuiValueBox(rl.Rectangle{X: menu.target.X - 75, Y: menu.target.Y, Width: 75, Height: TEXT_SIZE + 10}, "goto", &menu.tempSel, 1, menu.Producer.Len(), true) {
 					menu.state &= ^IMSTATE_GOTO
 					menu.Selected = menu.tempSel - 1
 					if menu.Selected < 0 {
@@ -423,35 +421,35 @@ func (menu *ImageMenu) Renderer() {
 					menu.loadImage()
 				}
 			}
-			y := rl.GetMouseY() - int32(menu.target.Y)
-			if y > int32(menu.target.Height)/4 && y-int32(menu.target.Height)/4 < int32(menu.target.Height)/2 {
-				x := rl.GetMouseX() - int32(menu.target.X)
-				if x < int32(menu.target.Width)/8 && menu.Selected > 0 {
-					a := float32(x) - menu.target.Width/16
+			y := rl.GetMouseY()
+			if y > int32(menu.target.Y)/4 && y-int32(menu.target.Y)/4 < int32(menu.target.Y)/2 {
+				x := rl.GetMouseX()
+				if x < int32(menu.target.X)/8 && menu.Selected > 0 {
+					a := float32(x) - menu.target.X/16
 					if a < 0 {
 						a = 0
 					} else {
-						a = a / (menu.target.Width / 16) * 255
+						a = a / (menu.target.X / 16) * 255
 					}
-					rl.DrawCircleV(rl.NewVector2(menu.target.X, menu.target.Y+menu.target.Height/2), TEXT_SIZE*2, color.RGBA{250, 250, 250, 255 - uint8(a)})
-					rl.DrawCircleLines(int32(menu.target.X), int32(menu.target.Y+menu.target.Height/2), TEXT_SIZE*2, color.RGBA{A: 255 - uint8(a)})
-					rl.DrawLineEx(rl.Vector2{X: menu.target.X + TEXT_SIZE, Y: menu.target.Y + menu.target.Height/2 - TEXT_SIZE},
-						rl.Vector2{X: menu.target.X + menu.target.Width/128, Y: menu.target.Y + menu.target.Height/2}, TEXT_SIZE/4, color.RGBA{128, 128, 128, 255 - uint8(a)})
-					rl.DrawLineEx(rl.Vector2{X: menu.target.X + menu.target.Width/128, Y: menu.target.Y + menu.target.Height/2},
-						rl.Vector2{X: menu.target.X + TEXT_SIZE, Y: menu.target.Y + menu.target.Height/2 + TEXT_SIZE}, TEXT_SIZE/4, color.RGBA{128, 128, 128, 255 - uint8(a)})
-				} else if x-int32(menu.target.Width) > -int32(menu.target.Width)/8 && (menu.Producer.IsLazy() || menu.Selected+1 < menu.Producer.Len()) {
-					a := float32(x) - menu.target.Width + menu.target.Width/8
-					if a > menu.target.Width/16 {
+					rl.DrawCircleV(rl.NewVector2(0, menu.target.Y/2), TEXT_SIZE*2, color.RGBA{250, 250, 250, 255 - uint8(a)})
+					rl.DrawCircleLines(0, int32(menu.target.Y/2), TEXT_SIZE*2, color.RGBA{A: 255 - uint8(a)})
+					rl.DrawLineEx(rl.Vector2{X: TEXT_SIZE, Y: menu.target.Y/2 - TEXT_SIZE},
+						rl.Vector2{X: menu.target.X / 128, Y: menu.target.Y / 2}, TEXT_SIZE/4, color.RGBA{128, 128, 128, 255 - uint8(a)})
+					rl.DrawLineEx(rl.Vector2{X: menu.target.X / 128, Y: menu.target.Y / 2},
+						rl.Vector2{X: TEXT_SIZE, Y: menu.target.Y/2 + TEXT_SIZE}, TEXT_SIZE/4, color.RGBA{128, 128, 128, 255 - uint8(a)})
+				} else if x-int32(menu.target.X) > -int32(menu.target.X)/8 && (menu.Producer.IsLazy() || menu.Selected+1 < menu.Producer.Len()) {
+					a := float32(x) - menu.target.X + menu.target.X/8
+					if a > menu.target.X/16 {
 						a = 255
 					} else {
-						a = a / (menu.target.Width / 16) * 255
+						a = a / (menu.target.X / 16) * 255
 					}
-					rl.DrawCircleV(rl.NewVector2(menu.target.X+menu.target.Width, menu.target.Y+menu.target.Height/2), TEXT_SIZE*2, color.RGBA{250, 250, 250, uint8(a)})
-					rl.DrawCircleLines(int32(menu.target.X+menu.target.Width), int32(menu.target.Y+menu.target.Height/2), TEXT_SIZE*2, color.RGBA{A: uint8(a)})
-					rl.DrawLineEx(rl.Vector2{X: menu.target.X + menu.target.Width - TEXT_SIZE, Y: menu.target.Y + menu.target.Height/2 + TEXT_SIZE},
-						rl.Vector2{X: menu.target.X + menu.target.Width - menu.target.Width/128, Y: menu.target.Y + menu.target.Height/2}, TEXT_SIZE/4, color.RGBA{128, 128, 128, uint8(a)})
-					rl.DrawLineEx(rl.Vector2{X: menu.target.X + +menu.target.Width - menu.target.Width/128, Y: menu.target.Y + menu.target.Height/2},
-						rl.Vector2{X: menu.target.X + menu.target.Width - TEXT_SIZE, Y: menu.target.Y + menu.target.Height/2 - TEXT_SIZE}, TEXT_SIZE/4, color.RGBA{128, 128, 128, uint8(a)})
+					rl.DrawCircleV(rl.NewVector2(menu.target.X, menu.target.Y/2), TEXT_SIZE*2, color.RGBA{250, 250, 250, uint8(a)})
+					rl.DrawCircleLines(int32(menu.target.X), int32(menu.target.Y/2), TEXT_SIZE*2, color.RGBA{A: uint8(a)})
+					rl.DrawLineEx(rl.Vector2{X: menu.target.X - TEXT_SIZE, Y: menu.target.Y/2 + TEXT_SIZE},
+						rl.Vector2{X: menu.target.X - menu.target.X/128, Y: menu.target.Y / 2}, TEXT_SIZE/4, color.RGBA{128, 128, 128, uint8(a)})
+					rl.DrawLineEx(rl.Vector2{X: menu.target.X - menu.target.X/128, Y: menu.target.Y / 2},
+						rl.Vector2{X: menu.target.X - TEXT_SIZE, Y: menu.target.Y/2 - TEXT_SIZE}, TEXT_SIZE/4, color.RGBA{128, 128, 128, uint8(a)})
 				}
 			}
 		}
@@ -471,10 +469,10 @@ func (menu *ImageMenu) Destroy() {
 	menu.Producer.Destroy()
 }
 
-func (menu *ImageMenu) SetTarget(target rl.Rectangle) {
-	menu.target = target
-	menu.target.Height -= TEXT_SIZE + 10
-	menu.cam.Offset = rl.Vector2{Y: target.Height/2 - 5 - TEXT_SIZE/2, X: target.Width / 2}
+func (menu *ImageMenu) RecalcTarget() {
+	menu.target = rl.Vector2{X: float32(rl.GetScreenWidth()), Y: float32(rl.GetScreenHeight())}
+	menu.target.Y -= TEXT_SIZE + 10
+	menu.cam.Offset = rl.Vector2{Y: menu.target.Y / 2, X: menu.target.X / 2}
 	menu.cam.Zoom = getZoomForTexture(menu.texture, menu.target)
 	menu.tol = rl.Vector2{Y: menu.cam.Offset.Y / menu.cam.Zoom, X: menu.cam.Offset.X / menu.cam.Zoom}
 }

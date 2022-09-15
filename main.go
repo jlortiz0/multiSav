@@ -223,17 +223,17 @@ MainLoop:
 	}
 }
 
-func drawMessage(text string) rl.Texture2D {
+func drawMessage(text string) *rl.Image {
 	vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
 	img := rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
 	rl.ImageDrawTextEx(img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
-	texture := rl.LoadTextureFromImage(img)
-	rl.UnloadImage(img)
-	return texture
+	return img
 }
 
-func displayMessage(text string, menu Menu) {
-	msg := drawMessage(text)
+func messageOverlay(text string, menu Menu) {
+	msgI := drawMessage(text)
+	msg := rl.LoadTextureFromImage(msgI)
+	rl.UnloadImage(msgI)
 	x := (int32(rl.GetScreenWidth()) - msg.Width) / 2
 	y := (int32(rl.GetScreenHeight()) - msg.Height) / 2
 	for !rl.WindowShouldClose() {
@@ -243,7 +243,7 @@ func displayMessage(text string, menu Menu) {
 		if rl.IsWindowResized() {
 			x = (int32(rl.GetScreenWidth()) - msg.Width) / 2
 			y = (int32(rl.GetScreenHeight()) - msg.Height) / 2
-			menu.SetTarget(rl.Rectangle{Width: float32(rl.GetScreenWidth()), Height: float32(rl.GetScreenHeight())})
+			menu.RecalcTarget()
 		}
 		menu.Prerender()
 		rl.BeginDrawing()
@@ -256,7 +256,7 @@ func displayMessage(text string, menu Menu) {
 	rl.UnloadTexture(msg)
 }
 
-func stdEventLoop(menu Menu, targetGen func() rl.Rectangle) LoopStatus {
+func stdEventLoop(menu Menu) LoopStatus {
 	fadeIn(menu.Renderer)
 	for !rl.WindowShouldClose() {
 		key := rl.GetKeyPressed()
@@ -269,7 +269,7 @@ func stdEventLoop(menu Menu, targetGen func() rl.Rectangle) LoopStatus {
 			key = rl.GetKeyPressed()
 		}
 		if rl.IsWindowResized() {
-			menu.SetTarget(targetGen())
+			menu.RecalcTarget()
 		}
 		ret := menu.Prerender()
 		if ret != LOOP_CONT {
