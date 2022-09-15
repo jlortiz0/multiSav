@@ -6,6 +6,7 @@ require (
 	github.com/adrg/sysfont v0.1.2
 	github.com/gen2brain/raylib-go/raylib v0.0.0-20220702153720-2ba84634ed1e
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
+	github.com/sqweek/dialog v0.0.0-20220809060634-e981b270ebbf
 	jlortiz.org/redisav/raygui-go v0.0.0
 	jlortiz.org/redisav/redditapi v0.0.0
 )

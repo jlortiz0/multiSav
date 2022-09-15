@@ -2,6 +2,10 @@ package main
 
 import (
 	"image/color"
+	"os"
+	"path"
+
+	"github.com/sqweek/dialog"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 	rg "jlortiz.org/redisav/raygui-go"
@@ -92,7 +96,12 @@ func EditListings() bool {
 		var site ImageSite
 		switch sel {
 		case 0:
-			// TODO: Reimplement file dialog from raygui in Go
+			db := dialog.Directory()
+			s, _ := os.Getwd()
+			s, err := db.SetStartDir(s).Title("Select image folder").Browse()
+			if err == nil {
+				saveData.Listings = append(saveData.Listings, SavedListing{Site: SITE_LOCAL, Args: []interface{}{s}, Name: path.Base(s)})
+			}
 			return false
 		case 1:
 			site = siteReddit
@@ -101,7 +110,7 @@ func EditListings() bool {
 		}
 		kind, args := SetUpListing(site)
 		if kind != -1 {
-			saveData.Listings = append(saveData.Listings, SavedListing{Kind: kind, Site: 1, Args: args[1:], Name: args[0].(string)})
+			saveData.Listings = append(saveData.Listings, SavedListing{Kind: kind, Site: SITE_REDDIT, Args: args[1:], Name: args[0].(string)})
 		}
 	} else if rem == LEM_REMOVE {
 		copy(saveData.Listings[sel:], saveData.Listings[sel+1:])
@@ -111,8 +120,15 @@ func EditListings() bool {
 	} else {
 		data := saveData.Listings[sel]
 		var args []ListingArgument
+		// TODO: Allow the user to rename things
 		switch data.Site {
 		case SITE_LOCAL:
+			db := dialog.Directory()
+			s, err := db.SetStartDir(data.Args[0].(string)).Title("Select image folder").Browse()
+			if err == nil {
+				saveData.Listings = append(saveData.Listings, SavedListing{Site: SITE_LOCAL, Args: []interface{}{s}, Name: path.Base(s)})
+			}
+			return false
 		case SITE_REDDIT:
 			info := siteReddit.GetListingInfo()[data.Kind]
 			args = make([]ListingArgument, 2, len(info.args)+2)
