@@ -14,6 +14,7 @@ import (
 )
 
 var resolveMap map[string]Resolver
+var siteReddit *RedditSite
 
 const TEXT_SIZE = 18
 const FRAME_RATE = 60
@@ -40,7 +41,7 @@ func loginHelper() *RedditSite {
 	if err != nil {
 		panic(fmt.Errorf("failed to decode login data: %s", err.Error()))
 	}
-	red := redditapi.NewReddit("linux:org.jlortiz.rediSav:v0.3.2 (by /u/jlortiz)", fields.Id, fields.Secret)
+	red := redditapi.NewReddit("linux:org.jlortiz.rediSav:v0.5.1 (by /u/jlortiz)", fields.Id, fields.Secret)
 	err = red.Login(fields.Login, fields.Password)
 	if err != nil {
 		panic(fmt.Errorf("failed to log in: %s", err.Error()))
@@ -124,7 +125,7 @@ func saveSaveData() error {
 }
 
 func main() {
-	red := loginHelper()
+	siteReddit = loginHelper()
 	rl.SetConfigFlags(rl.FlagVsyncHint)
 	rl.SetConfigFlags(rl.FlagWindowResizable)
 	rl.InitWindow(1024, 768, "rediSav")
@@ -142,19 +143,16 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fadeOut(func() {})
-	// TODO: Allow the user to see (and maybe edit) the parameters of an existing listing
+	fadeOut(func() { rl.ClearBackground(rl.Black) })
 MainLoop:
 	for {
 		names := make([]string, len(saveData.Listings), len(saveData.Listings)+4)
 		for i, v := range saveData.Listings {
 			names[i] = v.Name
 		}
-		names = append(names, "Reset Lisiting", "Delete Listing", "New Listing", "Quit")
-		cm := NewChoiceMenu(names, GetCenteredCoiceMenuRect(len(saveData.Listings)+4, float32(rl.GetScreenWidth()), float32(rl.GetScreenHeight())))
-		if stdEventLoop(cm, func() rl.Rectangle {
-			return GetCenteredCoiceMenuRect(len(saveData.Listings)+4, float32(rl.GetScreenWidth()), float32(rl.GetScreenHeight()))
-		}) != LOOP_EXIT {
+		names = append(names, "Edit Listings", "Options", "Quit")
+		cm := NewChoiceMenu(names)
+		if stdEventLoop(cm) != LOOP_EXIT {
 			break
 		}
 		sel := cm.Selected
@@ -162,34 +160,14 @@ MainLoop:
 		if sel >= len(saveData.Listings) {
 			switch sel - len(saveData.Listings) {
 			case 0:
-				names[len(names)-4] = "Back"
-				cm := NewChoiceMenu(names[:len(names)-3], GetCenteredCoiceMenuRect(len(names)-3, float32(rl.GetScreenWidth()), float32(rl.GetScreenHeight())))
-				stdEventLoop(cm, func() rl.Rectangle {
-					return GetCenteredCoiceMenuRect(len(saveData.Listings)+4, float32(rl.GetScreenWidth()), float32(rl.GetScreenHeight()))
-				})
-				sel := cm.Selected
-				cm.Destroy()
-				if sel != len(names)-4 {
-					saveData.Listings[sel].Persistent = nil
+				if EditListings() {
+					break MainLoop
 				}
 			case 1:
-				names[len(names)-4] = "Back"
-				cm := NewChoiceMenu(names[:len(names)-3], GetCenteredCoiceMenuRect(len(names)-3, float32(rl.GetScreenWidth()), float32(rl.GetScreenHeight())))
-				stdEventLoop(cm, func() rl.Rectangle {
-					return GetCenteredCoiceMenuRect(len(saveData.Listings)+4, float32(rl.GetScreenWidth()), float32(rl.GetScreenHeight()))
-				})
-				sel := cm.Selected
-				cm.Destroy()
-				if sel != len(names)-4 {
-					copy(saveData.Listings[sel:], saveData.Listings[sel+1:])
-					saveData.Listings = saveData.Listings[:len(saveData.Listings)-1]
+				if SetUpSites() {
+					break MainLoop
 				}
 			case 2:
-				kind, args := SetUpListing(red)
-				if kind != -1 {
-					saveData.Listings = append(saveData.Listings, SavedListing{Kind: kind, Site: 1, Args: args[1:], Name: args[0].(string)})
-				}
-			case 3:
 				break MainLoop
 			}
 		} else {
@@ -199,12 +177,12 @@ MainLoop:
 			case SITE_LOCAL:
 				producer = NewOfflineImageProducer(data.Args[0].(string))
 			case SITE_REDDIT:
-				producer = NewRedditProducer(red, data.Kind, data.Args, data.Persistent)
+				producer = NewRedditProducer(siteReddit, data.Kind, data.Args, data.Persistent)
 			}
-			menu := NewImageMenu(producer, rl.Rectangle{Width: float32(rl.GetScreenWidth()), Height: float32(rl.GetScreenHeight())})
-			stdEventLoop(menu, func() rl.Rectangle {
-				return rl.Rectangle{Width: float32(rl.GetScreenWidth()), Height: float32(rl.GetScreenHeight())}
-			})
+			menu := NewImageMenu(producer)
+			if stdEventLoop(menu) == LOOP_QUIT {
+				break MainLoop
+			}
 			listing := producer.GetListing()
 			if listing != nil {
 				saveData.Listings[sel].Persistent = listing.GetPersistent()
@@ -213,10 +191,10 @@ MainLoop:
 			rl.SetWindowTitle("rediSav")
 		}
 	}
-	fadeIn(func() {})
+	fadeIn(func() { rl.ClearBackground(rl.Black) })
 	rl.UnloadFont(font)
 	rl.CloseWindow()
-	red.Destroy()
+	siteReddit.Destroy()
 	err = saveSaveData()
 	if err != nil {
 		panic(err)

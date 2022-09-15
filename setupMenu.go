@@ -156,3 +156,85 @@ cm:
 	}
 	return -1, nil
 }
+
+func SetUpSites() bool {
+	cm := NewChoiceMenu([]string{"Reddit", "Imgur", "Twitter", "Pixiv", "Back"})
+	if stdEventLoop(cm) == LOOP_QUIT {
+		return true
+	}
+	kind := cm.Selected
+	cm.Destroy()
+	switch kind {
+	case 4:
+		return false
+	case 0:
+		// Set up 2-4 keys
+		// Need at least client ID and client secret
+		// Login optional
+		args := []interface{}{saveData.Reddit.Id, saveData.Reddit.Secret, saveData.Reddit.Login, saveData.Reddit.Password}
+		if saveData.Reddit.Login == "" {
+			args[2] = "nobody"
+			args[3] = "anonymous"
+		}
+		flags := make([]bool, 4)
+		cArgs := []ListingArgument{
+			{
+				name: "Client ID",
+			},
+			{
+				name: "Client Secret",
+			},
+			{
+				name: "Username (optional)",
+			},
+			{
+				name: "Password (optional)",
+			},
+		}
+		for !rl.WindowShouldClose() {
+			rl.BeginDrawing()
+			rl.ClearBackground(color.RGBA{R: 64, G: 64, B: 64})
+			out := DrawArgumentsUI("Reddit", cArgs, args, flags)
+			rl.EndDrawing()
+			if out != nil && len(out) == 0 {
+				break
+			} else if len(out) != 0 {
+				saveData.Reddit.Id = args[0].(string)
+				saveData.Reddit.Secret = args[1].(string)
+				saveData.Reddit.Login = args[2].(string)
+				if saveData.Reddit.Login == "nobody" {
+					saveData.Reddit.Login = ""
+					saveData.Reddit.Password = ""
+				} else {
+					saveData.Reddit.Password = args[3].(string)
+				}
+				break
+			}
+		}
+	case 1:
+		args := []interface{}{saveData.Imgur}
+		flags := make([]bool, 1)
+		cArgs := []ListingArgument{
+			{
+				name: "Client ID",
+			},
+		}
+		for !rl.WindowShouldClose() {
+			rl.BeginDrawing()
+			rl.ClearBackground(color.RGBA{R: 64, G: 64, B: 64})
+			out := DrawArgumentsUI("Imgur", cArgs, args, flags)
+			rl.EndDrawing()
+			if out != nil && len(out) == 0 {
+				break
+			} else if len(out) != 0 {
+				saveData.Imgur = args[0].(string)
+				break
+			}
+		}
+	case 2:
+		// TBD
+	case 3:
+		// TBD
+	}
+	return SetUpSites()
+}
