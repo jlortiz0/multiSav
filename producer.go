@@ -353,6 +353,9 @@ func (prod *OfflineImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 }
 
 func (prod *OfflineImageProducer) GetInfo(sel int) string {
+	if !prod.BoundsCheck(sel) {
+		return ""
+	}
 	stat, err := os.Stat(prod.fldr + string(os.PathSeparator) + prod.items[sel])
 	if err == nil {
 		size := stat.Size()

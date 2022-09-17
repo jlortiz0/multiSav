@@ -4,6 +4,7 @@ import (
 	"image/color"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/sqweek/dialog"
 
@@ -107,7 +108,11 @@ func EditListings() bool {
 			s, _ := os.Getwd()
 			s, err := db.SetStartDir(s).Title("Select image folder").Browse()
 			if err == nil {
-				saveData.Listings = append(saveData.Listings, SavedListing{Site: SITE_LOCAL, Args: []interface{}{s}, Name: path.Base(s)})
+				if s[len(s)-1] == os.PathSeparator {
+					s = s[:len(s)-1]
+				}
+				ind := strings.LastIndexByte(s, os.PathSeparator)
+				saveData.Listings = append(saveData.Listings, SavedListing{Site: SITE_LOCAL, Args: []interface{}{s}, Name: path.Base(s[ind+1:])})
 			}
 			return false
 		case 1:
@@ -133,24 +138,29 @@ func EditListings() bool {
 			db := dialog.Directory()
 			s, err := db.SetStartDir(data.Args[0].(string)).Title("Select image folder").Browse()
 			if err == nil {
-				saveData.Listings = append(saveData.Listings, SavedListing{Site: SITE_LOCAL, Args: []interface{}{s}, Name: path.Base(s)})
+				if s[len(s)-1] == os.PathSeparator {
+					s = s[:len(s)-1]
+				}
+				saveData.Listings[sel].Args[0] = s
 			}
 			return false
 		case SITE_REDDIT:
 			info := siteReddit.GetListingInfo()[data.Kind]
-			args = make([]ListingArgument, 2, len(info.args)+2)
+			args = make([]ListingArgument, 3, len(info.args)+3)
 			args[0] = ListingArgument{"Site", LARGTYPE_LABEL, []interface{}{"Reddit"}}
 			args[1] = ListingArgument{"Kind", LARGTYPE_LABEL, []interface{}{info.name}}
+			args[2] = ListingArgument{"Name", LARGTYPE_STRING, nil}
 			args = append(args, info.args...)
 		case SITE_PIXIV:
 		case SITE_TWITTER:
 		default:
 			panic("unknown site")
 		}
-		cArgs := make([]interface{}, 2, len(data.Args)+2)
+		cArgs := make([]interface{}, 3, len(data.Args)+3)
 		cArgs[0] = 0
+		cArgs[2] = data.Name
 		cArgs = append(cArgs, data.Args...)
-		flags := make([]bool, len(data.Args)+2)
+		flags := make([]bool, len(data.Args)+3)
 		fadeIn(func() { DrawArgumentsUI(data.Name, args, cArgs, flags) })
 		for !rl.WindowShouldClose() {
 			rl.BeginDrawing()
@@ -162,7 +172,8 @@ func EditListings() bool {
 				return false
 			} else if len(out) != 0 {
 				fadeOut(func() { DrawArgumentsUI(data.Name, args, cArgs, flags) })
-				saveData.Listings[sel].Args = cArgs[2:]
+				saveData.Listings[sel].Args = cArgs[3:]
+				saveData.Listings[sel].Name = cArgs[2].(string)
 				return false
 			}
 		}

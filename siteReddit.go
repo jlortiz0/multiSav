@@ -595,7 +595,24 @@ func (red *RedditProducer) ActionHandler(key int32, sel int, call int) ActionRet
 		return ARET_MOVEDOWN | ARET_REMOVE
 	} else if key == rl.KeyL {
 		if red.listing.(*RedditImageListing).kind == 11 {
-			// TODO: Clear hidden? It would fit with the "Trash" metaphor...
+			iter := red.items[sel:]
+			for len(iter) != 0 {
+				var useful *redditapi.Submission
+				switch v := iter[0].(type) {
+				case *RedditImageEntry:
+					useful = v.Submission
+					useful.Unsave()
+				case *RedditGalleryEntry:
+					useful = v.Submission
+					useful.Unsave()
+				}
+				if len(red.items) == 1 {
+					iter = red.site.ExtendListing(red.listing)
+				} else {
+					iter = iter[1:]
+				}
+			}
+			return red.BufferedImageProducer.ActionHandler(rl.KeyL, sel, 0)
 		} else if red.listing.(*RedditImageListing).kind != 5 {
 			args := red.listing.(*RedditImageListing).args
 			if args[len(args)-1].(bool) {
