@@ -49,20 +49,27 @@ func (cm *ListingEditMenu) Renderer() {
 	calc := cm.scroll.Y + CHOICEMENU_SPACE_BETWEEN_ITEM/2
 	for i, x := range cm.itemList {
 		if !flag || (calc > -TEXT_SIZE-2 && calc < cm.target.Height) {
-			if (rg.GuiButton(rl.Rectangle{X: cm.target.X + 5 + cm.scroll.X, Y: cm.target.Y + calc, Width: cm.target.Width - 10 - LEM_BUTTON_SIZE*2 - LEM_SPACE_BETWEEN_BUTTONS*2, Height: TEXT_SIZE + 2}, x) && cm.status == LOOP_CONT) {
-				cm.Selected = i
-				cm.status = LOOP_EXIT
-				cm.Rem = LEM_EDIT
-			}
-			if (rg.GuiButton(rl.Rectangle{X: cm.target.X + 5 + cm.scroll.X + cm.target.Width - 10 - LEM_BUTTON_SIZE*2 - LEM_SPACE_BETWEEN_BUTTONS, Y: cm.target.Y + calc, Width: LEM_BUTTON_SIZE, Height: LEM_BUTTON_SIZE}, "#28#") && cm.status == LOOP_CONT) {
-				cm.Selected = i
-				cm.status = LOOP_EXIT
-				cm.Rem = LEM_RESET
-			}
-			if (rg.GuiButton(rl.Rectangle{X: cm.target.X + 5 + cm.scroll.X + cm.target.Width - 10 - LEM_BUTTON_SIZE, Y: cm.target.Y + calc, Width: LEM_BUTTON_SIZE, Height: LEM_BUTTON_SIZE}, "#143#") && cm.status == LOOP_CONT) {
-				cm.Selected = i
-				cm.status = LOOP_EXIT
-				cm.Rem = LEM_REMOVE
+			if i < len(cm.itemList)-2 {
+				if (rg.GuiButton(rl.Rectangle{X: cm.target.X + 5 + cm.scroll.X, Y: cm.target.Y + calc, Width: cm.target.Width - 10 - LEM_BUTTON_SIZE*2 - LEM_SPACE_BETWEEN_BUTTONS*2, Height: TEXT_SIZE + 2}, x) && cm.status == LOOP_CONT) {
+					cm.Selected = i
+					cm.status = LOOP_EXIT
+					cm.Rem = LEM_EDIT
+				}
+				if (rg.GuiButton(rl.Rectangle{X: cm.target.X + 5 + cm.scroll.X + cm.target.Width - 10 - LEM_BUTTON_SIZE*2 - LEM_SPACE_BETWEEN_BUTTONS, Y: cm.target.Y + calc, Width: LEM_BUTTON_SIZE, Height: LEM_BUTTON_SIZE}, "#28#") && cm.status == LOOP_CONT) {
+					cm.Selected = i
+					cm.status = LOOP_EXIT
+					cm.Rem = LEM_RESET
+				}
+				if (rg.GuiButton(rl.Rectangle{X: cm.target.X + 5 + cm.scroll.X + cm.target.Width - 10 - LEM_BUTTON_SIZE, Y: cm.target.Y + calc, Width: LEM_BUTTON_SIZE, Height: LEM_BUTTON_SIZE}, "#143#") && cm.status == LOOP_CONT) {
+					cm.Selected = i
+					cm.status = LOOP_EXIT
+					cm.Rem = LEM_REMOVE
+				}
+			} else {
+				if (rg.GuiButton(rl.Rectangle{X: cm.target.X + 5 + cm.scroll.X, Y: cm.target.Y + calc, Width: cm.target.Width - 10, Height: TEXT_SIZE + 2}, x) && cm.status == LOOP_CONT) {
+					cm.Selected = i
+					cm.status = LOOP_EXIT
+				}
 			}
 		}
 		calc += CHOICEMENU_SPACE_BETWEEN_ITEM + TEXT_SIZE

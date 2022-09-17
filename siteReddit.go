@@ -353,6 +353,8 @@ func (red *RedditSite) ResolveURL(URL string) (string, ImageEntry) {
 			return "", nil
 		}
 		return sub.URL, nil
+	case "www.reddit.com":
+		fallthrough
 	case "reddit.com":
 		s := u.Path
 		if s[0] == '/' {
@@ -379,7 +381,7 @@ func (red *RedditSite) ResolveURL(URL string) (string, ImageEntry) {
 }
 
 func (*RedditSite) GetResolvableDomains() []string {
-	return []string{"reddit.com", "preview.redd.it", "redd.it", "i.redd.it"}
+	return []string{"reddit.com", "preview.redd.it", "redd.it", "i.redd.it", "www.reddit.com"}
 }
 
 type RedditImageEntry struct {

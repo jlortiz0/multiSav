@@ -22,7 +22,7 @@ func NewImgurResolver(key string) *ImgurResolver {
 func (*ImgurResolver) Destroy() {}
 
 func (*ImgurResolver) GetResolvableDomains() []string {
-	return []string{"imgur.com", "i.imgur.com"}
+	return []string{"imgur.com", "i.imgur.com", "www.imgur.com"}
 }
 
 func (img *ImgurResolver) ResolveURL(URL string) (string, ImageEntry) {
@@ -31,6 +31,8 @@ func (img *ImgurResolver) ResolveURL(URL string) (string, ImageEntry) {
 		return "", nil
 	}
 	switch u.Hostname() {
+	case "www.imgur.com":
+		fallthrough
 	case "imgur.com":
 		ind := strings.LastIndexByte(URL, '/')
 		if URL[ind-1] == 'a' {

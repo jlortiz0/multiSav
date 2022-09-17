@@ -157,8 +157,11 @@ func (buf *BufferedImageProducer) ActionHandler(key int32, sel int, call int) Ac
 		if _, err := os.Stat(name); err == nil {
 			i := 0
 			ind = strings.LastIndexByte(name, '.')
-			ext := name[ind+1:]
-			name = name[:ind]
+			ext := "png"
+			if ind != -1 {
+				ext = name[ind+1:]
+				name = name[:ind]
+			}
 			for err == nil {
 				i++
 				_, err = os.Stat(fmt.Sprintf("%s_%d.%s", name, i, ext))
@@ -166,6 +169,8 @@ func (buf *BufferedImageProducer) ActionHandler(key int32, sel int, call int) Ac
 			name = fmt.Sprintf("%s_%d.%s", name, i, ext)
 		}
 		if buf.buffer[BIP_BUFBEFORE] == nil {
+			// TODO: Ensure this is done using our user agent to avoid getting blocked
+			// Maybe just add a field to the struct that can be overriden as needed...
 			resp, err := http.Get(buf.items[sel].GetURL())
 			if err == nil {
 				f, err := os.OpenFile(name, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0600)
@@ -207,7 +212,6 @@ func (buf *BufferedImageProducer) ActionHandler(key int32, sel int, call int) Ac
 			if ret == LOOP_QUIT {
 				return ARET_QUIT
 			}
-			fadeOut(menu.Renderer)
 			rl.SetWindowTitle(buf.GetTitle())
 			return ARET_FADEIN
 		}
@@ -246,19 +250,13 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 		}
 	}
 	if sel >= len(buf.items) && !buf.lazy {
-		text := "You went too far!"
-		vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
-		*img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
-		rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
+		*img = drawMessage("You went too far!")
 		return "\\/errPress left please"
 	}
 	// The buffer should be kept updated even if we won't be reading it this time around
 	buf.selSender <- sel
 	if buf.items[sel].GetType() == IETYPE_TEXT {
-		text := buf.items[sel].GetText()
-		vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
-		*img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
-		rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
+		*img = drawMessage(buf.items[sel].GetText())
 		// We still need to recieve to ensure the buffer is updated, but no need to do it synchronously
 		go func() { <-buf.selRecv }()
 		return buf.items[sel].GetName()
@@ -316,12 +314,16 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 	if buf.items[sel].GetType() == IETYPE_GALLERY {
 		URL = buf.items[sel].GetGalleryInfo(false)[0].GetURL()
 	}
-	ind := strings.LastIndexByte(URL, '.')
+	ind2 := strings.LastIndexByte(URL, '?')
+	if ind2 == -1 {
+		ind2 = len(URL)
+	}
+	ind := strings.LastIndexByte(URL[:ind2], '.')
 	if ind == -1 {
 		fmt.Println(buf.items[sel].GetName(), buf.items[sel].GetType())
-		panic(URL)
+		panic(fmt.Sprint(URL[:ind2], URL, ind2))
 	}
-	ext := strings.ToLower(URL[ind:])
+	ext := strings.ToLower(URL[ind:ind2])
 	<-buf.selRecv
 	switch ext[1:] {
 	case "mp4":
@@ -343,10 +345,7 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 		if data != nil {
 			*img = rl.LoadImageFromMemory(ext, data, int32(len(data)))
 			if (*img).Height == 0 {
-				text := "Failed to load image?"
-				vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
-				*img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
-				rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
+				*img = drawMessage("Failed to load image?")
 				return "\\/err" + buf.items[sel].GetName()
 			}
 		} else {
@@ -363,34 +362,22 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 		if data == nil {
 			resp, err := http.Get(URL)
 			if err != nil {
-				text := err.Error()
-				vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
-				*img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
-				rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
+				*img = drawMessage(err.Error())
 				return "\\/err" + buf.items[sel].GetName()
 			}
 			data, err = io.ReadAll(resp.Body)
 			if err != nil {
-				text := err.Error()
-				vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
-				*img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
-				rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
+				*img = drawMessage(err.Error())
 				return "\\/err" + buf.items[sel].GetName()
 			}
 		}
 		*img = rl.LoadImageFromMemory(ext, data, int32(len(data)))
 		if (*img).Height == 0 {
-			text := "Failed to load image?\n" + URL
-			vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
-			*img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
-			rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
+			*img = drawMessage("Failed to load image?\n" + URL)
 			return "\\/err" + buf.items[sel].GetName()
 		}
 	default:
-		text := "Image format not supported\n" + URL
-		vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
-		*img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
-		rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
+		*img = drawMessage("Image format not supported\n" + URL)
 		return "\\/err" + buf.items[sel].GetName()
 	}
 	if buf.items[sel].GetType() == IETYPE_GALLERY {

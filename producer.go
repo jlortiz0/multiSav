@@ -308,9 +308,7 @@ func (prod *OfflineImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 			if prod.empty&2 == 0 {
 				text = "Folder is empty"
 			}
-			vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
-			*img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
-			rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
+			*img = drawMessage(text)
 			return "\\/errNo place to go, nothing to do"
 		}
 		return ""
@@ -347,10 +345,7 @@ func (prod *OfflineImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 	default:
 		*img = rl.LoadImage(prod.fldr + string(os.PathSeparator) + prod.items[sel])
 		if (*img).Height == 0 {
-			text := "Failed to load image?"
-			vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
-			*img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
-			rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
+			*img = drawMessage("Failed to load image?")
 			return "\\/err" + prod.items[sel]
 		}
 	}
