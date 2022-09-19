@@ -132,18 +132,12 @@ func EditListings() bool {
 	} else {
 		data := saveData.Listings[sel]
 		var args []ListingArgument
-		// TODO: Allow the user to rename things
 		switch data.Site {
 		case SITE_LOCAL:
-			db := dialog.Directory()
-			s, err := db.SetStartDir(data.Args[0].(string)).Title("Select image folder").Browse()
-			if err == nil {
-				if s[len(s)-1] == os.PathSeparator {
-					s = s[:len(s)-1]
-				}
-				saveData.Listings[sel].Args[0] = s
+			args = []ListingArgument{
+				{"Name", LARGTYPE_STRING, nil},
+				{"Reselect", LARGTYPE_BOOL, nil},
 			}
-			return false
 		case SITE_REDDIT:
 			info := siteReddit.GetListingInfo()[data.Kind]
 			args = make([]ListingArgument, 3, len(info.args)+3)
@@ -156,11 +150,18 @@ func EditListings() bool {
 		default:
 			panic("unknown site")
 		}
-		cArgs := make([]interface{}, 3, len(data.Args)+3)
-		cArgs[0] = 0
-		cArgs[2] = data.Name
-		cArgs = append(cArgs, data.Args...)
-		flags := make([]bool, len(data.Args)+3)
+		var cArgs []interface{}
+		var flags []bool
+		if data.Site == SITE_LOCAL {
+			cArgs = []interface{}{data.Name, false}
+			flags = []bool{false, false}
+		} else {
+			cArgs = make([]interface{}, 3, len(data.Args)+3)
+			cArgs[0] = 0
+			cArgs[2] = data.Name
+			cArgs = append(cArgs, data.Args...)
+			flags = make([]bool, len(data.Args)+3)
+		}
 		fadeIn(func() { DrawArgumentsUI(data.Name, args, cArgs, flags) })
 		for !rl.WindowShouldClose() {
 			rl.BeginDrawing()
@@ -172,8 +173,27 @@ func EditListings() bool {
 				return false
 			} else if len(out) != 0 {
 				fadeOut(func() { DrawArgumentsUI(data.Name, args, cArgs, flags) })
-				saveData.Listings[sel].Args = cArgs[3:]
-				saveData.Listings[sel].Name = cArgs[2].(string)
+				if data.Site == SITE_LOCAL {
+					saveData.Listings[sel].Name = cArgs[0].(string)
+					if cArgs[1].(bool) {
+						db := dialog.Directory()
+						dir := data.Args[0].(string)
+						if !path.IsAbs(dir) {
+							tmp, _ := os.Getwd()
+							dir = path.Join(tmp, dir)
+						}
+						s, err := db.SetStartDir(dir).Title("Select image folder").Browse()
+						if err == nil {
+							if s[len(s)-1] == os.PathSeparator {
+								s = s[:len(s)-1]
+							}
+							saveData.Listings[sel].Args[0] = s
+						}
+					}
+				} else {
+					saveData.Listings[sel].Args = cArgs[3:]
+					saveData.Listings[sel].Name = cArgs[2].(string)
+				}
 				return false
 			}
 		}
