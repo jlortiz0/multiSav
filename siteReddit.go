@@ -634,6 +634,9 @@ func (red *RedditProducer) ActionHandler(key int32, sel int, call int) ActionRet
 }
 
 func (red *RedditProducer) GetTitle() string {
+	if red.listing == nil {
+		return red.BufferedImageProducer.GetTitle()
+	}
 	useful := red.listing.(*RedditImageListing)
 	switch useful.kind {
 	case 0:

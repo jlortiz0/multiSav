@@ -225,6 +225,11 @@ func (menu *ImageMenu) HandleKey(keycode int32) LoopStatus {
 func (menu *ImageMenu) Prerender() LoopStatus {
 	if menu.state == IMSTATE_SHOULDLOAD|IMSTATE_GOTO {
 		menu.state = IMSTATE_SHOULDLOAD
+		if menu.Producer.Len() == 0 && (!menu.Producer.IsLazy() || !menu.Producer.BoundsCheck(0)) {
+			fadeOut(menu.Renderer)
+			msg := NewMessage("No images!")
+			return stdEventLoop(msg)
+		}
 
 	}
 	if menu.Producer.Len() == 0 {
@@ -254,11 +259,7 @@ func (menu *ImageMenu) Prerender() LoopStatus {
 			rl.UnloadTexture(menu.texture)
 		}
 		menu.texture = rl.LoadTextureFromImage(menu.img)
-		if menu.ffmpeg == nil {
-			// When ffmpeg is not nil, menu.img was allocated in Go
-			// Thus trying to free it using C will probably segfault
-			rl.UnloadImage(menu.img)
-		}
+		rl.UnloadImage(menu.img)
 		menu.img = nil
 		rl.SetTextureFilter(menu.texture, rl.FilterBilinear)
 		menu.cam.Target = rl.Vector2{Y: float32(menu.texture.Height) / 2, X: float32(menu.texture.Width) / 2}

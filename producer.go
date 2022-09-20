@@ -159,6 +159,31 @@ func (w *WrapperImageEntry) GetURL() string {
 	return w.url
 }
 
+type TextImageEntry struct {
+	msg  string
+	name string
+}
+
+func (t *TextImageEntry) GetText() string {
+	return t.msg
+}
+
+func (t *TextImageEntry) GetName() string { return t.name }
+
+func (*TextImageEntry) GetURL() string { return "" }
+
+func (*TextImageEntry) GetGalleryInfo(bool) []ImageEntry { return nil }
+
+func (*TextImageEntry) GetType() ImageEntryType { return IETYPE_TEXT }
+
+func (*TextImageEntry) GetDimensions() (int, int) { return -1, -1 }
+
+func (*TextImageEntry) GetPostURL() string { return "" }
+
+func (*TextImageEntry) GetInfo() string { return "" }
+
+func (*TextImageEntry) Combine(ImageEntry) {}
+
 type ActionRet int
 
 const (

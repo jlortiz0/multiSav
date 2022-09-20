@@ -45,8 +45,18 @@ func NewBufferedImageProducer(site ImageSite, kind int, args []interface{}, pers
 	buf.site = site
 	if site != nil {
 		buf.listing, buf.items = site.GetListing(kind, args, persistent)
-		if buf.items == nil {
-			panic(buf.listing.(*ErrorListing).err)
+		// I forgot that some sites can legitmately return nil
+		if _, ok := buf.listing.(*ErrorListing); ok {
+			buf.lazy = false
+			buf.items = []ImageEntry{
+				&TextImageEntry{
+					buf.listing.(*ErrorListing).err.Error(),
+					"\\errError for you",
+				},
+			}
+			buf.listing = nil
+			buf.selSender = make(chan int, 1)
+			return buf
 		}
 		buf.lazy = len(buf.items) != 0
 	}
