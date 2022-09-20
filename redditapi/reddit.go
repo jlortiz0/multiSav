@@ -140,6 +140,15 @@ func (r *Reddit) buildRequest(method, url string, body io.Reader) *http.Request 
 	return rq
 }
 
+func (r *Reddit) GetRequest(url string) (*http.Response, error) {
+	rq, _ := http.NewRequest("GET", url, http.NoBody)
+	rq.Header.Add("User-Agent", r.userAgent)
+	if r.token != "" {
+		rq.Header.Add("Authorization", r.token)
+	}
+	return r.Client.Do(rq)
+}
+
 func (r *Reddit) ListNew(limit int) (*SubmissionIterator, error) {
 	return newSubmissionIterator("new", r, limit)
 }

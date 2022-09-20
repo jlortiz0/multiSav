@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"net/http"
 	"net/url"
 	"os"
 	"strings"
@@ -101,7 +100,7 @@ func NewBufferedImageProducer(site ImageSite, kind int, args []interface{}, pers
 				case "jpeg":
 					fallthrough
 				case "bmp":
-					resp, err := http.Get(url)
+					resp, err := buf.site.GetRequest(url)
 					if err == nil {
 						data, err := io.ReadAll(resp.Body)
 						if err == nil {
@@ -169,9 +168,7 @@ func (buf *BufferedImageProducer) ActionHandler(key int32, sel int, call int) Ac
 			name = fmt.Sprintf("%s_%d.%s", name, i, ext)
 		}
 		if buf.buffer[BIP_BUFBEFORE] == nil {
-			// TODO: Ensure this is done using our user agent to avoid getting blocked
-			// Maybe just add a field to the struct that can be overriden as needed...
-			resp, err := http.Get(buf.items[sel].GetURL())
+			resp, err := buf.site.GetRequest(buf.items[sel].GetURL())
 			if err == nil {
 				f, err := os.OpenFile(name, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0600)
 				if err == nil {
@@ -206,7 +203,7 @@ func (buf *BufferedImageProducer) ActionHandler(key int32, sel int, call int) Ac
 			if call == 0 {
 				return ARET_FADEOUT | ARET_AGAIN
 			}
-			menu := NewGalleryMenu(buf.items[sel])
+			menu := NewGalleryMenu(buf.items[sel], buf.site)
 			ret := stdEventLoop(menu)
 			menu.Destroy()
 			if ret == LOOP_QUIT {
@@ -227,7 +224,7 @@ func (buf *BufferedImageProducer) remove(sel int) {
 }
 
 func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegReader) string {
-	if sel+BIP_BUFAFTER >= len(buf.items) && buf.site != nil {
+	if sel+BIP_BUFAFTER >= len(buf.items) && buf.extending != nil {
 		go buf.extending.Do(func() {
 			extend := buf.site.ExtendListing(buf.listing)
 			if len(extend) == 0 {
@@ -360,7 +357,7 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 	case "bmp":
 		data := buf.buffer[BIP_BUFBEFORE]
 		if data == nil {
-			resp, err := http.Get(URL)
+			resp, err := buf.site.GetRequest(URL)
 			if err != nil {
 				*img = drawMessage(err.Error())
 				return "\\/err" + buf.items[sel].GetName()
@@ -391,12 +388,19 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 			// rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
 			// return "\\/err" + buf.items[sel].GetName()
 		}
-		// TODO: on small images (<500 px?) text is not centered and drawn too low
 		size := float32((**img).Height) / 32
+		if size < float32(font.BaseSize) {
+			// This works around a quirk with ImageTextEx where it will only ever upscale text, never downscale it
+			// I simply upscale the image first, correctness be damned
+			// I could have made it integer upscale but that could cause the text to end up very small depending on the image
+			scaleFactor := float64(font.BaseSize) / float64(size)
+			rl.ImageResize(*img, int32(float64((**img).Width)*scaleFactor), int32(float64((**img).Height)*scaleFactor))
+			size *= float32(scaleFactor)
+		}
 		text := fmt.Sprintf("Press Enter for gallery viewer (%d images)", len(buf.items[sel].GetGalleryInfo(true)))
 		vec := rl.MeasureTextEx(font, text, size, 0)
 		rl.ImageDrawRectangle(*img, 0, (**img).Height-int32(vec.Y)-10, (**img).Width, int32(vec.Y)+10, rl.RayWhite)
-		rl.ImageDrawTextEx(*img, rl.Vector2{X: (float32((**img).Width)-vec.X)/2 - 2, Y: float32((**img).Height) - vec.Y - 5}, font, text, size, 0, rl.Black)
+		rl.ImageDrawTextEx(*img, rl.Vector2{X: (float32((**img).Width) - vec.X) / 2, Y: float32((**img).Height) - vec.Y - 5}, font, text, size, 0, rl.Black)
 		return buf.items[sel].GetName()
 	}
 	return buf.items[sel].GetName()
@@ -410,11 +414,12 @@ func (buf *BufferedImageProducer) GetListing() ImageListing {
 	return buf.listing
 }
 
-func NewGalleryMenu(img ImageEntry) *ImageMenu {
+func NewGalleryMenu(img ImageEntry, site ImageSite) *ImageMenu {
 	prod := NewBufferedImageProducer(nil, 0, nil, nil)
 	prod.items = img.GetGalleryInfo(false)
 	prod.extending = nil
 	prod.lazy = false
+	prod.site = site
 	menu := NewImageMenu(prod)
 	return menu
 }
