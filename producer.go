@@ -64,15 +64,10 @@ type ListingArgument struct {
 }
 
 type ListingInfo struct {
-	// ID, should be identical to index in GetListingInfo slice
-	// id int
 	// User-friendly name
 	name string
 	// Names of arguments (length gives number)
 	args []ListingArgument
-	// If this listing needs to save data in between sessions to work properly
-	// This may be used to implement a listing which dislays all new content since the last time it was viewed
-	persistent bool
 }
 
 type ImageListing interface {
@@ -81,15 +76,15 @@ type ImageListing interface {
 }
 
 type ErrorListing struct {
-	err error
+	error
 }
 
-func (*ErrorListing) GetInfo() (int, []interface{}) {
+func (ErrorListing) GetInfo() (int, []interface{}) {
 	return -1, nil
 }
 
-func (err *ErrorListing) GetPersistent() interface{} {
-	return err.err
+func (err ErrorListing) GetPersistent() interface{} {
+	return err.error
 }
 
 // A website where images can be retrived from
@@ -130,8 +125,8 @@ const (
 	IETYPE_ANIMATED
 	IETYPE_TEXT
 	IETYPE_GALLERY
-	IETYPE_WEBPAGE
-	IETYPE_NONE
+	// IETYPE_WEBPAGE
+	// IETYPE_NONE
 )
 
 type ImageEntry interface {

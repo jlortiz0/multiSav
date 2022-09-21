@@ -14,13 +14,14 @@ import (
 )
 
 var resolveMap map[string]Resolver
-var siteReddit *RedditSite
+var siteReddit RedditSite
+var siteTwitter TwitterSite
 
 const TEXT_SIZE = 18
 const FRAME_RATE = 60
 
-func loginHelper() *RedditSite {
-	data := make([]byte, 256)
+func loginHelper() RedditSite {
+	data := make([]byte, 512)
 	f, err := os.Open("redditapi/login.json")
 	if err != nil {
 		panic(fmt.Errorf("failed to open login data file: %s", err.Error()))
@@ -31,11 +32,13 @@ func loginHelper() *RedditSite {
 	}
 	f.Close()
 	var fields struct {
-		Id       string
-		Secret   string
-		Login    string
-		Password string
-		ImgurID  string
+		Id            string
+		Secret        string
+		Login         string
+		Password      string
+		ImgurId       string
+		TwitterId     string
+		TwitterSecret string
 	}
 	err = json.Unmarshal(data[:n], &fields)
 	if err != nil {
@@ -46,14 +49,18 @@ func loginHelper() *RedditSite {
 	if err != nil {
 		panic(fmt.Errorf("failed to log in: %s", err.Error()))
 	}
-	r := &RedditSite{*red}
+	r := RedditSite{red}
 	resolveMap = make(map[string]Resolver)
 	for _, x := range r.GetResolvableDomains() {
 		resolveMap[x] = r
 	}
-	img := NewImgurResolver(fields.ImgurID)
+	img := NewImgurResolver(fields.ImgurId)
 	for _, x := range img.GetResolvableDomains() {
 		resolveMap[x] = img
+	}
+	siteTwitter = NewTwitterSite(fields.TwitterId, fields.TwitterSecret)
+	for _, x := range siteTwitter.GetResolvableDomains() {
+		resolveMap[x] = siteTwitter
 	}
 	return r
 }
@@ -130,7 +137,7 @@ func main() {
 	rl.SetConfigFlags(rl.FlagWindowResizable)
 	rl.InitWindow(1024, 768, "rediSav")
 	finder := sysfont.NewFinder(nil)
-	font = rl.LoadFontEx(finder.Match("Ubuntu").Filename, TEXT_SIZE, nil, 250)
+	font = rl.LoadFontEx(finder.Match("Ubuntu").Filename, TEXT_SIZE, nil, 0)
 	rl.SetExitKey(0)
 	rg.GuiSetFont(font)
 	rg.GuiSetStyle(rg.LABEL, rg.TEXT_COLOR_NORMAL, 0xf5f5f5ff)
@@ -178,6 +185,8 @@ MainLoop:
 				producer = NewOfflineImageProducer(data.Args[0].(string))
 			case SITE_REDDIT:
 				producer = NewRedditProducer(siteReddit, data.Kind, data.Args, data.Persistent)
+			case SITE_TWITTER:
+				producer = NewBufferedImageProducer(siteTwitter, data.Kind, data.Args, data.Persistent)
 			}
 			menu := NewImageMenu(producer)
 			if stdEventLoop(menu) == LOOP_QUIT {

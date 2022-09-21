@@ -102,6 +102,7 @@ func EditListings() bool {
 		fadeOut(cm.Renderer)
 		cm.Destroy()
 		var site ImageSite
+		var sKind int
 		switch sel {
 		case 0:
 			db := dialog.Directory()
@@ -117,12 +118,16 @@ func EditListings() bool {
 			return false
 		case 1:
 			site = siteReddit
+			sKind = SITE_REDDIT
+		case 2:
+			site = siteTwitter
+			sKind = SITE_TWITTER
 		default:
 			return false
 		}
 		kind, args := SetUpListing(site)
 		if kind != -1 {
-			saveData.Listings = append(saveData.Listings, SavedListing{Kind: kind, Site: SITE_REDDIT, Args: args[1:], Name: args[0].(string)})
+			saveData.Listings = append(saveData.Listings, SavedListing{Kind: kind, Site: sKind, Args: args[1:], Name: args[0].(string)})
 		}
 	} else if rem == LEM_REMOVE {
 		copy(saveData.Listings[sel:], saveData.Listings[sel+1:])

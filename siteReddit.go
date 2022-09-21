@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -10,22 +11,22 @@ import (
 )
 
 type RedditSite struct {
-	redditapi.Reddit
+	*redditapi.Reddit
 }
 
-func NewRedditSite(clientId, clientSecret, user, pass string) *RedditSite {
+func NewRedditSite(clientId, clientSecret, user, pass string) RedditSite {
 	red := redditapi.NewReddit("linux:org.jlortiz.rediSav:v0.3.2 (by /u/jlortiz)", clientId, clientSecret)
 	if user != "" {
 		red.Login(user, pass)
 	}
-	return &RedditSite{*red}
+	return RedditSite{red}
 }
 
-func (red *RedditSite) Destroy() {
+func (red RedditSite) Destroy() {
 	red.Logout()
 }
 
-func (red *RedditSite) GetListingInfo() []ListingInfo {
+func (red RedditSite) GetListingInfo() []ListingInfo {
 	return []ListingInfo{
 		{
 			name: "New: subreddit",
@@ -38,7 +39,6 @@ func (red *RedditSite) GetListingInfo() []ListingInfo {
 					kind: LARGTYPE_BOOL,
 				},
 			},
-			persistent: true,
 		},
 		{
 			name: "Hot: subreddit",
@@ -51,7 +51,6 @@ func (red *RedditSite) GetListingInfo() []ListingInfo {
 					kind: LARGTYPE_BOOL,
 				},
 			},
-			persistent: true,
 		},
 		{
 			name: "Rising: subreddit",
@@ -64,7 +63,6 @@ func (red *RedditSite) GetListingInfo() []ListingInfo {
 					kind: LARGTYPE_BOOL,
 				},
 			},
-			persistent: true,
 		},
 		{
 			name: "Controversial: subreddit",
@@ -77,7 +75,6 @@ func (red *RedditSite) GetListingInfo() []ListingInfo {
 					kind: LARGTYPE_BOOL,
 				},
 			},
-			persistent: true,
 		},
 		{
 			name: "Top: subreddit",
@@ -101,7 +98,6 @@ func (red *RedditSite) GetListingInfo() []ListingInfo {
 					kind: LARGTYPE_BOOL,
 				},
 			},
-			persistent: true,
 		},
 		{
 			name: "Saved",
@@ -130,7 +126,6 @@ func (red *RedditSite) GetListingInfo() []ListingInfo {
 					kind: LARGTYPE_BOOL,
 				},
 			},
-			persistent: true,
 		},
 		{
 			name: "Search: all",
@@ -143,7 +138,6 @@ func (red *RedditSite) GetListingInfo() []ListingInfo {
 					kind: LARGTYPE_BOOL,
 				},
 			},
-			persistent: true,
 		},
 		{
 			name: "Redditor",
@@ -156,7 +150,6 @@ func (red *RedditSite) GetListingInfo() []ListingInfo {
 					kind: LARGTYPE_BOOL,
 				},
 			},
-			persistent: true,
 		},
 		{
 			name: "Personal subreddit",
@@ -169,7 +162,6 @@ func (red *RedditSite) GetListingInfo() []ListingInfo {
 					kind: LARGTYPE_BOOL,
 				},
 			},
-			persistent: true,
 		},
 		{
 			name: "Multireddit",
@@ -185,7 +177,6 @@ func (red *RedditSite) GetListingInfo() []ListingInfo {
 					kind: LARGTYPE_BOOL,
 				},
 			},
-			persistent: true,
 		},
 		{
 			name: "Hidden",
@@ -211,7 +202,7 @@ func (red *RedditImageListing) GetPersistent() interface{} {
 	return red.seen
 }
 
-func (red *RedditSite) GetListing(kind int, args []interface{}, persistent interface{}) (ImageListing, []ImageEntry) {
+func (red RedditSite) GetListing(kind int, args []interface{}, persistent interface{}) (ImageListing, []ImageEntry) {
 	var iter *redditapi.SubmissionIterator
 	var err error
 	switch kind {
@@ -275,9 +266,11 @@ func (red *RedditSite) GetListing(kind int, args []interface{}, persistent inter
 		}
 	case 11:
 		iter, err = red.Self().ListHidden(0)
+	default:
+		err = errors.New("unknown listing")
 	}
 	if err != nil {
-		return &ErrorListing{err}, nil
+		return ErrorListing{err}, nil
 	}
 	if persistent == nil {
 		persistent = ""
@@ -286,7 +279,7 @@ func (red *RedditSite) GetListing(kind int, args []interface{}, persistent inter
 	return iter2, red.ExtendListing(iter2)
 }
 
-func (red *RedditSite) ExtendListing(cont ImageListing) []ImageEntry {
+func (red RedditSite) ExtendListing(cont ImageListing) []ImageEntry {
 	iter2, ok := cont.(*RedditImageListing)
 	if !ok {
 		return nil
@@ -337,7 +330,7 @@ func (red *RedditSite) ExtendListing(cont ImageListing) []ImageEntry {
 	return data
 }
 
-func (red *RedditSite) ResolveURL(URL string) (string, ImageEntry) {
+func (red RedditSite) ResolveURL(URL string) (string, ImageEntry) {
 	u, err := url.Parse(URL)
 	if err != nil {
 		return "", nil
@@ -380,7 +373,7 @@ func (red *RedditSite) ResolveURL(URL string) (string, ImageEntry) {
 	return "", nil
 }
 
-func (*RedditSite) GetResolvableDomains() []string {
+func (RedditSite) GetResolvableDomains() []string {
 	return []string{"reddit.com", "preview.redd.it", "redd.it", "i.redd.it", "www.reddit.com"}
 }
 
@@ -554,10 +547,10 @@ func (*RedditGalleryEntry) GetType() ImageEntryType {
 
 type RedditProducer struct {
 	*BufferedImageProducer
-	site *RedditSite
+	site RedditSite
 }
 
-func NewRedditProducer(site *RedditSite, kind int, args []interface{}, persistent interface{}) *RedditProducer {
+func NewRedditProducer(site RedditSite, kind int, args []interface{}, persistent interface{}) *RedditProducer {
 	return &RedditProducer{NewBufferedImageProducer(site, kind, args, persistent), site}
 }
 
