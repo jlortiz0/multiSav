@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"strings"
@@ -91,17 +92,17 @@ func NewBufferedImageProducer(site ImageSite, kind int, args []interface{}, pers
 				if sel+i-BIP_BUFBEFORE < 0 || buf.buffer[i] != nil || sel+i-BIP_BUFBEFORE+1 >= len(buf.items) {
 					continue
 				}
-				url := buf.items[sel+i-BIP_BUFBEFORE].GetURL()
+				URL := buf.items[sel+i-BIP_BUFBEFORE].GetURL()
 				if buf.items[sel+i-BIP_BUFBEFORE].GetType() == IETYPE_GALLERY {
-					url = buf.items[sel+i-BIP_BUFBEFORE].GetGalleryInfo(false)[0].GetURL()
+					URL = buf.items[sel+i-BIP_BUFBEFORE].GetGalleryInfo(false)[0].GetURL()
 				} else if buf.items[sel+i-BIP_BUFBEFORE].GetType() != IETYPE_REGULAR {
 					continue
 				}
-				ind := strings.LastIndexByte(url, '.')
+				ind := strings.LastIndexByte(URL, '.')
 				if ind == -1 {
 					continue
 				}
-				ext := strings.ToLower(url[ind:])
+				ext := strings.ToLower(URL[ind:])
 				switch ext[1:] {
 				case "png":
 					fallthrough
@@ -110,7 +111,18 @@ func NewBufferedImageProducer(site ImageSite, kind int, args []interface{}, pers
 				case "jpeg":
 					fallthrough
 				case "bmp":
-					resp, err := buf.site.GetRequest(url)
+					obj, _ := url.Parse(URL)
+					if obj == nil {
+						continue
+					}
+					resolve := resolveMap[obj.Host]
+					var resp *http.Response
+					var err error
+					if resolve == nil {
+						resp, err = http.DefaultClient.Get(URL)
+					} else {
+						resp, err = resolve.GetRequest(URL)
+					}
 					if err == nil {
 						data, err := io.ReadAll(resp.Body)
 						if err == nil {
@@ -153,6 +165,7 @@ func (buf *BufferedImageProducer) ActionHandler(key int32, sel int, call int) Ac
 		buf.remove(sel)
 		return ARET_MOVEDOWN | ARET_REMOVE
 	} else if key == rl.KeyX {
+		// TODO: Change things so that gallery entries download as %s_%02d.ext
 		name := buf.items[sel].GetURL()
 		ind := strings.IndexByte(name, '?')
 		if ind != -1 {
@@ -380,6 +393,7 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 		}
 		*img = rl.LoadImageFromMemory(ext, data, int32(len(data)))
 		if (*img).Height == 0 {
+			fmt.Println(string(data))
 			*img = drawMessage("Failed to load image?\n" + URL)
 			return "\\/err" + buf.items[sel].GetName()
 		}
@@ -429,7 +443,6 @@ func NewGalleryMenu(img ImageEntry, site ImageSite) *ImageMenu {
 	prod.items = img.GetGalleryInfo(false)
 	prod.extending = nil
 	prod.lazy = false
-	prod.site = site
 	menu := NewImageMenu(prod)
 	return menu
 }

@@ -565,7 +565,7 @@ func (red *RedditProducer) ActionHandler(key int32, sel int, call int) ActionRet
 		return red.BufferedImageProducer.ActionHandler(key, sel, call)
 	}
 	if key == rl.KeyX {
-		if red.listing.(*RedditImageListing).kind == 5 {
+		if red.listing.(*RedditImageListing).kind == 5 || rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift) {
 			ret := red.BufferedImageProducer.ActionHandler(key, sel, call)
 			if ret&ARET_REMOVE != 0 {
 				useful.Unsave()

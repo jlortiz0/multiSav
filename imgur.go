@@ -12,20 +12,20 @@ type ImgurResolver struct {
 	key string
 }
 
-func NewImgurResolver(key string) *ImgurResolver {
+func NewImgurResolver(key string) ImgurResolver {
 	if !strings.HasPrefix(key, "Client-ID ") {
 		key = "Client-ID " + key
 	}
-	return &ImgurResolver{key: key}
+	return ImgurResolver{key: key}
 }
 
-func (*ImgurResolver) Destroy() {}
+func (ImgurResolver) Destroy() {}
 
-func (*ImgurResolver) GetResolvableDomains() []string {
+func (ImgurResolver) GetResolvableDomains() []string {
 	return []string{"imgur.com", "i.imgur.com", "www.imgur.com"}
 }
 
-func (img *ImgurResolver) ResolveURL(URL string) (string, ImageEntry) {
+func (img ImgurResolver) ResolveURL(URL string) (string, ImageEntry) {
 	u, err := url.Parse(URL)
 	if err != nil {
 		return "", nil
@@ -78,6 +78,18 @@ func (img *ImgurResolver) ResolveURL(URL string) (string, ImageEntry) {
 		return RESOLVE_FINAL, nil
 	}
 	return "", nil
+}
+
+func (img ImgurResolver) GetRequest(URL string) (*http.Response, error) {
+	rq, err := http.NewRequest("GET", URL, http.NoBody)
+	if err != nil {
+		return nil, err
+	}
+	// For some reason, adding this causes it to fail
+	// Yet the function above works perfectly?
+	// rq.Header.Add("Authorization", img.key)
+	// fmt.Println(rq.Header)
+	return http.DefaultClient.Do(rq)
 }
 
 type ImgurGalleryEntry struct {

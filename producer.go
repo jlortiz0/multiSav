@@ -103,7 +103,6 @@ type ImageSite interface {
 	// Return further objects from a listing using a continuance object
 	// If the returned slice is empty or nil, the listing has concluded
 	ExtendListing(ImageListing) []ImageEntry
-	GetRequest(string) (*http.Response, error)
 }
 
 type Resolver interface {
@@ -114,6 +113,8 @@ type Resolver interface {
 	ResolveURL(string) (string, ImageEntry)
 	// Get a list of all domains that this site can resolve for
 	GetResolvableDomains() []string
+	// Might be best to have the resolver do this, since some sites may need different auths
+	GetRequest(string) (*http.Response, error)
 }
 
 const RESOLVE_FINAL = "finalfinalfinal"
