@@ -1,3 +1,4 @@
 redditApi/login.json
 *.exe
 jlortiz_TEST
+.vscode/**

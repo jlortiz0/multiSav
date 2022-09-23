@@ -420,7 +420,7 @@ func (red *RedditImageEntry) GetGalleryInfo(lazy bool) []ImageEntry {
 		if ind != -1 {
 			x.S.U = x.S.U[:ind]
 		}
-		data = append(data, &RedditGalleryEntry{RedditImageEntry: *red, name: fmt.Sprintf("%s (%d/%d)", red.Title, i+1, len(red.Gallery_data.Items)), url: x.S.U, x: x.S.X, y: x.S.Y})
+		data = append(data, &RedditGalleryEntry{RedditImageEntry: *red, name: fmt.Sprintf("%s (%d/%d)", red.Title, i+1, len(red.Gallery_data.Items)), url: x.S.U, x: x.S.X, y: x.S.Y, index: i + 1})
 	}
 	return data
 }
@@ -522,11 +522,31 @@ func (red *RedditImageEntry) Combine(ie ImageEntry) {
 	}
 }
 
+func (red *RedditImageEntry) GetSaveName() string {
+	if red.URL == "" {
+		return ""
+	}
+	ind := strings.LastIndexByte(red.URL, '/')
+	if ind == -1 {
+		return ""
+	}
+	s := red.URL[ind+1:]
+	if s == "" {
+		return s
+	}
+	ind = strings.IndexByte(s, '?')
+	if ind != -1 {
+		s = s[:ind]
+	}
+	return s
+}
+
 type RedditGalleryEntry struct {
 	RedditImageEntry
-	name string
-	url  string
-	x, y int
+	name  string
+	url   string
+	x, y  int
+	index int
 }
 
 func (red *RedditGalleryEntry) GetURL() string {
@@ -543,6 +563,12 @@ func (red *RedditGalleryEntry) GetName() string {
 
 func (*RedditGalleryEntry) GetType() ImageEntryType {
 	return IETYPE_REGULAR
+}
+
+func (red *RedditGalleryEntry) GetSaveName() string {
+	s := red.RedditImageEntry.GetSaveName()
+	ind := strings.IndexByte(s, '.')
+	return fmt.Sprintf("%s_%d.%s", s[:ind], red.index, s[ind+1:])
 }
 
 type RedditProducer struct {

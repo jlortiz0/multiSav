@@ -165,20 +165,14 @@ func (buf *BufferedImageProducer) ActionHandler(key int32, sel int, call int) Ac
 		buf.remove(sel)
 		return ARET_MOVEDOWN | ARET_REMOVE
 	} else if key == rl.KeyX {
-		// TODO: Change things so that gallery entries download as %s_%02d.ext
-		name := buf.items[sel].GetURL()
-		ind := strings.IndexByte(name, '?')
-		if ind != -1 {
-			name = name[:ind]
-		}
-		ind = strings.LastIndexByte(name, '/')
-		if ind != -1 {
-			name = name[ind+1:]
+		name := buf.items[sel].GetSaveName()
+		if name == "" {
+			return ARET_NOTHING
 		}
 		name = "Downloads" + string(os.PathSeparator) + name
 		if _, err := os.Stat(name); err == nil {
 			i := 0
-			ind = strings.LastIndexByte(name, '.')
+			ind := strings.LastIndexByte(name, '.')
 			ext := "png"
 			if ind != -1 {
 				ext = name[ind+1:]
@@ -233,6 +227,10 @@ func (buf *BufferedImageProducer) ActionHandler(key int32, sel int, call int) Ac
 				return ARET_QUIT
 			}
 			rl.SetWindowTitle(buf.GetTitle())
+			if ret == LOOP_EXIT {
+				buf.remove(sel)
+				return ARET_MOVEDOWN | ARET_REMOVE | ARET_FADEIN
+			}
 			return ARET_FADEIN
 		}
 	}
@@ -451,6 +449,7 @@ func NewGalleryMenu(img ImageEntry, site ImageSite) *ImageMenu {
 	prod.items = img.GetGalleryInfo(false)
 	prod.extending = nil
 	prod.lazy = false
+	prod.site = site
 	menu := NewImageMenu(prod)
 	return menu
 }

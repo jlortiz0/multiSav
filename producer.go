@@ -143,6 +143,7 @@ type ImageEntry interface {
 	GetDimensions() (int, int)
 	GetPostURL() string
 	GetInfo() string
+	GetSaveName() string
 	// Modify the current ImageEntry inplace to contain some fields from this new one
 	// What gets copied is up to the implementation
 	Combine(ImageEntry)
@@ -181,6 +182,8 @@ func (*TextImageEntry) GetPostURL() string { return "" }
 func (*TextImageEntry) GetInfo() string { return "" }
 
 func (*TextImageEntry) Combine(ImageEntry) {}
+
+func (*TextImageEntry) GetSaveName() string { return "" }
 
 type ActionRet int
 

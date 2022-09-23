@@ -546,16 +546,27 @@ func (t *TwitterImageEntry) GetGalleryInfo(b bool) []ImageEntry {
 		return imgs
 	}
 	for i, x := range t.media {
-		imgs[i] = &TwitterGalleryEntry{*t, x.URL, x.Width, x.Height}
+		imgs[i] = &TwitterGalleryEntry{*t, x.URL, x.Width, x.Height, i + 1}
 	}
 	return imgs
+}
+
+func (t *TwitterImageEntry) GetSaveName() string {
+	if len(t.media) == 0 {
+		return ""
+	}
+	s := t.media[0].URL
+	ind := strings.LastIndexByte(s, '/')
+	s = s[ind+1:]
+	return s
 }
 
 type TwitterGalleryEntry struct {
 	// id, text, username string
 	TwitterImageEntry
-	url  string
-	w, h int
+	url   string
+	w, h  int
+	index int
 }
 
 func (t *TwitterGalleryEntry) GetURL() string {
@@ -567,3 +578,9 @@ func (t *TwitterGalleryEntry) GetDimensions() (int, int) {
 }
 
 func (*TwitterGalleryEntry) GetType() ImageEntryType { return IETYPE_REGULAR }
+
+func (t *TwitterGalleryEntry) GetSaveName() string {
+	s := t.TwitterImageEntry.GetSaveName()
+	ind := strings.LastIndexByte(s, '.')
+	return fmt.Sprintf("%s_%d.%s", s[:ind], t.index, s[ind+1:])
+}

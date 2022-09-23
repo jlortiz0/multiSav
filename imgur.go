@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -64,6 +65,9 @@ func (img ImgurResolver) ResolveURL(URL string) (string, ImageEntry) {
 			return "", &payload.Data.ImgurImageEntry
 		} else if len(payload.Data.Images) == 1 {
 			return "", &payload.Data.Images[0]
+		}
+		for i := range payload.Data.Images {
+			payload.Data.Images[i].index = i + 1
 		}
 		return "", &ImgurGalleryEntry{
 			ID: payload.Data.ID, Title: payload.Data.Title, Description: payload.Data.Description,
@@ -134,6 +138,8 @@ func (img *ImgurGalleryEntry) GetPostURL() string { return "https://imgur.com/a/
 
 func (img *ImgurGalleryEntry) GetURL() string { return img.Link }
 
+func (img *ImgurGalleryEntry) GetSaveName() string { return img.Images[0].GetSaveName() }
+
 type ImgurImageEntry struct {
 	ID            string
 	Title         string
@@ -141,6 +147,7 @@ type ImgurImageEntry struct {
 	Link          string
 	Mp4           string
 	Width, Height int
+	index         int
 }
 
 func (*ImgurImageEntry) GetType() ImageEntryType { return IETYPE_REGULAR }
@@ -171,4 +178,16 @@ func (img *ImgurImageEntry) GetURL() string {
 		return img.Mp4
 	}
 	return img.Link
+}
+
+func (img *ImgurImageEntry) GetSaveName() string {
+	ind := strings.LastIndexByte(img.Link, '/')
+	s := img.Link[ind+1:]
+	if img.index == 0 {
+		return s
+	}
+	ind = strings.LastIndexByte(s, '.')
+	ext := s[ind+1:]
+	s = s[:ind]
+	return fmt.Sprintf("%s_%d.%s", s, img.index, ext)
 }
