@@ -152,6 +152,12 @@ func EditListings() bool {
 			args = append(args, info.args...)
 		case SITE_PIXIV:
 		case SITE_TWITTER:
+			info := siteTwitter.GetListingInfo()[data.Kind]
+			args = make([]ListingArgument, 3, len(info.args)+3)
+			args[0] = ListingArgument{"Site", LARGTYPE_LABEL, []interface{}{"Twitter"}}
+			args[1] = ListingArgument{"Kind", LARGTYPE_LABEL, []interface{}{info.name}}
+			args[2] = ListingArgument{"Name", LARGTYPE_STRING, nil}
+			args = append(args, info.args...)
 		default:
 			panic("unknown site")
 		}

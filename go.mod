@@ -4,11 +4,12 @@ go 1.16
 
 require (
 	github.com/adrg/sysfont v0.1.2
-	github.com/dghubble/go-twitter v0.0.0-20220816163853-8a0df96f1e6d
+	github.com/g8rswimmer/go-twitter/v2 v2.1.2
 	github.com/gen2brain/raylib-go/raylib v0.0.0-20220702153720-2ba84634ed1e
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/sqweek/dialog v0.0.0-20220809060634-e981b270ebbf
-	golang.org/x/oauth2 v0.0.0-20220909003341-f21342109be1
+	github.com/stretchr/testify v1.8.0 // indirect
+	golang.org/x/sys v0.0.0-20220610221304-9f5ed59c137d // indirect
 	jlortiz.org/redisav/raygui-go v0.0.0
 	jlortiz.org/redisav/redditapi v0.0.0
 )

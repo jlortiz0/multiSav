@@ -39,6 +39,7 @@ func loginHelper() RedditSite {
 		ImgurId       string
 		TwitterId     string
 		TwitterSecret string
+		TwitterBearer string
 	}
 	err = json.Unmarshal(data[:n], &fields)
 	if err != nil {
@@ -58,7 +59,7 @@ func loginHelper() RedditSite {
 	for _, x := range img.GetResolvableDomains() {
 		resolveMap[x] = img
 	}
-	siteTwitter = NewTwitterSite(fields.TwitterId, fields.TwitterSecret)
+	siteTwitter = NewTwitterSite(fields.TwitterBearer)
 	for _, x := range siteTwitter.GetResolvableDomains() {
 		resolveMap[x] = siteTwitter
 	}
@@ -90,7 +91,11 @@ var saveData struct {
 		Login    string
 		Password string
 	}
-	Imgur    string
+	Imgur   string
+	Twitter struct {
+		Id     string
+		Secret string
+	}
 	Listings []SavedListing
 }
 
