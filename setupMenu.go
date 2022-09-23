@@ -12,6 +12,7 @@ import (
 
 const ARGUI_SPACING = CHOICEMENU_SPACE_BETWEEN_ITEM * 2
 
+// TODO: The size of this is never right. Find out why.
 func DrawArgumentsUI(name string, args []ListingArgument, out []interface{}, flags []bool) []interface{} {
 	if out[0] == nil {
 		for i, v := range args {
@@ -108,7 +109,7 @@ func DrawArgumentsUI(name string, args []ListingArgument, out []interface{}, fla
 			}
 		}
 		for i := range out {
-			if len(args[i].options) != 0 {
+			if len(args[i].options) != 0 && args[i].kind != LARGTYPE_LABEL {
 				out[i] = args[i].options[out[i].(int)]
 			}
 		}

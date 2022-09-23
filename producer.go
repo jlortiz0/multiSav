@@ -117,6 +117,8 @@ type Resolver interface {
 	GetRequest(string) (*http.Response, error)
 }
 
+// TODO: Make the resolver return the type, since if the resolver was called we don't know
+// Or just make prodBuf scan for format=...
 const RESOLVE_FINAL = "finalfinalfinal"
 
 type ImageEntryType int

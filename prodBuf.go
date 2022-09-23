@@ -51,8 +51,8 @@ func NewBufferedImageProducer(site ImageSite, kind int, args []interface{}, pers
 			buf.lazy = false
 			buf.items = []ImageEntry{
 				&TextImageEntry{
-					buf.listing.(ErrorListing).Error(),
-					"\\errError for you",
+					wordWrapper(buf.listing.(ErrorListing).Error()),
+					"\\/errError for you",
 				},
 			}
 			buf.listing = nil
@@ -380,7 +380,15 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 	case "bmp":
 		data := buf.buffer[BIP_BUFBEFORE]
 		if data == nil {
-			resp, err := buf.site.GetRequest(URL)
+			obj, _ := url.Parse(URL)
+			resolve := resolveMap[obj.Host]
+			var resp *http.Response
+			var err error
+			if resolve == nil {
+				resp, err = http.DefaultClient.Get(URL)
+			} else {
+				resp, err = resolve.GetRequest(URL)
+			}
 			if err != nil {
 				*img = drawMessage(err.Error())
 				return "\\/err" + buf.items[sel].GetName()

@@ -76,6 +76,7 @@ func (cm *ChoiceMenu) Prerender() LoopStatus {
 	return cm.status
 }
 
+// TODO: Keyboard controls
 func (cm *ChoiceMenu) HandleKey(keycode int32) LoopStatus {
 	if keycode == rl.KeyEscape {
 		return LOOP_BACK
