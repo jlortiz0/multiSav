@@ -94,7 +94,11 @@ func NewBufferedImageProducer(site ImageSite, kind int, args []interface{}, pers
 				}
 				URL := buf.items[sel+i-BIP_BUFBEFORE].GetURL()
 				if buf.items[sel+i-BIP_BUFBEFORE].GetType() == IETYPE_GALLERY {
-					URL = buf.items[sel+i-BIP_BUFBEFORE].GetGalleryInfo(false)[0].GetURL()
+					ret := buf.items[sel+i-BIP_BUFBEFORE].GetGalleryInfo(false)
+					if len(ret) == 0 {
+						continue
+					}
+					URL = ret[0].GetURL()
 				} else if buf.items[sel+i-BIP_BUFBEFORE].GetType() != IETYPE_REGULAR {
 					continue
 				}
@@ -330,7 +334,12 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 		}
 	}
 	if buf.items[sel].GetType() == IETYPE_GALLERY {
-		URL = buf.items[sel].GetGalleryInfo(false)[0].GetURL()
+		ret := buf.items[sel].GetGalleryInfo(false)
+		if len(ret) == 0 {
+			*img = drawMessage("This gallery is empty.")
+			return "\\/err" + buf.items[sel].GetName()
+		}
+		URL = ret[0].GetURL()
 	} else if buf.items[sel].GetType() == IETYPE_TEXT {
 		*img = drawMessage(buf.items[sel].GetText())
 		// We still need to recieve to ensure the buffer is updated, but no need to do it synchronously
@@ -393,12 +402,12 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 				resp, err = resolve.GetRequest(URL)
 			}
 			if err != nil {
-				*img = drawMessage(err.Error())
+				*img = drawMessage(wordWrapper(err.Error()))
 				return "\\/err" + buf.items[sel].GetName()
 			}
 			data, err = io.ReadAll(resp.Body)
 			if err != nil {
-				*img = drawMessage(err.Error())
+				*img = drawMessage(wordWrapper(err.Error()))
 				return "\\/err" + buf.items[sel].GetName()
 			}
 		}

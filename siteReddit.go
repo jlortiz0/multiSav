@@ -14,6 +14,7 @@ type RedditSite struct {
 	*redditapi.Reddit
 }
 
+// TODO: GetRequest fails on at least i.redd.it, possibily other associated sites
 func NewRedditSite(clientId, clientSecret, user, pass string) RedditSite {
 	red := redditapi.NewReddit("linux:org.jlortiz.rediSav:v0.3.2 (by /u/jlortiz)", clientId, clientSecret)
 	if user != "" {
@@ -366,7 +367,11 @@ func (red RedditSite) ResolveURL(URL string) (string, ImageEntry) {
 			return "", &RedditImageEntry{Submission: sub}
 		}
 	case "preview.redd.it":
-		fallthrough
+		s := u.Path
+		if s[0] == '/' {
+			s = s[1:]
+		}
+		return "https://i.redd.it/" + s, nil
 	case "i.redd.it":
 		return RESOLVE_FINAL, nil
 	}
@@ -396,6 +401,9 @@ func (red *RedditImageEntry) GetType() ImageEntryType {
 	return IETYPE_REGULAR
 }
 
+// TODO: Remove blocked posts from listings
+// But not deleted ones! Just blocked ones.
+// Or work around blocked posts having an empty Gallery_data
 func (red *RedditImageEntry) GetGalleryInfo(lazy bool) []ImageEntry {
 	if red.data != nil {
 		return red.data
@@ -516,6 +524,13 @@ func (red *RedditImageEntry) Combine(ie ImageEntry) {
 	if s != "" {
 		red.Title = s
 	}
+	s = ie.GetText()
+	if s != "" {
+		red.Selftext = s
+		if ie.GetType() == IETYPE_TEXT {
+			red.Is_self = true
+		}
+	}
 	red.data = ie.GetGalleryInfo(false)
 	if len(red.data) == 0 {
 		red.data = nil
@@ -525,6 +540,21 @@ func (red *RedditImageEntry) Combine(ie ImageEntry) {
 func (red *RedditImageEntry) GetSaveName() string {
 	if red.URL == "" {
 		return ""
+	}
+	if len(red.Gallery_data.Items) != 0 {
+		x := red.Media_metadata[red.Gallery_data.Items[0].Media_id].S
+		if x.U == "" {
+			x.U = x.Mp4
+		}
+		ind := strings.LastIndexByte(x.U, '/')
+		if ind != -1 {
+			x.U = "https://i.redd.it" + x.U[ind:]
+		}
+		ind = strings.IndexByte(x.U, '?')
+		if ind != -1 {
+			x.U = x.U[:ind]
+		}
+		return x.U
 	}
 	ind := strings.LastIndexByte(red.URL, '/')
 	if ind == -1 {
