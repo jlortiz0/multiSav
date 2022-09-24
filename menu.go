@@ -41,6 +41,7 @@ func NewChoiceMenu(items []string) *ChoiceMenu {
 	menu.target = GetCenteredCoiceMenuRect(len(items), float32(rl.GetScreenWidth()), float32(rl.GetScreenHeight()))
 	menu.height = float32(len(items) * (TEXT_SIZE + CHOICEMENU_SPACE_BETWEEN_ITEM))
 	menu.status = LOOP_CONT
+	menu.Selected = -1
 	return menu
 }
 
@@ -58,9 +59,15 @@ func (cm *ChoiceMenu) Renderer() {
 	calc := cm.scroll.Y + CHOICEMENU_SPACE_BETWEEN_ITEM/2
 	for i, x := range cm.itemList {
 		if !flag || (calc > -TEXT_SIZE-2 && calc < cm.target.Height) {
+			if i == cm.Selected {
+				rg.GuiSetState(rg.GUI_STATE_PRESSED)
+			}
 			if (rg.GuiButton(rl.Rectangle{X: cm.target.X + 5 + cm.scroll.X, Y: cm.target.Y + calc, Width: cm.target.Width - 10, Height: TEXT_SIZE + 2}, x) && cm.status == LOOP_CONT) {
 				cm.Selected = i
 				cm.status = LOOP_EXIT
+			}
+			if i == cm.Selected {
+				rg.GuiSetState(rg.GUI_STATE_NORMAL)
 			}
 		}
 		calc += CHOICEMENU_SPACE_BETWEEN_ITEM + TEXT_SIZE
@@ -76,10 +83,28 @@ func (cm *ChoiceMenu) Prerender() LoopStatus {
 	return cm.status
 }
 
-// TODO: Keyboard controls
+// TODO: Page up, page down, recalculate viewport
 func (cm *ChoiceMenu) HandleKey(keycode int32) LoopStatus {
-	if keycode == rl.KeyEscape {
+	switch keycode {
+	case rl.KeyEscape:
+		cm.Selected = -1
 		return LOOP_BACK
+	case rl.KeyDown:
+		cm.Selected++
+		if cm.Selected >= len(cm.itemList) {
+			cm.Selected = 0
+		}
+	case rl.KeyUp:
+		cm.Selected--
+		if cm.Selected < 0 {
+			cm.Selected = len(cm.itemList) - 1
+		}
+	case rl.KeyHome:
+		cm.Selected = 0
+	case rl.KeyEnd:
+		cm.Selected = len(cm.itemList) - 1
+	case rl.KeyEnter:
+		return LOOP_EXIT
 	}
 	return LOOP_CONT
 }
