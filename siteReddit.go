@@ -363,7 +363,7 @@ func (red RedditSite) ResolveURL(URL string) (string, ImageEntry) {
 			if err != nil {
 				return "", nil
 			}
-			return sub.URL, nil
+			return "", &RedditImageEntry{Submission: sub}
 		}
 	case "preview.redd.it":
 		fallthrough

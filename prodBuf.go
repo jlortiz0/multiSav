@@ -245,7 +245,7 @@ func (buf *BufferedImageProducer) remove(sel int) {
 }
 
 func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegReader) string {
-	if sel+BIP_BUFAFTER >= len(buf.items) && buf.extending != nil {
+	if sel+BIP_BUFAFTER >= len(buf.items) && buf.extending != nil && buf.lazy {
 		go buf.extending.Do(func() {
 			extend := buf.site.ExtendListing(buf.listing)
 			if len(extend) == 0 {
@@ -331,6 +331,11 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 	}
 	if buf.items[sel].GetType() == IETYPE_GALLERY {
 		URL = buf.items[sel].GetGalleryInfo(false)[0].GetURL()
+	} else if buf.items[sel].GetType() == IETYPE_TEXT {
+		*img = drawMessage(buf.items[sel].GetText())
+		// We still need to recieve to ensure the buffer is updated, but no need to do it synchronously
+		go func() { <-buf.selRecv }()
+		return buf.items[sel].GetName()
 	}
 	ind2 := strings.LastIndexByte(URL, '?')
 	if ind2 == -1 {
