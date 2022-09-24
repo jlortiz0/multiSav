@@ -21,7 +21,7 @@ const TEXT_SIZE = 18
 const FRAME_RATE = 60
 
 func loginHelper() RedditSite {
-	data := make([]byte, 512)
+	data := make([]byte, 1024)
 	f, err := os.Open("redditapi/login.json")
 	if err != nil {
 		panic(fmt.Errorf("failed to open login data file: %s", err.Error()))

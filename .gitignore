@@ -2,3 +2,4 @@ redditApi/login.json
 *.exe
 jlortiz_TEST
 .vscode/**
+pixivapi/out.json

@@ -18,7 +18,7 @@ func TestLogin(T *testing.T) {
 
 func loginHelper(T *testing.T) *redditapi.Reddit {
 	T.Helper()
-	data := make([]byte, 256)
+	data := make([]byte, 1024)
 	f, err := os.Open("login.json")
 	if err != nil {
 		T.Fatalf("Failed to open login data file: %s", err.Error())
