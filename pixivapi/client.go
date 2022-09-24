@@ -143,5 +143,7 @@ func (p *Client) GetIllust(id string) (*Illustration, error) {
 	if output.Error.Message != "" {
 		return nil, errors.New(output.Error.Message)
 	}
+	output.Illust.client = p
+	output.Illust.User.client = p
 	return &output.Illust, nil
 }
