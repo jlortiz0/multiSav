@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	cfbp "github.com/DaRealFreak/cloudflare-bp-go"
@@ -20,6 +21,7 @@ const auth_url = "https://oauth.secure.pixiv.net/auth/token"
 const base_url = "https://app-api.pixiv.net/v1/"
 const ios_version = "15.7"
 const user_agent = "PixivIOSApp/7.15.11 (iOS " + ios_version + "; iPhone13,2)"
+const debug_output = true
 
 type Client struct {
 	clientId     string
@@ -117,8 +119,17 @@ func (p *Client) buildGetRequest(url string) *http.Request {
 	return req
 }
 
-func (p *Client) GetIllust(id string) (*Illustration, error) {
-	req := p.buildGetRequest("illust/detail?illust_id=" + id)
+func (p *Client) buildPostRequest(url string, body io.Reader) *http.Request {
+	if p.accessToken == "" {
+		return nil
+	}
+	req, _ := http.NewRequest("POST", base_url+url, body)
+	req.Header.Add("Authorization", "Bearer "+p.accessToken)
+	return req
+}
+
+func (p *Client) GetIllust(id int) (*Illustration, error) {
+	req := p.buildGetRequest("illust/detail?illust_id=" + strconv.Itoa(id))
 	resp, err := p.client.Do(req)
 	if err != nil {
 		return nil, err
@@ -127,9 +138,11 @@ func (p *Client) GetIllust(id string) (*Illustration, error) {
 	if err != nil {
 		return nil, err
 	}
-	f, _ := os.OpenFile("out.json", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
-	f.Write(data)
-	f.Close()
+	if debug_output {
+		f, _ := os.OpenFile("out.json", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+		f.Write(data)
+		f.Close()
+	}
 	var output struct {
 		Illust Illustration
 		Error  struct {
@@ -147,3 +160,46 @@ func (p *Client) GetIllust(id string) (*Illustration, error) {
 	output.Illust.User.client = p
 	return &output.Illust, nil
 }
+
+func (p *Client) GetUser(id int) (*User, error) {
+	req := p.buildGetRequest("user/detail?filter=for_ios&user_id=" + strconv.Itoa(id))
+	resp, err := p.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	if debug_output {
+		f, _ := os.OpenFile("out.json", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+		f.Write(data)
+		f.Close()
+	}
+	var output struct {
+		User User
+		// Profile, Profile_publicity, Workspace
+		Error struct {
+			Message string
+		}
+	}
+	err = json.Unmarshal(data, &output)
+	if err != nil {
+		return nil, err
+	}
+	if output.Error.Message != "" {
+		return nil, errors.New(output.Error.Message)
+	}
+	output.User.client = p
+	return &output.User, nil
+}
+
+func (p *Client) RecommendedIllust() {}
+
+func (p *Client) RankedIllust() {}
+
+func (p *Client) TrendingTags() {}
+
+func (p *Client) SearchIllust() {}
+
+func (p *Client) SearchUser() {}

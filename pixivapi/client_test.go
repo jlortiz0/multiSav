@@ -49,7 +49,7 @@ func loginHelper(T *testing.T) *pixivapi.Client {
 
 func TestIllust(T *testing.T) {
 	p := loginHelper(T)
-	ret, err := p.GetIllust("101469224")
+	ret, err := p.GetIllust(101469224)
 	if err != nil {
 		T.Fatal(err)
 	}
