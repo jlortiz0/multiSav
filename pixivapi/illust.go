@@ -16,8 +16,8 @@ const (
 	ILTYPE_ILUST  IllustrationType = "illust"
 	ILTYPE_UGOIRA IllustrationType = "ugoira"
 	ILTYPE_MANGA  IllustrationType = "manga"
-	ILTYPE_NOVEL  IllustrationType = "novel"
-	ILTYPE_NONE   IllustrationType = ""
+	// ILTYPE_NOVEL  IllustrationType = "novel"
+	ILTYPE_NONE IllustrationType = ""
 )
 
 type Illustration struct {

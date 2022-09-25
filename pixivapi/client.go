@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	cfbp "github.com/DaRealFreak/cloudflare-bp-go"
@@ -22,6 +23,35 @@ const base_url = "https://app-api.pixiv.net/v1/"
 const ios_version = "15.7"
 const user_agent = "PixivIOSApp/7.15.11 (iOS " + ios_version + "; iPhone13,2)"
 const debug_output = true
+
+type RankingMode string
+
+const (
+	DAY           RankingMode = "day"
+	WEEK          RankingMode = "week"
+	MONTH         RankingMode = "month"
+	DAY_MALE      RankingMode = "day_male"
+	DAY_FEMALE    RankingMode = "day_female"
+	WEEK_ORIGINAL RankingMode = "week_original"
+	WEEK_ROOKIE   RankingMode = "week_rookie"
+	DAY_MANGA     RankingMode = "day_manga"
+)
+
+type SearchTarget string
+type SearchSort string
+type SearchDuration string
+
+const (
+	TAGS_PARTIAL      SearchTarget   = "partial_match_for_tags"
+	TAGS_EXACT        SearchTarget   = "exact_match_for_tags"
+	TITLE_AND_CAPTION SearchTarget   = "title_and_caption"
+	DATE_DESC         SearchSort     = "date_desc"
+	DATE_ASC          SearchSort     = "date_asc"
+	WITHIN_DAY        SearchDuration = "within_last_day"
+	WITHIN_WEEK       SearchDuration = "within_last_week"
+	WITHIN_MONTH      SearchDuration = "within_last_month"
+	WITHIN_NONE       SearchDuration = ""
+)
 
 type Client struct {
 	clientId     string
@@ -194,12 +224,50 @@ func (p *Client) GetUser(id int) (*User, error) {
 	return &output.User, nil
 }
 
-func (p *Client) RecommendedIllust() {}
+func (p *Client) RecommendedIllust(kind IllustrationType) (*IllustrationListing, error) {
+	return p.newIllustrationListing("illust/recommended?content_type=" + string(kind))
+}
 
-func (p *Client) RankedIllust() {}
+func (p *Client) RankedIllust(mode RankingMode, day time.Time) (*IllustrationListing, error) {
+	b := new(strings.Builder)
+	b.WriteString("illust/ranking?mode=")
+	b.WriteString(string(mode))
+	if !day.IsZero() {
+		b.WriteString("&date=")
+		b.WriteString(day.Format("2006-01-02"))
+	}
+	b.WriteString("&filter=for_ios")
+	return p.newIllustrationListing(b.String())
+}
 
-func (p *Client) TrendingTags() {}
+// func (p *Client) TrendingTags() {}
 
-func (p *Client) SearchIllust() {}
+func (p *Client) SearchIllust(term string, target SearchTarget, sorting SearchSort, duration SearchDuration) (*IllustrationListing, error) {
+	b := new(strings.Builder)
+	b.WriteString("search/illust?word=")
+	b.WriteString(term)
+	b.WriteString("&search_target=")
+	b.WriteString(string(target))
+	b.WriteString("&sort=")
+	b.WriteString(string(sorting))
+	b.WriteString("&filter=for_ios")
+	if duration != WITHIN_NONE {
+		b.WriteString("&duration=")
+		b.WriteString(string(duration))
+	}
+	return p.newIllustrationListing(b.String())
+}
 
-func (p *Client) SearchUser() {}
+func (p *Client) SearchUser(term string, sorting SearchSort, duration SearchDuration) (*UserListing, error) {
+	b := new(strings.Builder)
+	b.WriteString("search/user?word=")
+	b.WriteString(term)
+	b.WriteString("&sort=")
+	b.WriteString(string(sorting))
+	b.WriteString("&filter=for_ios")
+	if duration != WITHIN_NONE {
+		b.WriteString("&duration=")
+		b.WriteString(string(duration))
+	}
+	return p.newUserListing(b.String())
+}
