@@ -225,6 +225,7 @@ func (p *Client) GetUser(id int) (*User, error) {
 }
 
 func (p *Client) RecommendedIllust(kind IllustrationType) (*IllustrationListing, error) {
+	// TODO: Figure out how to make this call with NONE
 	return p.newIllustrationListing("illust/recommended?content_type=" + string(kind))
 }
 
@@ -259,6 +260,7 @@ func (p *Client) SearchIllust(term string, target SearchTarget, sorting SearchSo
 }
 
 func (p *Client) SearchUser(term string, sorting SearchSort, duration SearchDuration) (*UserListing, error) {
+	// How do sort and duration affect this? Most recent posting? Join date?
 	b := new(strings.Builder)
 	b.WriteString("search/user?word=")
 	b.WriteString(term)
@@ -271,3 +273,5 @@ func (p *Client) SearchUser(term string, sorting SearchSort, duration SearchDura
 	}
 	return p.newUserListing(b.String())
 }
+
+// TODO: func (p *Client) GetUserMe() (*User, error) {}

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"testing"
+	"time"
 
 	"jlortiz.org/redisav/pixivapi"
 )
@@ -54,4 +55,77 @@ func TestIllust(T *testing.T) {
 		T.Fatal(err)
 	}
 	T.Log(ret)
+}
+
+func TestUser(T *testing.T) {
+	p := loginHelper(T)
+	ret, err := p.GetUser(0)
+	if err != nil {
+		T.Fatal(err)
+	}
+	T.Log(ret)
+}
+
+func TestRecommended(T *testing.T) {
+	p := loginHelper(T)
+	ls, err := p.RecommendedIllust(pixivapi.ILTYPE_ILUST)
+	if err != nil {
+		T.Fatal(err)
+	}
+	T.Log(ls.Buffered())
+	for !ls.NextRequiresFetch() {
+		n, err := ls.Next()
+		if err != nil {
+			T.Log(err)
+		}
+		T.Log(n.ID, n.Title)
+	}
+}
+
+func TestRanked(T *testing.T) {
+	p := loginHelper(T)
+	ls, err := p.RankedIllust(pixivapi.DAY, time.Time{})
+	if err != nil {
+		T.Fatal(err)
+	}
+	T.Log(ls.Buffered())
+	for !ls.NextRequiresFetch() {
+		n, err := ls.Next()
+		if err != nil {
+			T.Log(err)
+		}
+		T.Log(n.ID, n.Title)
+	}
+}
+
+func TestSearchIllustrations(T *testing.T) {
+	p := loginHelper(T)
+	ls, err := p.SearchIllust("TERMS", pixivapi.TAGS_EXACT, pixivapi.DATE_DESC, pixivapi.WITHIN_NONE)
+	if err != nil {
+		T.Fatal(err)
+	}
+	T.Log(ls.Buffered())
+	for !ls.NextRequiresFetch() {
+		n, err := ls.Next()
+		if err != nil {
+			T.Log(err)
+		}
+		T.Log(n.ID, n.Title)
+	}
+}
+
+func TestSearchUser(T *testing.T) {
+	p := loginHelper(T)
+	ls, err := p.SearchUser("TERMS", pixivapi.DATE_DESC, pixivapi.WITHIN_NONE)
+	if err != nil {
+		T.Fatal(err)
+	}
+	T.Log(ls.Buffered())
+	for !ls.NextRequiresFetch() {
+		n, err := ls.Next()
+		if err != nil {
+			T.Log(err)
+		}
+		T.Log(n.ID, n.Name)
+	}
 }

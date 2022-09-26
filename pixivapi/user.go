@@ -43,13 +43,15 @@ func (p *Client) UserFromID(ID int) *User {
 	return &User{ID: ID, client: p}
 }
 
-func (u *User) Fetch() {
+func (u *User) Fetch() error {
 	if u.Name == "" {
 		data, err := u.client.GetUser(u.ID)
 		if err == nil {
 			*u = *data
 		}
+		return err
 	}
+	return nil
 }
 
 func (u *User) Illustrations(kind IllustrationType) (*IllustrationListing, error) {
@@ -150,7 +152,7 @@ func (u *User) Following(visi Visibility) (*UserListing, error) {
 	return u.client.newUserListing(b.String())
 }
 
-func (u *User) Followers(visi Visibility) (*UserListing, error) {
+func (u *User) Followers() (*UserListing, error) {
 	return u.client.newUserListing("user/following?filter=for_ios&user_id=" + strconv.Itoa(u.ID))
 }
 
@@ -175,7 +177,7 @@ func (u *User) Unfollow() error {
 	return err
 }
 
-// What does this retur?
+// What does this return?
 func (u *User) MyPixiv() (*UserListing, error) {
 	return u.client.newUserListing("user/mypixiv?user_id=" + strconv.Itoa(u.ID))
 }

@@ -74,13 +74,15 @@ func (p *Client) IllustFromID(ID int) *Illustration {
 	return &Illustration{ID: ID, client: p}
 }
 
-func (i *Illustration) Fetch() {
+func (i *Illustration) Fetch() error {
 	if i.Title == "" {
 		data, err := i.client.GetIllust(i.ID)
 		if err == nil {
 			*i = *data
 		}
+		return err
 	}
+	return nil
 }
 
 type Comments struct {
