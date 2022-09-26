@@ -63,6 +63,13 @@ func loginHelper() RedditSite {
 	for _, x := range siteTwitter.GetResolvableDomains() {
 		resolveMap[x] = siteTwitter
 	}
+	var b byte
+	for _, x := range BlockingResolver(b).GetResolvableDomains() {
+		resolveMap[x] = BlockingResolver(b)
+	}
+	for _, x := range StripQueryResolver(b).GetResolvableDomains() {
+		resolveMap[x] = StripQueryResolver(b)
+	}
 	return r
 }
 

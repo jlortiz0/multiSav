@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 
@@ -380,6 +381,17 @@ func (red RedditSite) ResolveURL(URL string) (string, ImageEntry) {
 
 func (RedditSite) GetResolvableDomains() []string {
 	return []string{"reddit.com", "preview.redd.it", "redd.it", "i.redd.it", "www.reddit.com"}
+}
+
+func (r RedditSite) GetRequest(u string) (*http.Response, error) {
+	URL, err := url.Parse(u)
+	if err != nil {
+		return nil, err
+	}
+	if URL.Host == "i.redd.it" {
+		return http.DefaultClient.Get(u)
+	}
+	return r.Reddit.GetRequest(u)
 }
 
 type RedditImageEntry struct {

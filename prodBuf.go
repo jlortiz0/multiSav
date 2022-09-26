@@ -23,6 +23,7 @@ type BufferedImageProducer struct {
 	selSender chan int
 	selRecv   chan bool
 	lazy      bool
+	// TODO: MUTEX THIS
 	buffer    [][]byte
 	extending *sync.Once
 }
@@ -404,6 +405,23 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 			if err != nil {
 				*img = drawMessage(wordWrapper(err.Error()))
 				return "\\/err" + buf.items[sel].GetName()
+			}
+			if resp.StatusCode/100 > 3 {
+				URL = URL[:ind2]
+				if resolve == nil {
+					resp, err = http.DefaultClient.Get(URL)
+				} else {
+					resp, err = resolve.GetRequest(URL)
+				}
+				if err != nil {
+					*img = drawMessage(wordWrapper(err.Error()))
+					return "\\/err" + buf.items[sel].GetName()
+				}
+				if resp.StatusCode/100 > 3 {
+					// Should I draw the body too?
+					*img = drawMessage(resp.Status)
+					return "\\/err" + buf.items[sel].GetName()
+				}
 			}
 			data, err = io.ReadAll(resp.Body)
 			if err != nil {
