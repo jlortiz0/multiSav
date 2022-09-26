@@ -17,6 +17,8 @@ import (
 	cfbp "github.com/DaRealFreak/cloudflare-bp-go"
 )
 
+// https://github.com/upbit/pixivpy used as reference for this package
+
 const login_secret = "28c1fdd170a5204386cb1313c7077b34f83e4aaf4aa829ce78c231e05b0bae2c"
 const auth_url = "https://oauth.secure.pixiv.net/auth/token"
 const base_url = "https://app-api.pixiv.net/v"
