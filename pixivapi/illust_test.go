@@ -8,13 +8,13 @@ import (
 
 func TestIllustFetch(T *testing.T) {
 	p := loginHelper(T)
-	ret := p.IllustFromID(0)
+	ret := p.IllustFromID(101471765)
 	err := ret.Fetch()
 	if err != nil {
 		T.Fatal(err)
 	}
 	T.Log(ret)
-	ret2, err := p.GetIllust(0)
+	ret2, err := p.GetIllust(101471765)
 	if err != nil {
 		T.Fatal(err)
 	}
@@ -26,8 +26,8 @@ func TestIllustFetch(T *testing.T) {
 
 func TestIllustBookmark(T *testing.T) {
 	p := loginHelper(T)
-	ret := p.IllustFromID(0)
-	err := ret.Bookmark(pixivapi.VISI_PRIVATE)
+	ret := p.IllustFromID(101471765)
+	err := ret.Bookmark(pixivapi.VISI_PUBLIC)
 	if err != nil {
 		T.Fatal(err)
 	}
@@ -37,6 +37,7 @@ func TestIllustBookmark(T *testing.T) {
 	if err != nil {
 		T.Fatal(err)
 	}
+	T.Log(ret)
 	if !ret.Is_bookmarked {
 		T.Fatal("image does not seem to be bookmarked")
 	}
@@ -48,7 +49,7 @@ func TestIllustBookmark(T *testing.T) {
 
 func TestUgoiraMeta(T *testing.T) {
 	p := loginHelper(T)
-	ret := p.IllustFromID(0)
+	ret := p.IllustFromID(87063503)
 	meta, err := ret.GetUgoiraMetadata()
 	if err != nil {
 		T.Fatal(err)
@@ -59,7 +60,7 @@ func TestUgoiraMeta(T *testing.T) {
 
 func TestIllustComments(T *testing.T) {
 	p := loginHelper(T)
-	ret := p.IllustFromID(0)
+	ret := p.IllustFromID(101490348)
 	com, err := ret.GetComments(0)
 	if err != nil {
 		T.Fatal(err)
@@ -75,7 +76,7 @@ func TestIllustComments(T *testing.T) {
 
 func TestIllustRelated(T *testing.T) {
 	p := loginHelper(T)
-	ret := p.IllustFromID(0)
+	ret := p.IllustFromID(101471765)
 	ls, err := ret.GetRelated()
 	if err != nil {
 		T.Fatal(err)

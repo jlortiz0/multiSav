@@ -15,7 +15,6 @@ type RedditSite struct {
 	*redditapi.Reddit
 }
 
-// TODO: GetRequest fails on at least i.redd.it, possibily other associated sites
 func NewRedditSite(clientId, clientSecret, user, pass string) RedditSite {
 	red := redditapi.NewReddit("linux:org.jlortiz.rediSav:v0.3.2 (by /u/jlortiz)", clientId, clientSecret)
 	if user != "" {

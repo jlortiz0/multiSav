@@ -56,7 +56,7 @@ func (u *User) Fetch() error {
 
 func (u *User) Illustrations(kind IllustrationType) (*IllustrationListing, error) {
 	b := new(strings.Builder)
-	b.WriteString("user/illusts?user_id=")
+	b.WriteString("1/user/illusts?user_id=")
 	b.WriteString(strconv.Itoa(u.ID))
 	if kind != ILTYPE_NONE {
 		b.WriteString("&type=")
@@ -68,7 +68,7 @@ func (u *User) Illustrations(kind IllustrationType) (*IllustrationListing, error
 
 func (u *User) Bookmarks(tag string, visibility Visibility) (*IllustrationListing, error) {
 	b := new(strings.Builder)
-	b.WriteString("user/bookmarks/illust?user_id=")
+	b.WriteString("1/user/bookmarks/illust?user_id=")
 	b.WriteString(strconv.Itoa(u.ID))
 	if tag != "" {
 		b.WriteString("&tag=")
@@ -90,7 +90,7 @@ type BookmarkTagsResponse struct {
 
 func (u *User) BookmarkTags(visi Visibility, offset int) (*BookmarkTagsResponse, error) {
 	b := new(strings.Builder)
-	b.WriteString("user/bookmark-tags/illust?user_id=")
+	b.WriteString("1/user/bookmark-tags/illust?user_id=")
 	b.WriteString(strconv.Itoa(u.ID))
 	b.WriteString("&restrict=")
 	b.WriteString(string(visi))
@@ -131,6 +131,9 @@ func (u *User) BookmarkTags(visi Visibility, offset int) (*BookmarkTagsResponse,
 		return nil, errors.New(output.Error.Message)
 	}
 	ind := strings.Index(output.Next_url, "offset=")
+	if ind == -1 {
+		return &BookmarkTagsResponse{Bookmark_tags: output.Bookmark_tags}, nil
+	}
 	s := output.Next_url[ind+7:]
 	ind = strings.IndexByte(s, '&')
 	if ind != -1 {
@@ -145,19 +148,20 @@ func (u *User) BookmarkTags(visi Visibility, offset int) (*BookmarkTagsResponse,
 
 func (u *User) Following(visi Visibility) (*UserListing, error) {
 	b := new(strings.Builder)
-	b.WriteString("user/following?user_id=")
+	b.WriteString("1/user/following?user_id=")
 	b.WriteString(strconv.Itoa(u.ID))
 	b.WriteString("&restrict=")
 	b.WriteString(string(visi))
 	return u.client.newUserListing(b.String())
 }
 
+// This probably returns empty unless the user is us
 func (u *User) Followers() (*UserListing, error) {
-	return u.client.newUserListing("user/following?filter=for_ios&user_id=" + strconv.Itoa(u.ID))
+	return u.client.newUserListing("1/user/follower?filter=for_ios&user_id=" + strconv.Itoa(u.ID))
 }
 
 func (u *User) Related() (*UserListing, error) {
-	return u.client.newUserListing("user/related?filter=for_ios&seed_user_id=" + strconv.Itoa(u.ID))
+	return u.client.newUserListing("1/user/related?filter=for_ios&seed_user_id=" + strconv.Itoa(u.ID))
 }
 
 func (u *User) Follow(visi Visibility) error {
@@ -166,18 +170,18 @@ func (u *User) Follow(visi Visibility) error {
 	b.WriteString(strconv.Itoa(u.ID))
 	b.WriteString("&restrict=")
 	b.WriteString(string(visi))
-	req := u.client.buildPostRequest("user/follow/add", strings.NewReader(b.String()))
+	req := u.client.buildPostRequest("1/user/follow/add", b.String())
 	_, err := u.client.client.Do(req)
 	return err
 }
 
 func (u *User) Unfollow() error {
-	req := u.client.buildPostRequest("user/follow/delete", strings.NewReader("user_id="+strconv.Itoa(u.ID)))
+	req := u.client.buildPostRequest("1/user/follow/delete", "user_id="+strconv.Itoa(u.ID))
 	_, err := u.client.client.Do(req)
 	return err
 }
 
-// What does this return?
+// TODO: What does this return?
 func (u *User) MyPixiv() (*UserListing, error) {
-	return u.client.newUserListing("user/mypixiv?user_id=" + strconv.Itoa(u.ID))
+	return u.client.newUserListing("1/user/mypixiv?user_id=" + strconv.Itoa(u.ID))
 }

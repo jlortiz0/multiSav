@@ -59,7 +59,7 @@ func TestIllust(T *testing.T) {
 
 func TestUser(T *testing.T) {
 	p := loginHelper(T)
-	ret, err := p.GetUser(0)
+	ret, err := p.GetUser(16944635)
 	if err != nil {
 		T.Fatal(err)
 	}
@@ -100,7 +100,7 @@ func TestRanked(T *testing.T) {
 
 func TestSearchIllustrations(T *testing.T) {
 	p := loginHelper(T)
-	ls, err := p.SearchIllust("TERMS", pixivapi.TAGS_EXACT, pixivapi.DATE_DESC, pixivapi.WITHIN_NONE)
+	ls, err := p.SearchIllust("ugoira", pixivapi.TAGS_EXACT, pixivapi.DATE_DESC, pixivapi.WITHIN_NONE)
 	if err != nil {
 		T.Fatal(err)
 	}
@@ -116,7 +116,7 @@ func TestSearchIllustrations(T *testing.T) {
 
 func TestSearchUser(T *testing.T) {
 	p := loginHelper(T)
-	ls, err := p.SearchUser("TERMS", pixivapi.DATE_DESC, pixivapi.WITHIN_NONE)
+	ls, err := p.SearchUser("South_AC", pixivapi.DATE_DESC, pixivapi.WITHIN_NONE)
 	if err != nil {
 		T.Fatal(err)
 	}

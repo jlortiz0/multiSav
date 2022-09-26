@@ -113,9 +113,9 @@ func (r *Reddit) Logout() error {
 		if err != nil {
 			return err
 		}
-		if resp.StatusCode != 204 {
+		if resp.StatusCode/100 != 2 {
 			data, _ := io.ReadAll(resp.Body)
-			return errors.New(string(data))
+			return errors.New(resp.Status + " " + string(data))
 		}
 		r.tokenExpiry = time.Time{}
 		r.refreshToken = ""

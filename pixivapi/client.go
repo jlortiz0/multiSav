@@ -19,10 +19,10 @@ import (
 
 const login_secret = "28c1fdd170a5204386cb1313c7077b34f83e4aaf4aa829ce78c231e05b0bae2c"
 const auth_url = "https://oauth.secure.pixiv.net/auth/token"
-const base_url = "https://app-api.pixiv.net/v1/"
+const base_url = "https://app-api.pixiv.net/v"
 const ios_version = "15.7"
 const user_agent = "PixivIOSApp/7.15.11 (iOS " + ios_version + "; iPhone13,2)"
-const debug_output = true
+const debug_output = false
 
 type RankingMode string
 
@@ -59,6 +59,7 @@ type Client struct {
 	accessToken  string
 	refreshToken string
 	client       *http.Client
+	myId         int
 }
 
 type authRequest struct {
@@ -108,7 +109,9 @@ func (p *Client) Login(token string) error {
 	}
 	var output struct {
 		Response struct {
-			User          User
+			User struct {
+				ID int
+			}
 			Access_token  string
 			Refresh_token string
 		}
@@ -128,7 +131,7 @@ func (p *Client) Login(token string) error {
 	}
 	p.accessToken = output.Response.Access_token
 	p.refreshToken = output.Response.Refresh_token
-	// TODO: Do something with user or comment it out
+	p.myId = output.Response.User.ID
 	return nil
 }
 
@@ -149,17 +152,19 @@ func (p *Client) buildGetRequest(url string) *http.Request {
 	return req
 }
 
-func (p *Client) buildPostRequest(url string, body io.Reader) *http.Request {
+func (p *Client) buildPostRequest(url string, body string) *http.Request {
 	if p.accessToken == "" {
 		return nil
 	}
-	req, _ := http.NewRequest("POST", base_url+url, body)
+	req, _ := http.NewRequest("POST", base_url+url, strings.NewReader(body))
 	req.Header.Add("Authorization", "Bearer "+p.accessToken)
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Add("Content-Length", strconv.Itoa(len(body)))
 	return req
 }
 
 func (p *Client) GetIllust(id int) (*Illustration, error) {
-	req := p.buildGetRequest("illust/detail?illust_id=" + strconv.Itoa(id))
+	req := p.buildGetRequest("1/illust/detail?illust_id=" + strconv.Itoa(id))
 	resp, err := p.client.Do(req)
 	if err != nil {
 		return nil, err
@@ -192,7 +197,7 @@ func (p *Client) GetIllust(id int) (*Illustration, error) {
 }
 
 func (p *Client) GetUser(id int) (*User, error) {
-	req := p.buildGetRequest("user/detail?filter=for_ios&user_id=" + strconv.Itoa(id))
+	req := p.buildGetRequest("1/user/detail?filter=for_ios&user_id=" + strconv.Itoa(id))
 	resp, err := p.client.Do(req)
 	if err != nil {
 		return nil, err
@@ -225,13 +230,12 @@ func (p *Client) GetUser(id int) (*User, error) {
 }
 
 func (p *Client) RecommendedIllust(kind IllustrationType) (*IllustrationListing, error) {
-	// TODO: Figure out how to make this call with NONE
-	return p.newIllustrationListing("illust/recommended?content_type=" + string(kind))
+	return p.newIllustrationListing("1/illust/recommended?content_type=" + string(kind))
 }
 
 func (p *Client) RankedIllust(mode RankingMode, day time.Time) (*IllustrationListing, error) {
 	b := new(strings.Builder)
-	b.WriteString("illust/ranking?mode=")
+	b.WriteString("1/illust/ranking?mode=")
 	b.WriteString(string(mode))
 	if !day.IsZero() {
 		b.WriteString("&date=")
@@ -245,7 +249,7 @@ func (p *Client) RankedIllust(mode RankingMode, day time.Time) (*IllustrationLis
 
 func (p *Client) SearchIllust(term string, target SearchTarget, sorting SearchSort, duration SearchDuration) (*IllustrationListing, error) {
 	b := new(strings.Builder)
-	b.WriteString("search/illust?word=")
+	b.WriteString("1/search/illust?word=")
 	b.WriteString(term)
 	b.WriteString("&search_target=")
 	b.WriteString(string(target))
@@ -262,7 +266,7 @@ func (p *Client) SearchIllust(term string, target SearchTarget, sorting SearchSo
 func (p *Client) SearchUser(term string, sorting SearchSort, duration SearchDuration) (*UserListing, error) {
 	// How do sort and duration affect this? Most recent posting? Join date?
 	b := new(strings.Builder)
-	b.WriteString("search/user?word=")
+	b.WriteString("1/search/user?word=")
 	b.WriteString(term)
 	b.WriteString("&sort=")
 	b.WriteString(string(sorting))
@@ -274,4 +278,6 @@ func (p *Client) SearchUser(term string, sorting SearchSort, duration SearchDura
 	return p.newUserListing(b.String())
 }
 
-// TODO: func (p *Client) GetUserMe() (*User, error) {}
+func (p *Client) GetMyId() int {
+	return p.myId
+}

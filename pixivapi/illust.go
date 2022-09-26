@@ -26,10 +26,10 @@ type Illustration struct {
 	Type       IllustrationType
 	Image_urls multisize
 	Caption    string
-	// What does this mean?
+	// TODO: What does this mean?
 	Restrict int
 	User     *User
-	// Traslated_name always seems to be defined but null
+	// TODO: Traslated_name always seems to be defined but null
 	Tags []struct {
 		Name, Translated_name string
 	}
@@ -37,11 +37,11 @@ type Illustration struct {
 	Page_count  int
 	Width       int
 	Height      int
-	// What do these mean?
+	// TODO: What do these mean?
 	Sanity_level int
 	X_restrict   int
 	Series       struct {
-		ID    string
+		ID    int
 		Title string
 	}
 	Meta_single_page struct {
@@ -93,7 +93,7 @@ type Comments struct {
 
 func (i *Illustration) GetComments(offset int) (*Comments, error) {
 	b := new(strings.Builder)
-	b.WriteString("illust/comments?illust_id=")
+	b.WriteString("1/illust/comments?illust_id=")
 	b.WriteString(strconv.Itoa(i.ID))
 	if offset != 0 {
 		b.WriteString("&offset=")
@@ -129,6 +129,10 @@ func (i *Illustration) GetComments(offset int) (*Comments, error) {
 		return nil, errors.New(output.Error.Message)
 	}
 	ind := strings.Index(output.Next_url, "offset=")
+	if ind == -1 {
+		output.Comments.Offset = -1
+		return &output.Comments, nil
+	}
 	s := output.Next_url[ind+7:]
 	ind = strings.IndexByte(s, '&')
 	if ind != -1 {
@@ -139,7 +143,7 @@ func (i *Illustration) GetComments(offset int) (*Comments, error) {
 }
 
 func (i *Illustration) GetRelated() (*IllustrationListing, error) {
-	return i.client.newIllustrationListing("illust/related?filter=for_ios&illust_id=" + strconv.Itoa(i.ID))
+	return i.client.newIllustrationListing("2/illust/related?filter=for_ios&illust_id=" + strconv.Itoa(i.ID))
 }
 
 func (i *Illustration) Bookmark(visi Visibility) error {
@@ -148,19 +152,36 @@ func (i *Illustration) Bookmark(visi Visibility) error {
 	b.WriteString(strconv.Itoa(i.ID))
 	b.WriteString("&restrict=")
 	b.WriteString(string(visi))
-	req := i.client.buildPostRequest("illust/bookmark/add", strings.NewReader(b.String()))
-	_, err := i.client.client.Do(req)
+	req := i.client.buildPostRequest("2/illust/bookmark/add", b.String())
+	resp, err := i.client.client.Do(req)
+	if debug_output {
+		f, _ := os.OpenFile("out.json", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+		f.WriteString(b.String())
+		f.Write([]byte{'\n'})
+		f.WriteString(resp.Request.URL.Path)
+		f.Write([]byte{'\n'})
+		io.Copy(f, resp.Body)
+		f.Close()
+	}
 	return err
 }
 
 func (i *Illustration) Unbookmark() error {
-	req := i.client.buildPostRequest("illust/bookmark/delete", strings.NewReader("illust_id="+strconv.Itoa(i.ID)))
-	_, err := i.client.client.Do(req)
+	req := i.client.buildPostRequest("1/illust/bookmark/delete", "illust_id="+strconv.Itoa(i.ID))
+	resp, err := i.client.client.Do(req)
+	if debug_output {
+		f, _ := os.OpenFile("out.json", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+		f.WriteString("illust_id=")
+		f.WriteString(strconv.Itoa(i.ID))
+		f.Write([]byte{'\n'})
+		io.Copy(f, resp.Body)
+		f.Close()
+	}
 	return err
 }
 
 func (i *Illustration) GetUgoiraMetadata() (*UgoiraMetadata, error) {
-	req := i.client.buildGetRequest("ugoira/metadata?illust_id=" + strconv.Itoa(i.ID))
+	req := i.client.buildGetRequest("1/ugoira/metadata?illust_id=" + strconv.Itoa(i.ID))
 	resp, err := i.client.client.Do(req)
 	if err != nil {
 		return nil, err

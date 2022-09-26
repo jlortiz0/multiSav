@@ -8,7 +8,7 @@ import (
 
 func TestUserFetch(T *testing.T) {
 	p := loginHelper(T)
-	ret := p.UserFromID(0)
+	ret := p.UserFromID(16944635)
 	err := ret.Fetch()
 	if err != nil {
 		T.Fatal(err)
@@ -18,7 +18,7 @@ func TestUserFetch(T *testing.T) {
 
 func TestUserBookmarkTags(T *testing.T) {
 	p := loginHelper(T)
-	ret := p.UserFromID(0)
+	ret := p.UserFromID(16944635)
 	tags, err := ret.BookmarkTags(pixivapi.VISI_PUBLIC, 0)
 	if err != nil {
 		T.Fatal(err)
@@ -31,8 +31,8 @@ func TestUserBookmarkTags(T *testing.T) {
 
 func TestUserFollow(T *testing.T) {
 	p := loginHelper(T)
-	ret := p.UserFromID(0)
-	err := ret.Follow(pixivapi.VISI_PRIVATE)
+	ret := p.UserFromID(16944635)
+	err := ret.Follow(pixivapi.VISI_PUBLIC)
 	if err != nil {
 		T.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func TestUserFollow(T *testing.T) {
 
 func TestUserFollowing(T *testing.T) {
 	p := loginHelper(T)
-	ret := p.UserFromID(0)
+	ret := p.UserFromID(16944635)
 	ls, err := ret.Following(pixivapi.VISI_PUBLIC)
 	if err != nil {
 		T.Fatal(err)
@@ -68,7 +68,7 @@ func TestUserFollowing(T *testing.T) {
 
 func TestUserFollowers(T *testing.T) {
 	p := loginHelper(T)
-	ret := p.UserFromID(0)
+	ret := p.UserFromID(16944635)
 	ls, err := ret.Followers()
 	if err != nil {
 		T.Fatal(err)
@@ -85,7 +85,7 @@ func TestUserFollowers(T *testing.T) {
 
 func TestUserRelated(T *testing.T) {
 	p := loginHelper(T)
-	ret := p.UserFromID(0)
+	ret := p.UserFromID(16944635)
 	ls, err := ret.Related()
 	if err != nil {
 		T.Fatal(err)
@@ -102,7 +102,7 @@ func TestUserRelated(T *testing.T) {
 
 func TestUserIllustrations(T *testing.T) {
 	p := loginHelper(T)
-	ret := p.UserFromID(0)
+	ret := p.UserFromID(16944635)
 	ls, err := ret.Illustrations(pixivapi.ILTYPE_NONE)
 	if err != nil {
 		T.Fatal(err)
@@ -119,7 +119,7 @@ func TestUserIllustrations(T *testing.T) {
 
 func TestUserBookmarks(T *testing.T) {
 	p := loginHelper(T)
-	ret := p.UserFromID(0)
+	ret := p.UserFromID(16944635)
 	ls, err := ret.Bookmarks("", pixivapi.VISI_PUBLIC)
 	if err != nil {
 		T.Fatal(err)
