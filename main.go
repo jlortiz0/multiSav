@@ -16,6 +16,7 @@ import (
 var resolveMap map[string]Resolver
 var siteReddit RedditSite
 var siteTwitter TwitterSite
+var sitePixiv PixivSite
 
 const TEXT_SIZE = 18
 const FRAME_RATE = 60
@@ -40,6 +41,7 @@ func loginHelper() RedditSite {
 		TwitterId     string
 		TwitterSecret string
 		TwitterBearer string
+		PixivToken    string
 	}
 	err = json.Unmarshal(data[:n], &fields)
 	if err != nil {
@@ -62,6 +64,13 @@ func loginHelper() RedditSite {
 	siteTwitter = NewTwitterSite(fields.TwitterBearer)
 	for _, x := range siteTwitter.GetResolvableDomains() {
 		resolveMap[x] = siteTwitter
+	}
+	sitePixiv, err = NewPixivSite(fields.PixivToken)
+	if err != nil {
+		panic(err)
+	}
+	for _, x := range sitePixiv.GetResolvableDomains() {
+		resolveMap[x] = sitePixiv
 	}
 	var b byte
 	for _, x := range BlockingResolver(b).GetResolvableDomains() {
@@ -199,6 +208,8 @@ MainLoop:
 				producer = NewRedditProducer(siteReddit, data.Kind, data.Args, data.Persistent)
 			case SITE_TWITTER:
 				producer = NewBufferedImageProducer(siteTwitter, data.Kind, data.Args, data.Persistent)
+			case SITE_PIXIV:
+				producer = NewBufferedImageProducer(sitePixiv, data.Kind, data.Args, data.Persistent)
 			}
 			menu := NewImageMenu(producer)
 			if stdEventLoop(menu) == LOOP_QUIT {

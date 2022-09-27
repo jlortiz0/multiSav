@@ -99,6 +99,13 @@ func (t TwitterSite) GetListing(kind int, args []interface{}, persist interface{
 	if persist != nil {
 		thing.persist = persist.(string)
 	}
+	if kind == 2 {
+		// Search user
+		nArgs := args[1:]
+		nArgs[0] = args[1].(string) + " from:" + args[0].(string)
+		args = nArgs
+		kind = 1
+	}
 	thing.kind = kind
 	thing.args = args
 	return thing, t.ExtendListing(thing)
