@@ -46,7 +46,7 @@ func (t TwitterSite) GetListingInfo() []ListingInfo {
 			"Search: user, 7 days", []ListingArgument{{name: "User"}, {name: "Query"}, {name: "Sort", options: []interface{}{twitter.TweetSearchSortOrderRecency, twitter.TweetSearchSortOrderRelevancy}}},
 		},
 		{
-			"List", []ListingArgument{{name: "ID or URL"}},
+			"List", []ListingArgument{{name: "ID or URL"}, {name: "Include retweets and replies", kind: LARGTYPE_BOOL}},
 		},
 		{
 			"Home", []ListingArgument{{name: "Include retweets", kind: LARGTYPE_BOOL}},
@@ -93,182 +93,15 @@ func (t TwitterSite) getMyId() (string, error) {
 	return temp.Data.ID, err
 }
 
-// TODO: These functions are near identical, see if I can combine them
-// TODO: Consider filtering out QRTs if Include Retweets is not enabled
 func (t TwitterSite) GetListing(kind int, args []interface{}, persist interface{}) (ImageListing, []ImageEntry) {
-	var tweets *twitter.TweetRaw
-	var err error
-	var stopAt string
-	var token string
-	if persist != nil {
-		stopAt = persist.(string)
-	}
-	switch kind {
-	case 0:
-		// User timeline
-		var user *twitter.UserLookupResponse
-		user, err = t.UserNameLookup(context.Background(), []string{args[0].(string)}, twitter.UserLookupOpts{})
-		if err != nil {
-			break
-		}
-		if len(user.Raw.Errors) != 0 {
-			err = errors.New(user.Raw.Errors[0].Title)
-			break
-		}
-		if len(user.Raw.Users) == 0 {
-			err = errors.New("No such user " + args[0].(string))
-			break
-		}
-		excludes := make([]twitter.Exclude, 1, 2)
-		excludes[0] = twitter.ExcludeReplies
-		if !args[1].(bool) {
-			excludes = append(excludes, twitter.ExcludeRetweets)
-		}
-		var resp *twitter.UserTweetTimelineResponse
-		resp, err = t.UserTweetTimeline(context.Background(), user.Raw.Users[0].ID, twitter.UserTweetTimelineOpts{
-			Expansions:  []twitter.Expansion{twitter.ExpansionAttachmentsMediaKeys, twitter.ExpansionAuthorID},
-			MediaFields: []twitter.MediaField{twitter.MediaFieldHeight, twitter.MediaFieldMediaKey, twitter.MediaFieldURL, twitter.MediaFieldWidth, twitter.MediaFieldType},
-			TweetFields: []twitter.TweetField{twitter.TweetFieldAuthorID, twitter.TweetFieldAttachments, twitter.TweetFieldEntities, twitter.TweetFieldID, twitter.TweetFieldText},
-			MaxResults:  100,
-			Excludes:    excludes,
-			SinceID:     stopAt,
-		})
-		if resp == nil {
-			break
-		}
-		tweets = resp.Raw
-		token = resp.Meta.NextToken
-	case 1:
-		// Search
-		var search *twitter.TweetSearchResponse
-		search, err = t.TweetSearch(context.Background(), args[0].(string), twitter.TweetSearchOpts{
-			Expansions:  []twitter.Expansion{twitter.ExpansionAttachmentsMediaKeys, twitter.ExpansionAuthorID},
-			MediaFields: []twitter.MediaField{twitter.MediaFieldHeight, twitter.MediaFieldMediaKey, twitter.MediaFieldURL, twitter.MediaFieldWidth, twitter.MediaFieldType},
-			TweetFields: []twitter.TweetField{twitter.TweetFieldAuthorID, twitter.TweetFieldAttachments, twitter.TweetFieldEntities, twitter.TweetFieldID, twitter.TweetFieldText},
-			MaxResults:  100,
-			SinceID:     stopAt,
-			SortOrder:   args[1].(twitter.TweetSearchSortOrder),
-		})
-		if err != nil {
-			break
-		}
-		if len(search.Raw.Errors) != 0 {
-			err = errors.New(search.Raw.Errors[0].Title)
-			break
-		}
-		tweets = search.Raw
-		token = search.Meta.NextToken
-	case 2:
-		// Search user
-		nArgs := args[1:]
-		nArgs[0] = args[1].(string) + " from:" + args[0].(string)
-		return t.GetListing(1, nArgs, persist)
-	case 3:
-		// List
-		s := args[0].(string)
-		ind := strings.LastIndexByte(s, '/')
-		if ind != -1 {
-			s = s[ind+1:]
-			args[0] = s
-		}
-		var resp *twitter.ListTweetLookupResponse
-		// TODO: See if there's a way to exclude retweets
-		resp, err = t.ListTweetLookup(context.Background(), s, twitter.ListTweetLookupOpts{
-			Expansions: []twitter.Expansion{twitter.ExpansionAttachmentsMediaKeys, twitter.ExpansionAuthorID},
-			// TODO: ?!? this is part of the request? Maybe submit a PR to the package to fix this.
-			// MediaFields: []twitter.MediaField{twitter.MediaFieldHeight, twitter.MediaFieldMediaKey, twitter.MediaFieldURL, twitter.MediaFieldWidth, twitter.MediaFieldType},
-			TweetFields: []twitter.TweetField{twitter.TweetFieldAuthorID, twitter.TweetFieldAttachments, twitter.TweetFieldEntities, twitter.TweetFieldID, twitter.TweetFieldText},
-			MaxResults:  100,
-			// TODO: Reimplement this manually
-			// SinceID:     stopAt,
-		})
-		if err != nil {
-			break
-		}
-		if len(resp.Raw.Errors) != 0 {
-			err = errors.New(resp.Raw.Errors[0].Title)
-			break
-		}
-		tweets = resp.Raw
-		token = resp.Meta.NextToken
-	case 4:
-		// Home
-		var id string
-		id, err = t.getMyId()
-		if err != nil {
-			break
-		}
-		excludes := make([]twitter.Exclude, 1, 2)
-		excludes[0] = twitter.ExcludeReplies
-		if !args[0].(bool) {
-			excludes = append(excludes, twitter.ExcludeRetweets)
-		}
-		var resp *twitter.UserTweetReverseChronologicalTimelineResponse
-		resp, err = t.UserTweetReverseChronologicalTimeline(context.Background(), id, twitter.UserTweetReverseChronologicalTimelineOpts{
-			Expansions:  []twitter.Expansion{twitter.ExpansionAttachmentsMediaKeys, twitter.ExpansionAuthorID},
-			MediaFields: []twitter.MediaField{twitter.MediaFieldHeight, twitter.MediaFieldMediaKey, twitter.MediaFieldURL, twitter.MediaFieldWidth, twitter.MediaFieldType},
-			TweetFields: []twitter.TweetField{twitter.TweetFieldAuthorID, twitter.TweetFieldAttachments, twitter.TweetFieldEntities, twitter.TweetFieldID, twitter.TweetFieldText},
-			MaxResults:  100,
-			Excludes:    excludes,
-			SinceID:     stopAt,
-		})
-		if err != nil {
-			break
-		}
-		if len(resp.Raw.Errors) != 0 {
-			err = errors.New(resp.Raw.Errors[0].Title)
-			break
-		}
-		tweets = resp.Raw
-		token = resp.Meta.NextToken
-	case 5:
-		// Bookmarks
-		var id string
-		id, err = t.getMyId()
-		if err != nil {
-			break
-		}
-		var resp *twitter.TweetBookmarksLookupResponse
-		resp, err = t.TweetBookmarksLookup(context.Background(), id, twitter.TweetBookmarksLookupOpts{
-			Expansions:  []twitter.Expansion{twitter.ExpansionAttachmentsMediaKeys, twitter.ExpansionAuthorID},
-			MediaFields: []twitter.MediaField{twitter.MediaFieldHeight, twitter.MediaFieldMediaKey, twitter.MediaFieldURL, twitter.MediaFieldWidth, twitter.MediaFieldType},
-			TweetFields: []twitter.TweetField{twitter.TweetFieldAuthorID, twitter.TweetFieldAttachments, twitter.TweetFieldEntities, twitter.TweetFieldID, twitter.TweetFieldText},
-			MaxResults:  100,
-			// TODO: Reimplement this manually
-			// SinceID:     stopAt,
-		})
-		tweets = resp.Raw
-		token = resp.Meta.NextToken
-	default:
-		err = errors.New("unknown type")
-	}
-	if err != nil {
-		return ErrorListing{err}, nil
-	}
 	thing := new(TwitterImageListing)
 	thing.site = t
-	thing.persist = stopAt
+	if persist != nil {
+		thing.persist = persist.(string)
+	}
 	thing.kind = kind
 	thing.args = args
-	thing.token = token
-	nTweets := make([]ImageEntry, len(tweets.Tweets))
-	mediaMap := tweets.Includes.MediaByKeys()
-	userMap := tweets.Includes.UsersByID()
-	for i, x := range tweets.Tweets {
-		var media []*twitter.MediaObj
-		if x.Attachments != nil && len(x.Attachments.MediaKeys) != 0 {
-			media = make([]*twitter.MediaObj, len(x.Attachments.MediaKeys))
-			for i2, v := range x.Attachments.MediaKeys {
-				media[i2] = mediaMap[v]
-			}
-		}
-		var urls []twitter.EntityURLObj
-		if x.Entities != nil {
-			urls = x.Entities.URLs
-		}
-		nTweets[i] = &TwitterImageEntry{x.ID, x.Text, media, urls, userMap[x.AuthorID].Name}
-	}
-	return thing, nTweets
+	return thing, t.ExtendListing(thing)
 }
 
 func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
@@ -317,6 +150,13 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 		}
 		tweets = resp.Raw
 		token = resp.Meta.NextToken
+		if !args[1].(bool) {
+			for i, x := range tweets.Tweets {
+				if len(x.ReferencedTweets) != 0 {
+					tweets.Tweets[i] = nil
+				}
+			}
+		}
 	case 1:
 		// Search
 		var search *twitter.TweetSearchResponse
@@ -342,15 +182,12 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 		// List
 		s := args[0].(string)
 		var resp *twitter.ListTweetLookupResponse
-		// TODO: See if there's a way to exclude retweets
 		resp, err = t.ListTweetLookup(context.Background(), s, twitter.ListTweetLookupOpts{
 			Expansions: []twitter.Expansion{twitter.ExpansionAttachmentsMediaKeys, twitter.ExpansionAuthorID},
 			// TODO: ?!? this is part of the request? Maybe submit a PR to the package to fix this.
 			// MediaFields: []twitter.MediaField{twitter.MediaFieldHeight, twitter.MediaFieldMediaKey, twitter.MediaFieldURL, twitter.MediaFieldWidth, twitter.MediaFieldType},
-			TweetFields: []twitter.TweetField{twitter.TweetFieldAuthorID, twitter.TweetFieldAttachments, twitter.TweetFieldEntities, twitter.TweetFieldID, twitter.TweetFieldText},
-			MaxResults:  100,
-			// TODO: Reimplement this manually
-			// SinceID:     stopAt,
+			TweetFields:     []twitter.TweetField{twitter.TweetFieldAuthorID, twitter.TweetFieldAttachments, twitter.TweetFieldEntities, twitter.TweetFieldID, twitter.TweetFieldText},
+			MaxResults:      100,
 			PaginationToken: token,
 		})
 		if err != nil {
@@ -361,6 +198,15 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 			break
 		}
 		tweets = resp.Raw
+		for i, x := range tweets.Tweets {
+			if x.ID == stopAt {
+				tweets.Tweets = tweets.Tweets[:i]
+				break
+			}
+			if !args[1].(bool) && len(x.ReferencedTweets) != 0 {
+				tweets.Tweets[i] = nil
+			}
+		}
 		token = resp.Meta.NextToken
 	case 4:
 		// Home
@@ -402,15 +248,21 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 		}
 		var resp *twitter.TweetBookmarksLookupResponse
 		resp, err = t.TweetBookmarksLookup(context.Background(), id, twitter.TweetBookmarksLookupOpts{
-			Expansions:  []twitter.Expansion{twitter.ExpansionAttachmentsMediaKeys, twitter.ExpansionAuthorID},
-			MediaFields: []twitter.MediaField{twitter.MediaFieldHeight, twitter.MediaFieldMediaKey, twitter.MediaFieldURL, twitter.MediaFieldWidth, twitter.MediaFieldType},
-			TweetFields: []twitter.TweetField{twitter.TweetFieldAuthorID, twitter.TweetFieldAttachments, twitter.TweetFieldEntities, twitter.TweetFieldID, twitter.TweetFieldText},
-			MaxResults:  100,
-			// TODO: Reimplement this manually
-			// SinceID:     stopAt,
+			Expansions:      []twitter.Expansion{twitter.ExpansionAttachmentsMediaKeys, twitter.ExpansionAuthorID},
+			MediaFields:     []twitter.MediaField{twitter.MediaFieldHeight, twitter.MediaFieldMediaKey, twitter.MediaFieldURL, twitter.MediaFieldWidth, twitter.MediaFieldType},
+			TweetFields:     []twitter.TweetField{twitter.TweetFieldAuthorID, twitter.TweetFieldAttachments, twitter.TweetFieldEntities, twitter.TweetFieldID, twitter.TweetFieldText},
+			MaxResults:      100,
 			PaginationToken: token,
 		})
 		tweets = resp.Raw
+		if stopAt != "" {
+			for i, x := range tweets.Tweets {
+				if x.ID == stopAt {
+					tweets.Tweets = tweets.Tweets[:i]
+					break
+				}
+			}
+		}
 		token = resp.Meta.NextToken
 	default:
 		err = errors.New("unknown type")
@@ -419,9 +271,12 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 		return nil
 	}
 	thing.token = token
-	nTweets := make([]ImageEntry, len(tweets.Tweets))
+	nTweets := make([]ImageEntry, 0, len(tweets.Tweets))
 	mediaMap := tweets.Includes.MediaByKeys()
 	for i, x := range tweets.Tweets {
+		if x == nil {
+			continue
+		}
 		var media []*twitter.MediaObj
 		if len(x.Attachments.MediaKeys) != 0 {
 			media = make([]*twitter.MediaObj, len(x.Attachments.MediaKeys))
@@ -433,7 +288,7 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 		if x.Entities != nil {
 			urls = x.Entities.URLs
 		}
-		nTweets[i] = &TwitterImageEntry{x.ID, x.Text, media, urls, tweets.Includes.Users[i].Name}
+		nTweets = append(nTweets, &TwitterImageEntry{x.ID, x.Text, media, urls, tweets.Includes.Users[i].Name})
 	}
 	return nTweets
 }
