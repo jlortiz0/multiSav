@@ -26,8 +26,6 @@ func loginHelper(T *testing.T) *pixivapi.Client {
 	}
 	f.Close()
 	var fields struct {
-		PixivId     string
-		PixivSecret string
 		PixivToken  string
 		PixivAccess string
 	}
@@ -35,7 +33,7 @@ func loginHelper(T *testing.T) *pixivapi.Client {
 	if err != nil {
 		T.Fatalf("Failed to decode login data: %s", err.Error())
 	}
-	red := pixivapi.NewClient(fields.PixivId, fields.PixivSecret)
+	red := pixivapi.NewClient()
 	if fields.PixivAccess != "" {
 		red.SetToken(fields.PixivAccess, fields.PixivToken)
 	} else {

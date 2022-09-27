@@ -180,8 +180,3 @@ func (u *User) Unfollow() error {
 	_, err := u.client.client.Do(req)
 	return err
 }
-
-// TODO: What does this return?
-func (u *User) MyPixiv() (*UserListing, error) {
-	return u.client.newUserListing("1/user/mypixiv?user_id=" + strconv.Itoa(u.ID))
-}
