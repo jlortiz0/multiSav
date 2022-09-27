@@ -39,7 +39,7 @@ const (
 	DAY_FEMALE    RankingMode = "day_female"
 	WEEK_ORIGINAL RankingMode = "week_original"
 	WEEK_ROOKIE   RankingMode = "week_rookie"
-	DAY_MANGA     RankingMode = "day_manga"
+	// DAY_MANGA     RankingMode = "day_manga"
 )
 
 type SearchTarget string
@@ -140,23 +140,28 @@ func (p *Client) RefreshToken() string {
 	return p.refreshToken
 }
 
-func (p *Client) buildGetRequest(url string) *http.Request {
+func (p *Client) doGetRequest(url string) (*http.Response, error) {
+	return p.GetRequest(base_url + url)
+}
+
+func (p *Client) GetRequest(url string) (*http.Response, error) {
 	if p.accessToken == "" {
-		return nil
+		return nil, nil
 	}
 	if time.Now().After(p.expiry) {
 		err := p.RefreshAuth()
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 	}
-	req, _ := http.NewRequest("GET", base_url+url, http.NoBody)
+	req, _ := http.NewRequest("GET", url, http.NoBody)
 	req.Header.Add("Authorization", "Bearer "+p.accessToken)
 	req.Header.Add("User-Agent", user_agent)
 	req.Header.Add("app-os", "ios")
 	req.Header.Add("app-os-version", ios_version)
 	req.Header.Add("Accept-Language", "en-US,en;q=0.5")
-	return req
+	req.Header.Add("Referer", "https://app-api.pixiv.net/")
+	return p.client.Do(req)
 }
 
 func (p *Client) buildPostRequest(url string, body string) *http.Request {
@@ -181,8 +186,7 @@ func (p *Client) buildPostRequest(url string, body string) *http.Request {
 }
 
 func (p *Client) GetIllust(id int) (*Illustration, error) {
-	req := p.buildGetRequest("1/illust/detail?illust_id=" + strconv.Itoa(id))
-	resp, err := p.client.Do(req)
+	resp, err := p.doGetRequest("1/illust/detail?illust_id=" + strconv.Itoa(id))
 	if err != nil {
 		return nil, err
 	}
@@ -214,8 +218,7 @@ func (p *Client) GetIllust(id int) (*Illustration, error) {
 }
 
 func (p *Client) GetUser(id int) (*User, error) {
-	req := p.buildGetRequest("1/user/detail?filter=for_ios&user_id=" + strconv.Itoa(id))
-	resp, err := p.client.Do(req)
+	resp, err := p.doGetRequest("1/user/detail?filter=for_ios&user_id=" + strconv.Itoa(id))
 	if err != nil {
 		return nil, err
 	}

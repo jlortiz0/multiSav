@@ -26,23 +26,18 @@ func loginHelper(T *testing.T) *pixivapi.Client {
 	}
 	f.Close()
 	var fields struct {
-		PixivToken  string
-		PixivAccess string
+		PixivToken string
 	}
 	err = json.Unmarshal(data[:n], &fields)
 	if err != nil {
 		T.Fatalf("Failed to decode login data: %s", err.Error())
 	}
 	red := pixivapi.NewClient()
-	if fields.PixivAccess != "" {
-		red.SetToken(fields.PixivAccess, fields.PixivToken)
-	} else {
-		err = red.Login(fields.PixivToken)
-		if err != nil {
-			T.Fatalf("Failed to log in: %s", err.Error())
-		}
-		T.Log("New refresh token: " + red.RefreshToken())
+	err = red.Login(fields.PixivToken)
+	if err != nil {
+		T.Fatalf("Failed to log in: %s", err.Error())
 	}
+	T.Log("New refresh token: " + red.RefreshToken())
 	return red
 }
 

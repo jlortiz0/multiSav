@@ -18,6 +18,7 @@ type multisize struct {
 	Square_medium string
 	Medium        string
 	Large         string
+	Original      string
 }
 
 type User struct {
@@ -28,15 +29,6 @@ type User struct {
 	Is_followed        bool
 	Comment            string
 	client             *Client
-}
-
-type Account struct {
-	User
-	Mail_address string
-	Is_premium   bool
-	// TODO: What do these mean?
-	X_restrict         int
-	Is_mail_authorized bool
 }
 
 func (p *Client) UserFromID(ID int) *User {
@@ -99,8 +91,7 @@ func (u *User) BookmarkTags(visi Visibility, offset int) (*BookmarkTagsResponse,
 		b.WriteString(strconv.Itoa(offset))
 	}
 	b.WriteString("&filter=for_ios")
-	req := u.client.buildGetRequest(b.String())
-	resp, err := u.client.client.Do(req)
+	resp, err := u.client.doGetRequest(b.String())
 	if err != nil {
 		return nil, err
 	}

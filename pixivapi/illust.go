@@ -29,8 +29,7 @@ type Illustration struct {
 	// TODO: What does this mean?
 	Restrict int
 	User     *User
-	// TODO: Traslated_name always seems to be defined but null
-	Tags []struct {
+	Tags     []struct {
 		Name, Translated_name string
 	}
 	Create_date time.Time
@@ -46,6 +45,9 @@ type Illustration struct {
 	}
 	Meta_single_page struct {
 		Original_image_url string
+	}
+	Meta_pages []struct {
+		Image_urls multisize
 	}
 	Total_view      int
 	Total_bookmarks int
@@ -100,8 +102,7 @@ func (i *Illustration) GetComments(offset int) (*Comments, error) {
 		b.WriteString(strconv.Itoa(offset))
 	}
 	b.WriteString("&include_total_comments=true")
-	req := i.client.buildGetRequest(b.String())
-	resp, err := i.client.client.Do(req)
+	resp, err := i.client.doGetRequest(b.String())
 	if err != nil {
 		return nil, err
 	}
@@ -181,8 +182,7 @@ func (i *Illustration) Unbookmark() error {
 }
 
 func (i *Illustration) GetUgoiraMetadata() (*UgoiraMetadata, error) {
-	req := i.client.buildGetRequest("1/ugoira/metadata?illust_id=" + strconv.Itoa(i.ID))
-	resp, err := i.client.client.Do(req)
+	resp, err := i.client.doGetRequest("1/ugoira/metadata?illust_id=" + strconv.Itoa(i.ID))
 	if err != nil {
 		return nil, err
 	}

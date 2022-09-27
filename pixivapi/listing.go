@@ -18,8 +18,7 @@ type IllustrationListing struct {
 }
 
 func (p *Client) newIllustrationListing(URL string) (*IllustrationListing, error) {
-	req := p.buildGetRequest(URL)
-	resp, err := p.client.Do(req)
+	resp, err := p.doGetRequest(URL)
 	if err != nil {
 		return nil, err
 	}
@@ -103,8 +102,7 @@ type UserListing struct {
 }
 
 func (p *Client) newUserListing(URL string) (*UserListing, error) {
-	req := p.buildGetRequest(URL)
-	resp, err := p.client.Do(req)
+	resp, err := p.doGetRequest(URL)
 	if err != nil {
 		return nil, err
 	}
