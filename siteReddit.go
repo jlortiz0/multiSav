@@ -404,6 +404,10 @@ func (red *RedditImageEntry) GetType() ImageEntryType {
 		return IETYPE_TEXT
 	}
 	if red.Is_gallery || red.data != nil {
+		if red.Is_gallery && len(red.Gallery_data.Items) == 0 {
+			red.Is_gallery = false
+			return red.GetType()
+		}
 		return IETYPE_GALLERY
 	}
 	if red.Is_video {
@@ -414,7 +418,6 @@ func (red *RedditImageEntry) GetType() ImageEntryType {
 
 // TODO: Remove blocked posts from listings
 // But not deleted ones! Just blocked ones.
-// Or work around blocked posts having an empty Gallery_data
 func (red *RedditImageEntry) GetGalleryInfo(lazy bool) []ImageEntry {
 	if red.data != nil {
 		return red.data
@@ -617,11 +620,11 @@ type RedditProducer struct {
 	site RedditSite
 }
 
-func NewRedditProducer(site RedditSite, kind int, args []interface{}, persistent interface{}) *RedditProducer {
-	return &RedditProducer{NewBufferedImageProducer(site, kind, args, persistent), site}
+func NewRedditProducer(site RedditSite, kind int, args []interface{}, persistent interface{}) RedditProducer {
+	return RedditProducer{NewBufferedImageProducer(site, kind, args, persistent), site}
 }
 
-func (red *RedditProducer) ActionHandler(key int32, sel int, call int) ActionRet {
+func (red RedditProducer) ActionHandler(key int32, sel int, call int) ActionRet {
 	var useful *redditapi.Submission
 	switch v := red.items[sel].(type) {
 	case *RedditImageEntry:
@@ -672,7 +675,6 @@ func (red *RedditProducer) ActionHandler(key int32, sel int, call int) ActionRet
 					iter = iter[1:]
 				}
 			}
-			return red.BufferedImageProducer.ActionHandler(rl.KeyL, sel, 0)
 		} else if red.listing.(*RedditImageListing).kind != 5 {
 			args := red.listing.(*RedditImageListing).args
 			if args[len(args)-1].(bool) {
@@ -693,34 +695,34 @@ func (red *RedditProducer) ActionHandler(key int32, sel int, call int) ActionRet
 	return red.BufferedImageProducer.ActionHandler(key, sel, call)
 }
 
-func (red *RedditProducer) GetTitle() string {
+func (red RedditProducer) GetTitle() string {
 	if red.listing == nil {
 		return red.BufferedImageProducer.GetTitle()
 	}
-	useful := red.listing.(*RedditImageListing)
-	switch useful.kind {
+	k, args := red.listing.GetInfo()
+	switch k {
 	case 0:
-		return "rediSav - Reddit - New: r/" + useful.args[0].(string)
+		return "rediSav - Reddit - New: r/" + args[0].(string)
 	case 1:
-		return "rediSav - Reddit - Hot: r/" + useful.args[0].(string)
+		return "rediSav - Reddit - Hot: r/" + args[0].(string)
 	case 2:
-		return "rediSav - Reddit - Rising: r/" + useful.args[0].(string)
+		return "rediSav - Reddit - Rising: r/" + args[0].(string)
 	case 3:
-		return "rediSav - Reddit - Controversial: r/" + useful.args[0].(string)
+		return "rediSav - Reddit - Controversial: r/" + args[0].(string)
 	case 4:
-		return "rediSav - Reddit - Top: r/" + useful.args[0].(string)
+		return "rediSav - Reddit - Top: r/" + args[0].(string)
 	case 5:
 		return "rediSav - Reddit - Saved: u/" + red.site.Self().Name
 	case 6:
-		return "rediSav - Reddit - Search: r/" + useful.args[0].(string) + " - " + useful.args[1].(string)
+		return "rediSav - Reddit - Search: r/" + args[0].(string) + " - " + args[1].(string)
 	case 7:
-		return "rediSav - Reddit - Search - " + useful.args[0].(string)
+		return "rediSav - Reddit - Search - " + args[0].(string)
 	case 8:
-		return "rediSav - Reddit - New: u/" + useful.args[0].(string)
+		return "rediSav - Reddit - New: u/" + args[0].(string)
 	case 9:
-		return "rediSav - Reddit - New: r/u_" + useful.args[0].(string)
+		return "rediSav - Reddit - New: r/u_" + args[0].(string)
 	case 10:
-		return "rediSav - Reddit - New: u/" + useful.args[0].(string) + "/m/" + useful.args[1].(string)
+		return "rediSav - Reddit - New: u/" + args[0].(string) + "/m/" + args[1].(string)
 	case 11:
 		return "rediSav - Reddit - Trash: u/" + red.site.Self().Name
 	default:
