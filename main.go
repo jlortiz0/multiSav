@@ -38,8 +38,6 @@ func loginHelper() {
 		Login         string
 		Password      string
 		ImgurId       string
-		TwitterId     string
-		TwitterSecret string
 		TwitterBearer string
 		PixivToken    string
 	}
@@ -106,11 +104,9 @@ var saveData struct {
 		Login    string
 		Password string
 	}
-	Imgur   string
-	Twitter struct {
-		Id     string
-		Secret string
-	}
+	Imgur    string
+	Twitter  string
+	Pixiv    string
 	Listings []SavedListing
 }
 
@@ -206,9 +202,9 @@ MainLoop:
 			case SITE_REDDIT:
 				producer = NewRedditProducer(siteReddit, data.Kind, data.Args, data.Persistent)
 			case SITE_TWITTER:
-				producer = NewBufferedImageProducer(siteTwitter, data.Kind, data.Args, data.Persistent)
+				producer = NewTwitterProducer(siteTwitter, data.Kind, data.Args, data.Persistent)
 			case SITE_PIXIV:
-				producer = NewBufferedImageProducer(sitePixiv, data.Kind, data.Args, data.Persistent)
+				producer = NewPixivProducer(sitePixiv, data.Kind, data.Args, data.Persistent)
 			}
 			menu := NewImageMenu(producer)
 			if stdEventLoop(menu) == LOOP_QUIT {

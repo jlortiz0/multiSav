@@ -232,9 +232,45 @@ func SetUpSites() bool {
 			}
 		}
 	case 2:
-		// TBD
+		args := []interface{}{saveData.Twitter}
+		flags := make([]bool, 1)
+		cArgs := []ListingArgument{
+			{
+				name: "Bearer Token",
+			},
+		}
+		for !rl.WindowShouldClose() {
+			rl.BeginDrawing()
+			rl.ClearBackground(color.RGBA{R: 64, G: 64, B: 64})
+			out := DrawArgumentsUI("Twitter", cArgs, args, flags)
+			rl.EndDrawing()
+			if out != nil && len(out) == 0 {
+				break
+			} else if len(out) != 0 {
+				saveData.Twitter = args[0].(string)
+				break
+			}
+		}
 	case 3:
-		// TBD
+		args := []interface{}{saveData.Pixiv}
+		flags := make([]bool, 1)
+		cArgs := []ListingArgument{
+			{
+				name: "Refresh Token",
+			},
+		}
+		for !rl.WindowShouldClose() {
+			rl.BeginDrawing()
+			rl.ClearBackground(color.RGBA{R: 64, G: 64, B: 64})
+			out := DrawArgumentsUI("Pixiv", cArgs, args, flags)
+			rl.EndDrawing()
+			if out != nil && len(out) == 0 {
+				break
+			} else if len(out) != 0 {
+				saveData.Pixiv = args[0].(string)
+				break
+			}
+		}
 	}
 	return SetUpSites()
 }
