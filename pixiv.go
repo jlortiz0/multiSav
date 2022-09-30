@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	rl "github.com/gen2brain/raylib-go/raylib"
 	"jlortiz.org/redisav/pixivapi"
 )
 
@@ -64,27 +65,33 @@ func (p PixivSite) GetListing(kind int, args []interface{}, persist interface{})
 		fallthrough
 	case 1:
 		// Bookmarks
-		s := args[0].(string)
-		ind := strings.Index(s, "users/")
-		if ind != -1 {
-			s = s[ind+6:]
-			ind = strings.IndexByte(s, '?')
-			if ind != -1 {
-				s = s[:ind]
-			}
-		}
 		var i int
-		i, err = strconv.Atoi(s)
-		if err == nil {
-			if i == 0 {
-				i = p.GetMyId()
+		s, ok := args[0].(string)
+		if ok {
+			ind := strings.Index(s, "users/")
+			if ind != -1 {
+				s = s[ind+6:]
+				ind = strings.IndexByte(s, '?')
+				if ind != -1 {
+					s = s[:ind]
+				}
 			}
-			u := p.UserFromID(i)
-			if kind == 0 {
-				ls, err = u.Illustrations(pixivapi.ILTYPE_ILUST)
-			} else {
-				ls, err = u.Bookmarks("", pixivapi.VISI_PRIVATE)
+			i, err = strconv.Atoi(s)
+			if err != nil {
+				break
 			}
+			args[0] = i
+		} else {
+			i = args[0].(int)
+		}
+		if i == 0 {
+			i = p.GetMyId()
+		}
+		u := p.UserFromID(i)
+		if kind == 0 {
+			ls, err = u.Illustrations(pixivapi.ILTYPE_ILUST)
+		} else {
+			ls, err = u.Bookmarks("", pixivapi.VISI_PRIVATE)
 		}
 	case 2:
 		// Search
@@ -252,4 +259,88 @@ func (p *PixivGalleryEntry) GetURL() string {
 
 func (p *PixivGalleryEntry) GetSaveName() string {
 	return p.GetURL()
+}
+
+type PixivProducer struct {
+	*BufferedImageProducer
+	site PixivSite
+}
+
+func NewPixivProducer(site PixivSite, kind int, args []interface{}, persistent interface{}) PixivProducer {
+	return PixivProducer{NewBufferedImageProducer(site, kind, args, persistent), site}
+}
+
+func (p PixivProducer) ActionHandler(key int32, sel int, call int) ActionRet {
+	var useful *pixivapi.Illustration
+	switch v := p.items[sel].(type) {
+	case *PixivGalleryEntry:
+		useful = v.Illustration
+	case *PixivImageEntry:
+		useful = v.Illustration
+	default:
+		return p.BufferedImageProducer.ActionHandler(key, sel, call)
+	}
+	if key == rl.KeyX {
+		if p.listing.(*PixivImageListing).kind == 1 || rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift) {
+			ret := p.BufferedImageProducer.ActionHandler(key, sel, call)
+			if ret&ARET_REMOVE != 0 {
+				useful.Unbookmark()
+			}
+			return ret
+		} else {
+			useful.Bookmark(pixivapi.VISI_PRIVATE)
+		}
+		p.remove(sel)
+		return ARET_MOVEUP | ARET_REMOVE
+	} else if key == rl.KeyC {
+		if p.listing.(*RedditImageListing).kind == 1 {
+			useful.Unbookmark()
+		}
+		p.remove(sel)
+		return ARET_MOVEDOWN | ARET_REMOVE
+	} else if key == rl.KeyL {
+		if p.listing.(*PixivImageListing).kind != 1 {
+			p.listing.(*PixivImageListing).persist = useful.ID
+			p.items = p.items[:sel+1]
+			for i := BIP_BUFBEFORE + 1; i < BIP_BUFBEFORE+1+BIP_BUFAFTER; i++ {
+				p.buffer[i] = nil
+			}
+			p.listing.(*PixivImageListing).IllustrationListing = nil
+			return ARET_MOVEUP
+		}
+	} else if key == rl.KeyEnter {
+		ret := p.BufferedImageProducer.ActionHandler(key, sel, call)
+		rl.SetWindowTitle(p.GetTitle())
+		return ret
+	}
+	return p.BufferedImageProducer.ActionHandler(key, sel, call)
+}
+
+func (p PixivProducer) GetTitle() string {
+	if p.listing == nil {
+		return p.BufferedImageProducer.GetTitle()
+	}
+	k, args := p.listing.GetInfo()
+	switch k {
+	case 0:
+		u, err := p.site.GetUser(args[0].(int))
+		if err != nil {
+			return err.Error()
+		}
+		return "rediSav - Pixiv - User: " + u.Name
+	case 1:
+		u, err := p.site.GetUser(args[0].(int))
+		if err != nil {
+			return err.Error()
+		}
+		return "rediSav - Pixiv - Bookmarks: " + u.Name
+	case 2:
+		return "rediSav - Pixiv - Search: " + args[0].(string)
+	case 3:
+		return "rediSav - Pixiv - Recommended"
+	case 4:
+		return "rediSav - Pixiv - Best: " + args[0].(string)
+	default:
+		return "rediSav - Pixiv - Unknown"
+	}
 }
