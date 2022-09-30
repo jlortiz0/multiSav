@@ -10,9 +10,8 @@ import (
 	rg "jlortiz.org/redisav/raygui-go"
 )
 
-const ARGUI_SPACING = CHOICEMENU_SPACE_BETWEEN_ITEM * 2
+const ARGUI_SPACING = CHOICEMENU_SPACE_BETWEEN_ITEM * 1.5
 
-// TODO: The size of this is never right. Find out why.
 func DrawArgumentsUI(name string, args []ListingArgument, out []interface{}, flags []bool) []interface{} {
 	if out[0] == nil {
 		for i, v := range args {
@@ -36,12 +35,12 @@ func DrawArgumentsUI(name string, args []ListingArgument, out []interface{}, fla
 	}
 	target := rl.Vector2{X: float32(rl.GetScreenWidth()), Y: float32(rl.GetScreenHeight())}
 	vec := rl.MeasureTextEx(font, name, TEXT_SIZE, 0)
-	vec2 := rl.Vector2{X: ((target.X - vec.X) / 2), Y: target.Y/2 - (TEXT_SIZE+ARGUI_SPACING)*float32(len(args)+1)/2}
-	rl.DrawRectangle(int32(target.X/4), int32(vec2.Y)-5, int32(target.X)/2, (TEXT_SIZE+ARGUI_SPACING)*int32(len(args)+1)+10, rl.RayWhite)
-	vec2.Y += (CHOICEMENU_SPACE_BETWEEN_ITEM + TEXT_SIZE) / 4
+	vec2 := rl.Vector2{X: ((target.X - vec.X) / 2), Y: target.Y/2 - (TEXT_SIZE+ARGUI_SPACING)*float32(len(args)+2)/2}
+	rl.DrawRectangle(int32(target.X/4), int32(vec2.Y)-5, int32(target.X)/2, (TEXT_SIZE+ARGUI_SPACING)*int32(len(args)+2)+10, rl.RayWhite)
+	vec2.Y += (ARGUI_SPACING + TEXT_SIZE) / 4
 	rl.DrawTextEx(font, name, vec2, TEXT_SIZE, 0, rl.Black)
 	for i, v := range args {
-		vec2.Y += CHOICEMENU_SPACE_BETWEEN_ITEM + TEXT_SIZE
+		vec2.Y += ARGUI_SPACING + TEXT_SIZE
 		name := v.name + ":"
 		vec = rl.MeasureTextEx(font, name, TEXT_SIZE, 0)
 		vec2.X = target.X/2 - vec.X - 5
@@ -81,7 +80,7 @@ func DrawArgumentsUI(name string, args []ListingArgument, out []interface{}, fla
 			}
 		}
 	}
-	vec2.Y += (CHOICEMENU_SPACE_BETWEEN_ITEM + TEXT_SIZE)
+	vec2.Y += (ARGUI_SPACING + TEXT_SIZE)
 	if rg.GuiButton(rl.Rectangle{X: target.X/4 + 10, Y: vec2.Y, Height: TEXT_SIZE + 5, Width: target.X/4 - 20}, "Cancel") {
 		return []interface{}{}
 	}
