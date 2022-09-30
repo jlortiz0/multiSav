@@ -129,7 +129,7 @@ func (p PixivSite) ExtendListing(ls ImageListing) []ImageEntry {
 			if x == nil {
 				break
 			}
-			data = append(data, &PixivImageEntry{x})
+			data = append(data, &PixivImageEntry{Illustration: x})
 			if x.ID == iter2.persist {
 				iter2.IllustrationListing = nil
 				break
@@ -162,7 +162,7 @@ func (p PixivSite) ResolveURL(URL string) (string, ImageEntry) {
 		if err != nil {
 			return "", nil
 		}
-		return "", &PixivImageEntry{x2}
+		return "", &PixivImageEntry{Illustration: x2}
 	case "i.pximg.net":
 		fallthrough
 	case "pximg.net":
@@ -231,8 +231,9 @@ func (p *PixivImageEntry) GetSaveName() string {
 
 func (*PixivImageEntry) GetText() string { return "" }
 
-// TODO: This
-func (p *PixivImageEntry) Combine(ImageEntry) {}
+func (p *PixivImageEntry) Combine(ImageEntry) {
+	panic("this should never occur")
+}
 
 type PixivGalleryEntry struct {
 	PixivImageEntry

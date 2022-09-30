@@ -295,7 +295,7 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 		if x.Entities != nil {
 			urls = x.Entities.URLs
 		}
-		nTweets = append(nTweets, &TwitterImageEntry{x.ID, x.Text, media, urls, tweets.Includes.Users[i].Name})
+		nTweets = append(nTweets, &TwitterImageEntry{x.ID, x.Text, media, urls, tweets.Includes.Users[i].Name, "", nil})
 	}
 	return nTweets
 }
@@ -330,7 +330,7 @@ func (t TwitterSite) ResolveURL(URL string) (string, ImageEntry) {
 			return "", nil
 		}
 		x := x2.Raw.Tweets[0]
-		return "", &TwitterImageEntry{x.ID, x.Text, x2.Raw.Includes.Media, x.Entities.URLs, x2.Raw.Includes.Users[0].Name}
+		return "", &TwitterImageEntry{x.ID, x.Text, x2.Raw.Includes.Media, x.Entities.URLs, x2.Raw.Includes.Users[0].Name, "", nil}
 	case "pbs.twimg.com":
 		fallthrough
 	case "twimg.com":
@@ -344,12 +344,13 @@ func (t TwitterSite) GetResolvableDomains() []string {
 }
 
 type TwitterImageEntry struct {
-	ID    string
-	text  string
-	media []*twitter.MediaObj
-	urls  []twitter.EntityURLObj
-	// fav, repl, rt, qrt int
+	ID       string
+	text     string
+	media    []*twitter.MediaObj
+	urls     []twitter.EntityURLObj
 	username string
+	info     string
+	data     []ImageEntry
 }
 
 func (t *TwitterImageEntry) GetName() string {
@@ -372,7 +373,10 @@ func (t *TwitterImageEntry) GetDimensions() (int, int) {
 }
 
 func (t *TwitterImageEntry) GetInfo() string {
-	return fmt.Sprintf("%s\n@%s", t.text, t.username)
+	if t.info == "" {
+		t.info = fmt.Sprintf("%s\n@%s", t.text, t.username)
+	}
+	return t.info
 }
 
 func (t *TwitterImageEntry) GetType() ImageEntryType {
@@ -399,10 +403,34 @@ func (t *TwitterImageEntry) GetURL() string {
 	}
 }
 
-// TODO: This
-func (*TwitterImageEntry) Combine(ImageEntry) {}
+func (t *TwitterImageEntry) Combine(ie ImageEntry) {
+	t.GetInfo()
+	s := ie.GetInfo()
+	if s != "" {
+		t.info += "\n" + s
+	}
+	t.urls = []twitter.EntityURLObj{{ExpandedURL: ie.GetURL()}}
+	s = ie.GetName()
+	if s != "" {
+		t.username = s
+	}
+	s = ie.GetText()
+	if s != "" {
+		t.text += "\n" + s
+		if ie.GetType() == IETYPE_TEXT {
+			t.media = nil
+		}
+	}
+	t.data = ie.GetGalleryInfo(false)
+	if len(t.data) == 0 {
+		t.data = nil
+	}
+}
 
 func (t *TwitterImageEntry) GetGalleryInfo(b bool) []ImageEntry {
+	if t.data != nil {
+		return t.data
+	}
 	imgs := make([]ImageEntry, len(t.media))
 	if b {
 		return imgs
@@ -424,7 +452,6 @@ func (t *TwitterImageEntry) GetSaveName() string {
 }
 
 type TwitterGalleryEntry struct {
-	// id, text, username string
 	TwitterImageEntry
 	url   string
 	w, h  int
