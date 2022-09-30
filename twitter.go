@@ -2,15 +2,15 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	twitter "github.com/g8rswimmer/go-twitter/v2"
+	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 type TwitterSite struct {
@@ -25,11 +25,15 @@ func (t twitterAuthorizer) Add(req *http.Request) {
 	req.Header.Add("Authorization", t.key)
 }
 
+// TODO: Sometimes getting a twitter pbs image results in 403 for seemingly no reason
+// Perhaps requests there should not be authorized?
 func NewTwitterSite(bearer string) TwitterSite {
 	if !strings.HasPrefix(bearer, "Bearer ") {
 		bearer = "Bearer " + bearer
 	}
-	return TwitterSite{&twitter.Client{Authorizer: twitterAuthorizer{bearer}, Client: http.DefaultClient, Host: "https://api.twitter.com"}}
+	t := TwitterSite{&twitter.Client{Authorizer: twitterAuthorizer{bearer}, Client: http.DefaultClient, Host: "https://api.twitter.com"}}
+	// TODO: Login
+	return t
 }
 
 func (t TwitterSite) Destroy() {}
@@ -63,6 +67,7 @@ type TwitterImageListing struct {
 	args    []interface{}
 	token   string
 	persist string
+	myId    string
 }
 
 func (t *TwitterImageListing) GetInfo() (int, []interface{}) {
@@ -71,26 +76,6 @@ func (t *TwitterImageListing) GetInfo() (int, []interface{}) {
 
 func (t *TwitterImageListing) GetPersistent() interface{} {
 	return t.persist
-}
-
-func (t TwitterSite) getMyId() (string, error) {
-	req, _ := http.NewRequest("GET", t.Host+"/2/users/me", http.NoBody)
-	t.Authorizer.Add(req)
-	resp, err := t.Client.Client.Do(req)
-	if err != nil {
-		return "", err
-	}
-	var temp struct {
-		Data struct {
-			ID string
-		}
-	}
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-	err = json.Unmarshal(data, &temp)
-	return temp.Data.ID, err
 }
 
 func (t TwitterSite) GetListing(kind int, args []interface{}, persist interface{}) (ImageListing, []ImageEntry) {
@@ -108,6 +93,10 @@ func (t TwitterSite) GetListing(kind int, args []interface{}, persist interface{
 	}
 	thing.kind = kind
 	thing.args = args
+	me, err := t.AuthUserLookup(context.Background(), twitter.UserLookupOpts{})
+	if err == nil {
+		thing.myId = me.Raw.Users[0].ID
+	}
 	return thing, t.ExtendListing(thing)
 }
 
@@ -124,18 +113,24 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 	switch thing.kind {
 	case 0:
 		// User timeline
-		var user *twitter.UserLookupResponse
-		user, err = t.UserNameLookup(context.Background(), []string{args[0].(string)}, twitter.UserLookupOpts{})
+		id := args[0].(string)
+		_, err = strconv.Atoi(id)
 		if err != nil {
-			break
-		}
-		if len(user.Raw.Errors) != 0 {
-			err = errors.New(user.Raw.Errors[0].Title)
-			break
-		}
-		if len(user.Raw.Users) == 0 {
-			err = errors.New("No such user " + args[0].(string))
-			break
+			var user *twitter.UserLookupResponse
+			user, err = t.UserNameLookup(context.Background(), []string{args[0].(string)}, twitter.UserLookupOpts{})
+			if err != nil {
+				break
+			}
+			if len(user.Raw.Errors) != 0 {
+				err = errors.New(user.Raw.Errors[0].Title)
+				break
+			}
+			if len(user.Raw.Users) == 0 {
+				err = errors.New("No such user " + args[0].(string))
+				break
+			}
+			id = user.Raw.Users[0].ID
+			args[0] = id
 		}
 		excludes := make([]twitter.Exclude, 1, 2)
 		excludes[0] = twitter.ExcludeReplies
@@ -143,9 +138,9 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 			excludes = append(excludes, twitter.ExcludeRetweets)
 		}
 		var resp *twitter.UserTweetTimelineResponse
-		resp, err = t.UserTweetTimeline(context.Background(), user.Raw.Users[0].ID, twitter.UserTweetTimelineOpts{
+		resp, err = t.UserTweetTimeline(context.Background(), id, twitter.UserTweetTimelineOpts{
 			Expansions:      []twitter.Expansion{twitter.ExpansionAttachmentsMediaKeys, twitter.ExpansionAuthorID},
-			MediaFields:     []twitter.MediaField{twitter.MediaFieldHeight, twitter.MediaFieldMediaKey, twitter.MediaFieldURL, twitter.MediaFieldWidth, twitter.MediaFieldType},
+			MediaFields:     []twitter.MediaField{twitter.MediaFieldHeight, twitter.MediaFieldMediaKey, twitter.MediaFieldURL, twitter.MediaFieldWidth, twitter.MediaFieldType, twitter.MediaFieldVariants},
 			TweetFields:     []twitter.TweetField{twitter.TweetFieldAuthorID, twitter.TweetFieldAttachments, twitter.TweetFieldEntities, twitter.TweetFieldID, twitter.TweetFieldText},
 			MaxResults:      100,
 			Excludes:        excludes,
@@ -169,7 +164,7 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 		var search *twitter.TweetSearchResponse
 		search, err = t.TweetSearch(context.Background(), args[0].(string), twitter.TweetSearchOpts{
 			Expansions:  []twitter.Expansion{twitter.ExpansionAttachmentsMediaKeys, twitter.ExpansionAuthorID},
-			MediaFields: []twitter.MediaField{twitter.MediaFieldHeight, twitter.MediaFieldMediaKey, twitter.MediaFieldURL, twitter.MediaFieldWidth, twitter.MediaFieldType},
+			MediaFields: []twitter.MediaField{twitter.MediaFieldHeight, twitter.MediaFieldMediaKey, twitter.MediaFieldURL, twitter.MediaFieldWidth, twitter.MediaFieldType, twitter.MediaFieldVariants},
 			TweetFields: []twitter.TweetField{twitter.TweetFieldAuthorID, twitter.TweetFieldAttachments, twitter.TweetFieldEntities, twitter.TweetFieldID, twitter.TweetFieldText},
 			MaxResults:  100,
 			SinceID:     stopAt,
@@ -188,11 +183,16 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 	case 3:
 		// List
 		s := args[0].(string)
+		ind := strings.Index(s, "lists/")
+		if ind != -1 {
+			s = s[ind+6:]
+			args[0] = s
+		}
 		var resp *twitter.ListTweetLookupResponse
 		resp, err = t.ListTweetLookup(context.Background(), s, twitter.ListTweetLookupOpts{
 			Expansions: []twitter.Expansion{twitter.ExpansionAttachmentsMediaKeys, twitter.ExpansionAuthorID},
 			// TODO: ?!? this is part of the request? Maybe submit a PR to the package to fix this.
-			// MediaFields: []twitter.MediaField{twitter.MediaFieldHeight, twitter.MediaFieldMediaKey, twitter.MediaFieldURL, twitter.MediaFieldWidth, twitter.MediaFieldType},
+			// MediaFields: []twitter.MediaField{twitter.MediaFieldHeight, twitter.MediaFieldMediaKey, twitter.MediaFieldURL, twitter.MediaFieldWidth, twitter.MediaFieldType, twitter.MediaFieldVariants},
 			TweetFields:     []twitter.TweetField{twitter.TweetFieldAuthorID, twitter.TweetFieldAttachments, twitter.TweetFieldEntities, twitter.TweetFieldID, twitter.TweetFieldText},
 			MaxResults:      100,
 			PaginationToken: token,
@@ -217,20 +217,15 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 		token = resp.Meta.NextToken
 	case 4:
 		// Home
-		var id string
-		id, err = t.getMyId()
-		if err != nil {
-			break
-		}
 		excludes := make([]twitter.Exclude, 1, 2)
 		excludes[0] = twitter.ExcludeReplies
 		if !args[0].(bool) {
 			excludes = append(excludes, twitter.ExcludeRetweets)
 		}
 		var resp *twitter.UserTweetReverseChronologicalTimelineResponse
-		resp, err = t.UserTweetReverseChronologicalTimeline(context.Background(), id, twitter.UserTweetReverseChronologicalTimelineOpts{
+		resp, err = t.UserTweetReverseChronologicalTimeline(context.Background(), thing.myId, twitter.UserTweetReverseChronologicalTimelineOpts{
 			Expansions:      []twitter.Expansion{twitter.ExpansionAttachmentsMediaKeys, twitter.ExpansionAuthorID},
-			MediaFields:     []twitter.MediaField{twitter.MediaFieldHeight, twitter.MediaFieldMediaKey, twitter.MediaFieldURL, twitter.MediaFieldWidth, twitter.MediaFieldType},
+			MediaFields:     []twitter.MediaField{twitter.MediaFieldHeight, twitter.MediaFieldMediaKey, twitter.MediaFieldURL, twitter.MediaFieldWidth, twitter.MediaFieldType, twitter.MediaFieldVariants},
 			TweetFields:     []twitter.TweetField{twitter.TweetFieldAuthorID, twitter.TweetFieldAttachments, twitter.TweetFieldEntities, twitter.TweetFieldID, twitter.TweetFieldText},
 			MaxResults:      100,
 			Excludes:        excludes,
@@ -248,15 +243,10 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 		token = resp.Meta.NextToken
 	case 5:
 		// Bookmarks
-		var id string
-		id, err = t.getMyId()
-		if err != nil {
-			break
-		}
 		var resp *twitter.TweetBookmarksLookupResponse
-		resp, err = t.TweetBookmarksLookup(context.Background(), id, twitter.TweetBookmarksLookupOpts{
+		resp, err = t.TweetBookmarksLookup(context.Background(), thing.myId, twitter.TweetBookmarksLookupOpts{
 			Expansions:      []twitter.Expansion{twitter.ExpansionAttachmentsMediaKeys, twitter.ExpansionAuthorID},
-			MediaFields:     []twitter.MediaField{twitter.MediaFieldHeight, twitter.MediaFieldMediaKey, twitter.MediaFieldURL, twitter.MediaFieldWidth, twitter.MediaFieldType},
+			MediaFields:     []twitter.MediaField{twitter.MediaFieldHeight, twitter.MediaFieldMediaKey, twitter.MediaFieldURL, twitter.MediaFieldWidth, twitter.MediaFieldType, twitter.MediaFieldVariants},
 			TweetFields:     []twitter.TweetField{twitter.TweetFieldAuthorID, twitter.TweetFieldAttachments, twitter.TweetFieldEntities, twitter.TweetFieldID, twitter.TweetFieldText},
 			MaxResults:      100,
 			PaginationToken: token,
@@ -280,12 +270,13 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 	thing.token = token
 	nTweets := make([]ImageEntry, 0, len(tweets.Tweets))
 	mediaMap := tweets.Includes.MediaByKeys()
-	for i, x := range tweets.Tweets {
+	userMap := tweets.Includes.UsersByID()
+	for _, x := range tweets.Tweets {
 		if x == nil {
 			continue
 		}
 		var media []*twitter.MediaObj
-		if len(x.Attachments.MediaKeys) != 0 {
+		if x.Attachments != nil && len(x.Attachments.MediaKeys) != 0 {
 			media = make([]*twitter.MediaObj, len(x.Attachments.MediaKeys))
 			for i2, v := range x.Attachments.MediaKeys {
 				media[i2] = mediaMap[v]
@@ -295,7 +286,7 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 		if x.Entities != nil {
 			urls = x.Entities.URLs
 		}
-		nTweets = append(nTweets, &TwitterImageEntry{x.ID, x.Text, media, urls, tweets.Includes.Users[i].Name, "", nil})
+		nTweets = append(nTweets, &TwitterImageEntry{x.ID, x.Text, media, urls, userMap[x.AuthorID].UserName, "", nil})
 	}
 	return nTweets
 }
@@ -323,7 +314,7 @@ func (t TwitterSite) ResolveURL(URL string) (string, ImageEntry) {
 		s = s[ind+6:]
 		x2, err := t.TweetLookup(context.Background(), []string{s}, twitter.TweetLookupOpts{
 			Expansions:  []twitter.Expansion{twitter.ExpansionAttachmentsMediaKeys, twitter.ExpansionAuthorID},
-			MediaFields: []twitter.MediaField{twitter.MediaFieldHeight, twitter.MediaFieldMediaKey, twitter.MediaFieldURL, twitter.MediaFieldWidth, twitter.MediaFieldType},
+			MediaFields: []twitter.MediaField{twitter.MediaFieldHeight, twitter.MediaFieldMediaKey, twitter.MediaFieldURL, twitter.MediaFieldWidth, twitter.MediaFieldType, twitter.MediaFieldVariants},
 			TweetFields: []twitter.TweetField{twitter.TweetFieldAuthorID, twitter.TweetFieldAttachments, twitter.TweetFieldEntities, twitter.TweetFieldID, twitter.TweetFieldText},
 		})
 		if err != nil {
@@ -394,6 +385,9 @@ func (t *TwitterImageEntry) GetType() ImageEntryType {
 func (t *TwitterImageEntry) GetURL() string {
 	if len(t.media) > 0 {
 		s := t.media[0].URL
+		if s == "" {
+			return t.media[0].Variants[0].URL
+		}
 		ind := strings.LastIndexByte(s, '.')
 		return fmt.Sprintf("%s?format=%s&name=large", s[:ind], s[ind+1:])
 	} else if len(t.urls) > 0 {
@@ -472,4 +466,107 @@ func (t *TwitterGalleryEntry) GetSaveName() string {
 	s := t.TwitterImageEntry.GetSaveName()
 	ind := strings.LastIndexByte(s, '.')
 	return fmt.Sprintf("%s_%d.%s", s[:ind], t.index, s[ind+1:])
+}
+
+type TwitterProducer struct {
+	*BufferedImageProducer
+	site TwitterSite
+}
+
+func NewTwitterProducer(site TwitterSite, kind int, args []interface{}, persist interface{}) TwitterProducer {
+	return TwitterProducer{NewBufferedImageProducer(site, kind, args, persist), site}
+}
+
+func (t TwitterProducer) ActionHandler(key int32, sel int, call int) ActionRet {
+	var useful *TwitterImageEntry
+	switch v := t.items[sel].(type) {
+	case *TwitterImageEntry:
+		useful = v
+	case *TwitterGalleryEntry:
+		useful = &v.TwitterImageEntry
+	default:
+		return t.BufferedImageProducer.ActionHandler(key, sel, call)
+	}
+	if key == rl.KeyX {
+		if t.listing.(*TwitterImageListing).kind == 5 || rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift) || t.listing.(*TwitterImageListing).myId == "" {
+			ret := t.BufferedImageProducer.ActionHandler(key, sel, call)
+			if ret&ARET_REMOVE != 0 {
+				t.site.RemoveTweetBookmark(context.Background(), t.listing.(*TwitterImageListing).myId, useful.ID)
+			}
+			return ret
+		} else {
+			t.site.AddTweetBookmark(context.Background(), t.listing.(*TwitterImageListing).myId, useful.ID)
+		}
+		t.remove(sel)
+		return ARET_MOVEUP | ARET_REMOVE
+	} else if key == rl.KeyC {
+		if t.listing.(*TwitterImageListing).kind == 5 {
+			t.site.RemoveTweetBookmark(context.Background(), t.listing.(*TwitterImageListing).myId, useful.ID)
+		}
+		t.remove(sel)
+		return ARET_MOVEDOWN | ARET_REMOVE
+	} else if key == rl.KeyL {
+		if t.listing.(*RedditImageListing).kind != 5 {
+			t.listing.(*TwitterImageListing).persist = useful.ID
+			t.items = t.items[:sel+1]
+			for i := BIP_BUFBEFORE + 1; i < BIP_BUFBEFORE+1+BIP_BUFAFTER; i++ {
+				t.buffer[i] = nil
+			}
+			return ARET_MOVEUP
+		}
+	} else if key == rl.KeyEnter {
+		ret := t.BufferedImageProducer.ActionHandler(key, sel, call)
+		rl.SetWindowTitle(t.GetTitle())
+		return ret
+	}
+	return t.BufferedImageProducer.ActionHandler(key, sel, call)
+}
+
+func (t TwitterProducer) GetTitle() string {
+	if t.listing == nil {
+		return t.BufferedImageProducer.GetTitle()
+	}
+	i, args := t.listing.GetInfo()
+	switch i {
+	case 0:
+		u, err := t.site.UserLookup(context.Background(), []string{args[0].(string)}, twitter.UserLookupOpts{})
+		if err != nil {
+			return err.Error()
+		}
+		if len(u.Raw.Errors) != 0 {
+			return u.Raw.Errors[0].Title
+		}
+		return "rediSav - Twitter - Timeline: @" + u.Raw.Users[0].Name
+	case 1:
+		return "rediSav - Twitter - Search: " + args[0].(string)
+	case 3:
+		l, err := t.site.ListLookup(context.Background(), args[0].(string), twitter.ListLookupOpts{Expansions: []twitter.Expansion{twitter.ExpansionOwnerID}})
+		if err != nil {
+			return err.Error()
+		}
+		if len(l.Raw.Errors) != 0 {
+			return l.Raw.Errors[0].Title
+		}
+		return "rediSav - Twitter - List: @" + l.Raw.Includes.Users[0].Name + "/" + l.Raw.List.Name
+	case 4:
+		u, err := t.site.AuthUserLookup(context.Background(), twitter.UserLookupOpts{})
+		if err != nil {
+			return err.Error()
+		}
+		if len(u.Raw.Errors) != 0 {
+			return u.Raw.Errors[0].Title
+		}
+		return "rediSav - Twitter - Home: @" + u.Raw.Users[0].Name
+	case 5:
+		u, err := t.site.AuthUserLookup(context.Background(), twitter.UserLookupOpts{})
+		if err != nil {
+			return err.Error()
+		}
+		if len(u.Raw.Errors) != 0 {
+			return u.Raw.Errors[0].Title
+		}
+		return "rediSav - Twitter - Bookmarks: @" + u.Raw.Users[0].Name
+	default:
+		return "rediSav - Twitter - Unknown"
+	}
 }
