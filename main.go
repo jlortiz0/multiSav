@@ -21,7 +21,7 @@ var sitePixiv PixivSite
 const TEXT_SIZE = 18
 const FRAME_RATE = 60
 
-func loginHelper() RedditSite {
+func loginHelper() {
 	data := make([]byte, 1024)
 	f, err := os.Open("redditapi/login.json")
 	if err != nil {
@@ -52,10 +52,10 @@ func loginHelper() RedditSite {
 	if err != nil {
 		panic(fmt.Errorf("failed to log in: %s", err.Error()))
 	}
-	r := RedditSite{red}
+	siteReddit = RedditSite{red}
 	resolveMap = make(map[string]Resolver)
-	for _, x := range r.GetResolvableDomains() {
-		resolveMap[x] = r
+	for _, x := range siteReddit.GetResolvableDomains() {
+		resolveMap[x] = siteReddit
 	}
 	img := NewImgurResolver(fields.ImgurId)
 	for _, x := range img.GetResolvableDomains() {
@@ -79,7 +79,6 @@ func loginHelper() RedditSite {
 	for _, x := range StripQueryResolver(b).GetResolvableDomains() {
 		resolveMap[x] = StripQueryResolver(b)
 	}
-	return r
 }
 
 var font rl.Font
@@ -153,7 +152,7 @@ func saveSaveData() error {
 }
 
 func main() {
-	siteReddit = loginHelper()
+	loginHelper()
 	rl.SetConfigFlags(rl.FlagVsyncHint)
 	rl.SetConfigFlags(rl.FlagWindowResizable)
 	rl.InitWindow(1024, 768, "rediSav")
@@ -227,6 +226,8 @@ MainLoop:
 	rl.UnloadFont(font)
 	rl.CloseWindow()
 	siteReddit.Destroy()
+	siteTwitter.Destroy()
+	sitePixiv.Destroy()
 	err = saveSaveData()
 	if err != nil {
 		panic(err)
