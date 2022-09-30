@@ -83,7 +83,6 @@ func (cm *ChoiceMenu) Prerender() LoopStatus {
 	return cm.status
 }
 
-// TODO: Page up, page down, recalculate viewport
 func (cm *ChoiceMenu) HandleKey(keycode int32) LoopStatus {
 	switch keycode {
 	case rl.KeyEscape:
@@ -94,17 +93,55 @@ func (cm *ChoiceMenu) HandleKey(keycode int32) LoopStatus {
 		if cm.Selected >= len(cm.itemList) {
 			cm.Selected = 0
 		}
+		calc := cm.scroll.Y + CHOICEMENU_SPACE_BETWEEN_ITEM/2 + (CHOICEMENU_SPACE_BETWEEN_ITEM+TEXT_SIZE)*float32(cm.Selected)
+		if calc < 0 {
+			cm.scroll.Y = -CHOICEMENU_SPACE_BETWEEN_ITEM/2 - (CHOICEMENU_SPACE_BETWEEN_ITEM+TEXT_SIZE)*float32(cm.Selected) + TEXT_SIZE/2
+		} else if calc >= cm.target.Height-TEXT_SIZE {
+			cm.scroll.Y = -CHOICEMENU_SPACE_BETWEEN_ITEM/2 - (CHOICEMENU_SPACE_BETWEEN_ITEM+TEXT_SIZE)*float32(cm.Selected+1) + cm.target.Height
+		}
 	case rl.KeyUp:
 		cm.Selected--
 		if cm.Selected < 0 {
 			cm.Selected = len(cm.itemList) - 1
 		}
+		calc := cm.scroll.Y + CHOICEMENU_SPACE_BETWEEN_ITEM/2 + (CHOICEMENU_SPACE_BETWEEN_ITEM+TEXT_SIZE)*float32(cm.Selected)
+		if calc < 0 {
+			cm.scroll.Y = -CHOICEMENU_SPACE_BETWEEN_ITEM/2 - (CHOICEMENU_SPACE_BETWEEN_ITEM+TEXT_SIZE)*float32(cm.Selected) + TEXT_SIZE/2
+		} else if calc >= cm.target.Height-TEXT_SIZE {
+			cm.scroll.Y = -CHOICEMENU_SPACE_BETWEEN_ITEM/2 - (CHOICEMENU_SPACE_BETWEEN_ITEM+TEXT_SIZE)*float32(cm.Selected+1) + cm.target.Height
+		}
 	case rl.KeyHome:
 		cm.Selected = 0
+		cm.scroll.Y = -CHOICEMENU_SPACE_BETWEEN_ITEM/2 + TEXT_SIZE + 2
 	case rl.KeyEnd:
 		cm.Selected = len(cm.itemList) - 1
+		cm.scroll.Y = cm.target.Height - cm.height
 	case rl.KeyEnter:
 		return LOOP_EXIT
+	case rl.KeyPageDown:
+		if cm.Selected == len(cm.itemList)-1 {
+			return cm.HandleKey(rl.KeyDown)
+		}
+		cm.Selected += int(cm.target.Height / (TEXT_SIZE + CHOICEMENU_SPACE_BETWEEN_ITEM))
+		if cm.Selected >= len(cm.itemList) {
+			cm.Selected = len(cm.itemList) - 1
+		}
+		calc := cm.scroll.Y + CHOICEMENU_SPACE_BETWEEN_ITEM/2 + (CHOICEMENU_SPACE_BETWEEN_ITEM+TEXT_SIZE)*float32(cm.Selected)
+		if calc >= cm.target.Height-TEXT_SIZE {
+			cm.scroll.Y = -CHOICEMENU_SPACE_BETWEEN_ITEM/2 - (CHOICEMENU_SPACE_BETWEEN_ITEM+TEXT_SIZE)*float32(cm.Selected+1) + cm.target.Height
+		}
+	case rl.KeyPageUp:
+		if cm.Selected == 0 {
+			return cm.HandleKey(rl.KeyUp)
+		}
+		cm.Selected -= int(cm.target.Height / (TEXT_SIZE + CHOICEMENU_SPACE_BETWEEN_ITEM))
+		if cm.Selected < 0 {
+			cm.Selected = 0
+		}
+		calc := cm.scroll.Y + CHOICEMENU_SPACE_BETWEEN_ITEM/2 + (CHOICEMENU_SPACE_BETWEEN_ITEM+TEXT_SIZE)*float32(cm.Selected)
+		if calc < 0 {
+			cm.scroll.Y = -CHOICEMENU_SPACE_BETWEEN_ITEM/2 - (CHOICEMENU_SPACE_BETWEEN_ITEM+TEXT_SIZE)*float32(cm.Selected) + TEXT_SIZE/2
+		}
 	}
 	return LOOP_CONT
 }
