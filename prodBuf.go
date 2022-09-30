@@ -291,9 +291,18 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 		for {
 			ind := strings.LastIndexByte(URL, '.')
 			if ind == -1 {
-				ind = len(URL) - 1
+				ind = strings.Index(URL, "format=") + 6
+				if ind == 5 {
+					ind = len(URL) - 2
+				}
 			}
 			ext := strings.ToLower(URL[ind:])
+			if len(ext) > 4 {
+				ind = strings.IndexByte(ext, '&')
+				if ind != -1 {
+					ext = ext[:ind]
+				}
+			}
 			switch ext[1:] {
 			case "mp4":
 				fallthrough
@@ -351,13 +360,28 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 	if ind2 == -1 {
 		ind2 = len(URL)
 	}
-	ind := strings.LastIndexByte(URL[:ind2], '.')
+	ind := strings.Index(URL[ind2:], "format=")
 	if ind == -1 {
-		fmt.Println(buf.items[sel].GetName(), buf.items[sel].GetType())
-		panic(fmt.Sprint(URL[:ind2], URL, ind2))
+		ind = strings.LastIndexByte(URL[:ind2], '.')
+		if ind == -1 {
+			fmt.Println(buf.items[sel].GetName(), buf.items[sel].GetType())
+			panic(fmt.Sprint(URL[:ind2], URL, ind2))
+		}
+	} else {
+		ind += 6 + ind2
+		ind2 = strings.IndexByte(URL[ind:], '&')
+		if ind2 == -1 {
+			ind2 = len(URL[ind:])
+		}
+		ind2 += ind
 	}
 	ext := strings.ToLower(URL[ind:ind2])
+	if ext[0] == '=' {
+		ext = "." + ext[1:]
+	}
 	<-buf.selRecv
+	// TODO: copy changes to thread loader
+	// TODO: handle &amp; (why is that in a URL in the first place?)
 	switch ext[1:] {
 	case "mp4":
 		fallthrough
