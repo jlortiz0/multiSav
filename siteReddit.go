@@ -35,10 +35,6 @@ func (red RedditSite) GetListingInfo() []ListingInfo {
 				{
 					name: "Subreddit",
 				},
-				{
-					name: "Track Last",
-					kind: LARGTYPE_BOOL,
-				},
 			},
 		},
 		{
@@ -46,10 +42,6 @@ func (red RedditSite) GetListingInfo() []ListingInfo {
 			args: []ListingArgument{
 				{
 					name: "Subreddit",
-				},
-				{
-					name: "Track Last",
-					kind: LARGTYPE_BOOL,
 				},
 			},
 		},
@@ -59,10 +51,6 @@ func (red RedditSite) GetListingInfo() []ListingInfo {
 				{
 					name: "Subreddit",
 				},
-				{
-					name: "Track Last",
-					kind: LARGTYPE_BOOL,
-				},
 			},
 		},
 		{
@@ -70,10 +58,6 @@ func (red RedditSite) GetListingInfo() []ListingInfo {
 			args: []ListingArgument{
 				{
 					name: "Subreddit",
-				},
-				{
-					name: "Track Last",
-					kind: LARGTYPE_BOOL,
 				},
 			},
 		},
@@ -93,10 +77,6 @@ func (red RedditSite) GetListingInfo() []ListingInfo {
 						"year",
 						"all",
 					},
-				},
-				{
-					name: "Track Last",
-					kind: LARGTYPE_BOOL,
 				},
 			},
 		},
@@ -122,10 +102,6 @@ func (red RedditSite) GetListingInfo() []ListingInfo {
 						"comments",
 					},
 				},
-				{
-					name: "Track Last",
-					kind: LARGTYPE_BOOL,
-				},
 			},
 		},
 		{
@@ -133,10 +109,6 @@ func (red RedditSite) GetListingInfo() []ListingInfo {
 			args: []ListingArgument{
 				{
 					name: "Search",
-				},
-				{
-					name: "Track Last",
-					kind: LARGTYPE_BOOL,
 				},
 			},
 		},
@@ -146,10 +118,6 @@ func (red RedditSite) GetListingInfo() []ListingInfo {
 				{
 					name: "Username",
 				},
-				{
-					name: "Track Last",
-					kind: LARGTYPE_BOOL,
-				},
 			},
 		},
 		{
@@ -157,10 +125,6 @@ func (red RedditSite) GetListingInfo() []ListingInfo {
 			args: []ListingArgument{
 				{
 					name: "Username",
-				},
-				{
-					name: "Track Last",
-					kind: LARGTYPE_BOOL,
 				},
 			},
 		},
@@ -172,10 +136,6 @@ func (red RedditSite) GetListingInfo() []ListingInfo {
 				},
 				{
 					name: "Multi name",
-				},
-				{
-					name: "Track Last",
-					kind: LARGTYPE_BOOL,
 				},
 			},
 		},
@@ -676,16 +636,13 @@ func (red RedditProducer) ActionHandler(key int32, sel int, call int) ActionRet 
 				}
 			}
 		} else if red.listing.(*RedditImageListing).kind != 5 {
-			args := red.listing.(*RedditImageListing).args
-			if args[len(args)-1].(bool) {
-				red.listing.(*RedditImageListing).seen = useful.Name
-				red.items = red.items[:sel+1]
-				for i := BIP_BUFBEFORE + 1; i < BIP_BUFBEFORE+1+BIP_BUFAFTER; i++ {
-					red.buffer[i] = nil
-				}
-				red.listing.(*RedditImageListing).SubmissionIterator = nil
-				return ARET_MOVEUP
+			red.listing.(*RedditImageListing).seen = useful.Name
+			red.items = red.items[:sel+1]
+			for i := BIP_BUFBEFORE + 1; i < BIP_BUFBEFORE+1+BIP_BUFAFTER; i++ {
+				red.buffer[i] = nil
 			}
+			red.listing.(*RedditImageListing).SubmissionIterator = nil
+			return ARET_MOVEUP
 		}
 	} else if key == rl.KeyEnter {
 		ret := red.BufferedImageProducer.ActionHandler(key, sel, call)
