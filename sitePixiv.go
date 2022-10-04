@@ -19,9 +19,6 @@ type PixivSite struct {
 	*pixivapi.Client
 }
 
-// TODO: ugoira. Maybe.
-// I would likely have to add a new case to loadImage
-// I don't want to have to make a new interface for image streams, but...
 func NewPixivSite(refresh string) (PixivSite, error) {
 	ret := pixivapi.NewClient()
 	return PixivSite{ret}, ret.Login(refresh)
