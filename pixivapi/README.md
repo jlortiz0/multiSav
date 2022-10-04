@@ -1,6 +1,6 @@
 # Pixiv API
 
-Yeah, it's a Pixiv API. Mainly based on (pixivpy)[https://github.com/upbit/pixivpy]. It works, for the most part.
+Yeah, it's a Pixiv API. Mainly based on [pixivpy](https://github.com/upbit/pixivpy). It works, for the most part.
 
 ### Planned Features
  - Ability to open a browser and authenticate. Maybe that should be more of a frontend thing...
