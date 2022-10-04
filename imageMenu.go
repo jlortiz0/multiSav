@@ -5,7 +5,7 @@ import (
 	"image/color"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
-	rg "jlortiz.org/redisav/raygui-go"
+	rg "jlortiz.org/multisav/raygui-go"
 )
 
 type ImageMenu struct {

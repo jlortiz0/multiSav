@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
-	rg "jlortiz.org/redisav/raygui-go"
+	rg "jlortiz.org/multisav/raygui-go"
 )
 
 const ARGUI_SPACING = CHOICEMENU_SPACE_BETWEEN_ITEM * 1.5

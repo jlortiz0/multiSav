@@ -1,4 +1,4 @@
-module jlortiz.org/redisav/raygui-go
+module jlortiz.org/multisav/raygui-go
 
 go 1.16
 

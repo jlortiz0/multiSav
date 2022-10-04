@@ -1,3 +1,3 @@
-module jlortiz.org/redisav/redditapi
+module jlortiz.org/multisav/redditapi
 
 go 1.16

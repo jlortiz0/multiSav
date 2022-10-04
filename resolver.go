@@ -31,8 +31,9 @@ func (StripQueryResolver) Destroy() {}
 
 type BlockingResolver byte
 
+// TODO: Detect when the user's DNS is blocking something and prompt them to switch.
 func (BlockingResolver) GetResolvableDomains() []string {
-	return []string{"files.catbox.moe"}
+	return nil // []string{"files.catbox.moe"}
 }
 
 func (BlockingResolver) ResolveURL(string) (string, ImageEntry) {

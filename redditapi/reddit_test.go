@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"jlortiz.org/redisav/redditapi"
+	"jlortiz.org/multisav/redditapi"
 )
 
 func TestLogin(T *testing.T) {

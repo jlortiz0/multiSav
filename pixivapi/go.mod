@@ -1,4 +1,4 @@
-module jlortiz.org/redisav/pixivapi
+module jlortiz.org/multisav/pixivapi
 
 go 1.19
 

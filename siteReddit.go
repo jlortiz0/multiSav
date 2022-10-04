@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
-	"jlortiz.org/redisav/redditapi"
+	"jlortiz.org/multisav/redditapi"
 )
 
 type RedditSite struct {
@@ -16,7 +16,7 @@ type RedditSite struct {
 }
 
 func NewRedditSite(clientId, clientSecret, user, pass string) RedditSite {
-	red := redditapi.NewReddit("linux:org.jlortiz.rediSav:v0.3.2 (by /u/jlortiz)", clientId, clientSecret)
+	red := redditapi.NewReddit("linux:org.jlortiz.multiSav:v0.3.2 (by /u/jlortiz)", clientId, clientSecret)
 	if user != "" {
 		red.Login(user, pass)
 	}
@@ -659,30 +659,30 @@ func (red RedditProducer) GetTitle() string {
 	k, args := red.listing.GetInfo()
 	switch k {
 	case 0:
-		return "rediSav - Reddit - New: r/" + args[0].(string)
+		return "multiSav - Reddit - New: r/" + args[0].(string)
 	case 1:
-		return "rediSav - Reddit - Hot: r/" + args[0].(string)
+		return "multiSav - Reddit - Hot: r/" + args[0].(string)
 	case 2:
-		return "rediSav - Reddit - Rising: r/" + args[0].(string)
+		return "multiSav - Reddit - Rising: r/" + args[0].(string)
 	case 3:
-		return "rediSav - Reddit - Controversial: r/" + args[0].(string)
+		return "multiSav - Reddit - Controversial: r/" + args[0].(string)
 	case 4:
-		return "rediSav - Reddit - Top: r/" + args[0].(string)
+		return "multiSav - Reddit - Top: r/" + args[0].(string)
 	case 5:
-		return "rediSav - Reddit - Saved: u/" + red.site.Self().Name
+		return "multiSav - Reddit - Saved: u/" + red.site.Self().Name
 	case 6:
-		return "rediSav - Reddit - Search: r/" + args[0].(string) + " - " + args[1].(string)
+		return "multiSav - Reddit - Search: r/" + args[0].(string) + " - " + args[1].(string)
 	case 7:
-		return "rediSav - Reddit - Search - " + args[0].(string)
+		return "multiSav - Reddit - Search - " + args[0].(string)
 	case 8:
-		return "rediSav - Reddit - New: u/" + args[0].(string)
+		return "multiSav - Reddit - New: u/" + args[0].(string)
 	case 9:
-		return "rediSav - Reddit - New: r/u_" + args[0].(string)
+		return "multiSav - Reddit - New: r/u_" + args[0].(string)
 	case 10:
-		return "rediSav - Reddit - New: u/" + args[0].(string) + "/m/" + args[1].(string)
+		return "multiSav - Reddit - New: u/" + args[0].(string) + "/m/" + args[1].(string)
 	case 11:
-		return "rediSav - Reddit - Trash: u/" + red.site.Self().Name
+		return "multiSav - Reddit - Trash: u/" + red.site.Self().Name
 	default:
-		return "rediSav - Reddit - Unknown"
+		return "multiSav - Reddit - Unknown"
 	}
 }

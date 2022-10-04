@@ -320,7 +320,7 @@ func (prod *OfflineImageProducer) ActionHandler(keycode int32, sel int, call int
 }
 
 func (prod *OfflineImageProducer) GetTitle() string {
-	return "rediSav - Offline - " + prod.fldr
+	return "multiSav - Offline - " + prod.fldr
 }
 
 func (prod *OfflineImageProducer) BoundsCheck(i int) bool {

@@ -9,8 +9,8 @@ import (
 
 	"github.com/adrg/sysfont"
 	rl "github.com/gen2brain/raylib-go/raylib"
-	rg "jlortiz.org/redisav/raygui-go"
-	"jlortiz.org/redisav/redditapi"
+	rg "jlortiz.org/multisav/raygui-go"
+	"jlortiz.org/multisav/redditapi"
 )
 
 var resolveMap map[string]Resolver
@@ -45,7 +45,7 @@ func loginHelper() {
 	if err != nil {
 		panic(fmt.Errorf("failed to decode login data: %s", err.Error()))
 	}
-	red := redditapi.NewReddit("linux:org.jlortiz.rediSav:v0.5.1 (by /u/jlortiz)", fields.Id, fields.Secret)
+	red := redditapi.NewReddit("linux:org.jlortiz.multiSav:v0.5.1 (by /u/jlortiz)", fields.Id, fields.Secret)
 	err = red.Login(fields.Login, fields.Password)
 	if err != nil {
 		panic(fmt.Errorf("failed to log in: %s", err.Error()))
@@ -111,7 +111,7 @@ var saveData struct {
 }
 
 func loadSaveData() error {
-	f, err := os.Open("rediSav.json")
+	f, err := os.Open("multiSav.json")
 	if err != nil {
 		if os.IsNotExist(err) {
 			saveData.Listings = []SavedListing{{"Downloads", SITE_LOCAL, 0, []interface{}{"Downloads"}, nil}}
@@ -132,7 +132,7 @@ func saveSaveData() error {
 	if err != nil {
 		return err
 	}
-	f, err := os.OpenFile("rediSav.json", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+	f, err := os.OpenFile("multiSav.json", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 	if err != nil {
 		return err
 	}
@@ -151,7 +151,7 @@ func main() {
 	loginHelper()
 	rl.SetConfigFlags(rl.FlagVsyncHint)
 	rl.SetConfigFlags(rl.FlagWindowResizable)
-	rl.InitWindow(1024, 768, "rediSav")
+	rl.InitWindow(1024, 768, "multiSav")
 	finder := sysfont.NewFinder(nil)
 	font = rl.LoadFontEx(finder.Match("Ubuntu").Filename, TEXT_SIZE, nil, 0)
 	rl.SetExitKey(0)
@@ -215,7 +215,7 @@ MainLoop:
 				saveData.Listings[sel].Persistent = listing.GetPersistent()
 			}
 			menu.Destroy()
-			rl.SetWindowTitle("rediSav")
+			rl.SetWindowTitle("multiSav")
 		}
 	}
 	fadeIn(func() { rl.ClearBackground(rl.Black) })

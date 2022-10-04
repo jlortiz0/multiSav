@@ -536,9 +536,9 @@ func (t TwitterProducer) GetTitle() string {
 		if len(u.Raw.Errors) != 0 {
 			return u.Raw.Errors[0].Title
 		}
-		return "rediSav - Twitter - Timeline: @" + u.Raw.Users[0].Name
+		return "multiSav - Twitter - Timeline: @" + u.Raw.Users[0].Name
 	case 1:
-		return "rediSav - Twitter - Search: " + args[0].(string)
+		return "multiSav - Twitter - Search: " + args[0].(string)
 	case 3:
 		l, err := t.site.ListLookup(context.Background(), args[0].(string), twitter.ListLookupOpts{Expansions: []twitter.Expansion{twitter.ExpansionOwnerID}})
 		if err != nil {
@@ -547,7 +547,7 @@ func (t TwitterProducer) GetTitle() string {
 		if len(l.Raw.Errors) != 0 {
 			return l.Raw.Errors[0].Title
 		}
-		return "rediSav - Twitter - List: @" + l.Raw.Includes.Users[0].Name + "/" + l.Raw.List.Name
+		return "multiSav - Twitter - List: @" + l.Raw.Includes.Users[0].Name + "/" + l.Raw.List.Name
 	case 4:
 		u, err := t.site.AuthUserLookup(context.Background(), twitter.UserLookupOpts{})
 		if err != nil {
@@ -556,7 +556,7 @@ func (t TwitterProducer) GetTitle() string {
 		if len(u.Raw.Errors) != 0 {
 			return u.Raw.Errors[0].Title
 		}
-		return "rediSav - Twitter - Home: @" + u.Raw.Users[0].Name
+		return "multiSav - Twitter - Home: @" + u.Raw.Users[0].Name
 	case 5:
 		u, err := t.site.AuthUserLookup(context.Background(), twitter.UserLookupOpts{})
 		if err != nil {
@@ -565,8 +565,8 @@ func (t TwitterProducer) GetTitle() string {
 		if len(u.Raw.Errors) != 0 {
 			return u.Raw.Errors[0].Title
 		}
-		return "rediSav - Twitter - Bookmarks: @" + u.Raw.Users[0].Name
+		return "multiSav - Twitter - Bookmarks: @" + u.Raw.Users[0].Name
 	default:
-		return "rediSav - Twitter - Unknown"
+		return "multiSav - Twitter - Unknown"
 	}
 }

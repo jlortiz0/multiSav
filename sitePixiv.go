@@ -9,7 +9,7 @@ import (
 	"time"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
-	"jlortiz.org/redisav/pixivapi"
+	"jlortiz.org/multisav/pixivapi"
 )
 
 type PixivSite struct {
@@ -330,20 +330,20 @@ func (p PixivProducer) GetTitle() string {
 		if err != nil {
 			return err.Error()
 		}
-		return "rediSav - Pixiv - User: " + u.Name
+		return "multiSav - Pixiv - User: " + u.Name
 	case 1:
 		u, err := p.site.GetUser(args[0].(int))
 		if err != nil {
 			return err.Error()
 		}
-		return "rediSav - Pixiv - Bookmarks: " + u.Name
+		return "multiSav - Pixiv - Bookmarks: " + u.Name
 	case 2:
-		return "rediSav - Pixiv - Search: " + args[0].(string)
+		return "multiSav - Pixiv - Search: " + args[0].(string)
 	case 3:
-		return "rediSav - Pixiv - Recommended"
+		return "multiSav - Pixiv - Recommended"
 	case 4:
-		return "rediSav - Pixiv - Best: " + args[0].(string)
+		return "multiSav - Pixiv - Best: " + args[0].(string)
 	default:
-		return "rediSav - Pixiv - Unknown"
+		return "multiSav - Pixiv - Unknown"
 	}
 }

@@ -158,7 +158,7 @@ func (buf *BufferedImageProducer) Destroy() {
 }
 
 func (buf *BufferedImageProducer) GetTitle() string {
-	return "rediSav - Online"
+	return "multiSav - Online"
 }
 
 func (buf *BufferedImageProducer) ActionHandler(key int32, sel int, call int) ActionRet {
