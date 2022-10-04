@@ -1,6 +1,8 @@
 package main
 
 import (
+	"archive/zip"
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -249,7 +251,7 @@ func (buf *BufferedImageProducer) remove(sel int) {
 	buf.items = buf.items[:len(buf.items)-1]
 }
 
-func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegReader) string {
+func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoReader) string {
 	if sel+BIP_BUFAFTER >= len(buf.items) && buf.extending != nil && buf.lazy {
 		go buf.extending.Do(func() {
 			extend := buf.site.ExtendListing(buf.listing)
@@ -355,6 +357,29 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 		// We still need to recieve to ensure the buffer is updated, but no need to do it synchronously
 		go func() { <-buf.selRecv }()
 		return buf.items[sel].GetName()
+	} else if buf.items[sel].GetType() == IETYPE_UGOIRA {
+		// TODO: DANGER DANGER SPECIAL CASING
+		useful := buf.items[sel].(*PixivImageEntry)
+		metadata, err := useful.GetUgoiraMetadata()
+		if err != nil {
+			*img = drawMessage(err.Error())
+			return "\\/err" + buf.items[sel].GetName()
+		}
+		resp, err := buf.site.GetRequest(metadata.Zip_urls.Best())
+		if err != nil {
+			*img = drawMessage(err.Error())
+			return "\\/err" + buf.items[sel].GetName()
+		}
+		data, err := io.ReadAll(resp.Body)
+		if err != nil {
+			*img = drawMessage(err.Error())
+			return "\\/err" + buf.items[sel].GetName()
+		}
+		d := bytes.NewReader(data)
+		r, _ := zip.NewReader(d, int64(len(data)))
+		*ffmpeg = &UgoiraReader{
+			h: int32(useful.Height), w: int32(useful.Width),
+			frames: metadata.Frames, i: -1, reader: r}
 	}
 	ind2 := strings.LastIndexByte(URL, '?')
 	if ind2 == -1 {
@@ -406,7 +431,8 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 				return "\\/err" + buf.items[sel].GetName()
 			}
 		} else {
-			*img = rl.GenImageColor(int((*ffmpeg).w), int((*ffmpeg).h), rl.Black)
+			w, h := (*ffmpeg).GetDimensions()
+			*img = rl.GenImageColor(int(w), int(h), rl.Black)
 		}
 	case "png":
 		fallthrough

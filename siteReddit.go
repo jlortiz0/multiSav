@@ -370,9 +370,6 @@ func (red *RedditImageEntry) GetType() ImageEntryType {
 		}
 		return IETYPE_GALLERY
 	}
-	if red.Is_video {
-		return IETYPE_ANIMATED
-	}
 	return IETYPE_REGULAR
 }
 

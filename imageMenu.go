@@ -20,7 +20,7 @@ type ImageMenu struct {
 	cam          rl.Camera2D
 	tol          rl.Vector2
 	tempSel      int
-	ffmpeg       *ffmpegReader
+	ffmpeg       VideoReader
 	fName        string
 	ffmpegData   chan []color.RGBA
 }
@@ -90,15 +90,17 @@ func (menu *ImageMenu) loadImage() {
 			menu.state = IMSTATE_NORMAL
 		} else {
 			menu.ffmpegData = make(chan []color.RGBA)
-			data, _ := menu.ffmpeg.Read()
-			data2 := make([]color.RGBA, len(data)/3)
-			for i := range data2 {
-				data2[i] = color.RGBA{R: data[i*3], G: data[i*3+1], B: data[i*3+2], A: 255}
+			data, i, _ := menu.ffmpeg.Read()
+			if i == nil {
+				menu.state = IMSTATE_NORMAL
+				menu.ffmpegData <- data
+			} else {
+				rl.UnloadImage(menu.img)
+				menu.img = i
+				menu.state = IMSTATE_NORMAL
 			}
-			menu.state = IMSTATE_NORMAL
-			menu.ffmpegData <- data2
 			for menu.ffmpeg != nil {
-				data, err := menu.ffmpeg.Read()
+				data, i, err := menu.ffmpeg.Read()
 				if err != nil {
 					menu.ffmpeg.Destroy()
 					menu.ffmpeg = nil
@@ -109,11 +111,15 @@ func (menu *ImageMenu) loadImage() {
 					menu.state = IMSTATE_ERRORMINOR
 					break
 				}
-				data2 := make([]color.RGBA, len(data)/3)
-				for i := range data2 {
-					data2[i] = color.RGBA{R: data[i*3], G: data[i*3+1], B: data[i*3+2], A: 255}
+				if i == nil {
+					menu.ffmpegData <- data
+				} else {
+					// TODO: DANGER DANGER CONCURRENT ACCESS
+					if menu.img != nil {
+						rl.UnloadImage(menu.img)
+					}
+					menu.img = i
 				}
-				menu.ffmpegData <- data2
 			}
 			close(menu.ffmpegData)
 		}

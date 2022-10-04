@@ -21,6 +21,19 @@ type multisize struct {
 	Original      string
 }
 
+func (m multisize) Best() string {
+	if m.Original != "" {
+		return m.Original
+	}
+	if m.Large != "" {
+		return m.Large
+	}
+	if m.Medium != "" {
+		return m.Medium
+	}
+	return m.Square_medium
+}
+
 type User struct {
 	ID                 int
 	Name               string

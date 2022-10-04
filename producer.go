@@ -22,7 +22,7 @@ type ImageProducer interface {
 	// Get the image at the given index
 	// One of the two pointers will be filled depending on the image type
 	// A filename to display to the user will be returned
-	Get(int, **rl.Image, **ffmpegReader) string
+	Get(int, **rl.Image, *VideoReader) string
 	// Ensure that the given index is within bounds
 	// May load additional images to check this
 	BoundsCheck(int) bool
@@ -123,7 +123,7 @@ type ImageEntryType int
 
 const (
 	IETYPE_REGULAR ImageEntryType = iota
-	IETYPE_ANIMATED
+	IETYPE_UGOIRA
 	IETYPE_TEXT
 	IETYPE_GALLERY
 	// IETYPE_WEBPAGE
@@ -327,7 +327,7 @@ func (prod *OfflineImageProducer) BoundsCheck(i int) bool {
 	return i >= 0 && i < len(prod.items)
 }
 
-func (prod *OfflineImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegReader) string {
+func (prod *OfflineImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoReader) string {
 	if !prod.BoundsCheck(sel) {
 		if prod.empty != 0 {
 			text := "No supported images"
@@ -367,7 +367,8 @@ func (prod *OfflineImageProducer) Get(sel int, img **rl.Image, ffmpeg **ffmpegRe
 		fallthrough
 	case "mov":
 		*ffmpeg = NewFfmpegReader(prod.fldr + string(os.PathSeparator) + prod.items[sel])
-		*img = rl.GenImageColor(int((*ffmpeg).w), int((*ffmpeg).h), rl.Blank)
+		w, h := (*ffmpeg).GetDimensions()
+		*img = rl.GenImageColor(int(w), int(h), rl.Blank)
 	default:
 		*img = rl.LoadImage(prod.fldr + string(os.PathSeparator) + prod.items[sel])
 		if (*img).Height == 0 {

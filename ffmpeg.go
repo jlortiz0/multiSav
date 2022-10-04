@@ -20,11 +20,20 @@ package main
 import (
 	"errors"
 	"image"
+	"image/color"
 	"io"
 	"os/exec"
 	"regexp"
 	"strconv"
+
+	rl "github.com/gen2brain/raylib-go/raylib"
 )
+
+type VideoReader interface {
+	Destroy() error
+	Read() ([]color.RGBA, *rl.Image, error)
+	GetDimensions() (int32, int32)
+}
 
 // TODO: This sucks. Use libavformat if possible.
 type ffmpegReader struct {
@@ -76,9 +85,17 @@ func (ffmpeg *ffmpegReader) Destroy() error {
 	return ffmpeg.Wait()
 }
 
-func (ffmpeg *ffmpegReader) Read() ([]byte, error) {
+func (ffmpeg *ffmpegReader) Read() ([]color.RGBA, *rl.Image, error) {
 	_, err := io.ReadFull(ffmpeg.reader, ffmpeg.buf)
-	return ffmpeg.buf, err
+	data2 := make([]color.RGBA, len(ffmpeg.buf)/3)
+	for i := range data2 {
+		data2[i] = color.RGBA{R: ffmpeg.buf[i*3], G: ffmpeg.buf[i*3+1], B: ffmpeg.buf[i*3+2], A: 255}
+	}
+	return data2, nil, err
+}
+
+func (ffmpeg *ffmpegReader) GetDimensions() (int32, int32) {
+	return ffmpeg.w, ffmpeg.h
 }
 
 var ffprobeRegex *regexp.Regexp = regexp.MustCompile(`Video: [^,]+, [^,].+, (\d+)x(\d+)`)

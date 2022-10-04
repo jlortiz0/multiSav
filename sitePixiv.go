@@ -1,8 +1,11 @@
 package main
 
 import (
+	"archive/zip"
 	"errors"
 	"fmt"
+	"image/color"
+	"io"
 	"net/url"
 	"strconv"
 	"strings"
@@ -31,7 +34,7 @@ func (p PixivSite) GetListingInfo() []ListingInfo {
 		{"User", []ListingArgument{{name: "ID or URL"}}},
 		{"Bookmarks", []ListingArgument{{name: "User ID or URL (0 for self)"}}},
 		{"Search", []ListingArgument{{name: "Query"}, {name: "Search kind", options: []interface{}{
-			pixivapi.TAGS_EXACT, pixivapi.TAGS_EXACT, pixivapi.TITLE_AND_CAPTION,
+			pixivapi.TAGS_EXACT, pixivapi.TAGS_PARTIAL, pixivapi.TITLE_AND_CAPTION,
 		}}}},
 		{"Recommended", nil},
 		{"Best of", []ListingArgument{{name: "Of", options: []interface{}{
@@ -98,20 +101,20 @@ func (p PixivSite) GetListing(kind int, args []interface{}, persist interface{})
 		}
 	case 2:
 		// Search
-		ls, err = p.SearchIllust(args[0].(string), args[1].(pixivapi.SearchTarget), pixivapi.DATE_DESC, pixivapi.WITHIN_NONE)
+		ls, err = p.SearchIllust(args[0].(string), pixivapi.SearchTarget(args[1].(string)), pixivapi.DATE_DESC, pixivapi.WITHIN_NONE)
 	case 3:
 		// Recommended
 		ls, err = p.RecommendedIllust(pixivapi.ILTYPE_ILUST)
 	case 4:
 		// Best of
-		ls, err = p.RankedIllust(args[0].(pixivapi.RankingMode), time.Time{})
+		ls, err = p.RankedIllust(pixivapi.RankingMode(args[0].(string)), time.Time{})
 	default:
 		err = errors.New("unknown kind")
 	}
 	if err != nil {
 		return ErrorListing{err}, nil
 	}
-	out := &PixivImageListing{ls, kind, 0, args}
+	out := &PixivImageListing{ls, 0, kind, args}
 	if persist != nil {
 		out.persist = int(persist.(float64))
 	}
@@ -217,6 +220,9 @@ func (p *PixivImageEntry) GetType() ImageEntryType {
 	if p.Page_count > 1 {
 		return IETYPE_GALLERY
 	}
+	if p.Type == pixivapi.ILTYPE_UGOIRA {
+		return IETYPE_UGOIRA
+	}
 	// if p.type == pixivapi.ILTYPE_NOVEL
 	return IETYPE_REGULAR
 }
@@ -251,13 +257,7 @@ type PixivGalleryEntry struct {
 }
 
 func (p *PixivGalleryEntry) GetURL() string {
-	if p.Meta_pages[p.ind].Image_urls.Original != "" {
-		return p.Meta_pages[p.ind].Image_urls.Original
-	}
-	if p.Meta_pages[p.ind].Image_urls.Large != "" {
-		return p.Meta_pages[p.ind].Image_urls.Large
-	}
-	return p.Meta_pages[p.ind].Image_urls.Medium
+	return p.Meta_pages[p.ind].Image_urls.Best()
 }
 
 func (p *PixivGalleryEntry) GetSaveName() string {
@@ -346,4 +346,43 @@ func (p PixivProducer) GetTitle() string {
 	default:
 		return "multiSav - Pixiv - Unknown"
 	}
+}
+
+type UgoiraReader struct {
+	reader *zip.Reader
+	i      int
+	w, h   int32
+	frames []struct {
+		File  string
+		Delay int
+	}
+	target time.Time
+}
+
+func (*UgoiraReader) Destroy() error { return nil }
+
+func (u *UgoiraReader) GetDimensions() (int32, int32) {
+	return u.w, u.h
+}
+
+func (u *UgoiraReader) Read() ([]color.RGBA, *rl.Image, error) {
+	u.i++
+	if u.i == len(u.frames) {
+		u.i = 0
+	}
+	r, err := u.reader.Open(u.frames[u.i].File)
+	if err != nil {
+		return nil, nil, err
+	}
+	i, err := io.ReadAll(r)
+	if err != nil {
+		return nil, nil, err
+	}
+	ext := u.frames[u.i].File[strings.LastIndexByte(u.frames[u.i].File, '.'):]
+	ret := rl.LoadImageFromMemory(ext, i, int32(len(i)))
+	if time.Now().Before(u.target) {
+		time.Sleep(time.Until(u.target))
+	}
+	u.target = time.Now().Add(time.Duration(u.frames[u.i].Delay) * time.Millisecond)
+	return nil, ret, r.Close()
 }
