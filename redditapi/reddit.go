@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -147,6 +148,15 @@ func (r *Reddit) GetRequest(url string) (*http.Response, error) {
 		rq.Header.Add("Authorization", r.token)
 	}
 	return r.Client.Do(rq)
+}
+
+func (r *Reddit) BySubmissionId(s []string, limit int) (*SubmissionIterator, error) {
+	for i, x := range s {
+		if x[3] != '_' {
+			s[i] = "t3_" + x
+		}
+	}
+	return newSubmissionIterator("by_id/"+strings.Join(s, ","), r, limit)
 }
 
 func (r *Reddit) ListNew(limit int) (*SubmissionIterator, error) {
