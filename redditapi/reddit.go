@@ -152,7 +152,7 @@ func (r *Reddit) GetRequest(url string) (*http.Response, error) {
 
 func (r *Reddit) BySubmissionId(s []string, limit int) (*SubmissionIterator, error) {
 	for i, x := range s {
-		if x[3] != '_' {
+		if x[2] != '_' {
 			s[i] = "t3_" + x
 		}
 	}
