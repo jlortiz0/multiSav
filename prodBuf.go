@@ -287,6 +287,16 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 		return buf.items[sel].GetName()
 	}
 	URL := buf.items[sel].GetURL()
+	if URL == "" {
+		s := buf.items[sel].GetText()
+		if s == "" {
+			s = "Missing URL\n" + buf.items[sel].GetPostURL()
+		}
+		*img = drawMessage(s)
+		// We still need to recieve to ensure the buffer is updated, but no need to do it synchronously
+		go func() { <-buf.selRecv }()
+		return buf.items[sel].GetName()
+	}
 	_, ok := buf.items[sel].(*WrapperImageEntry)
 	if !ok {
 	Outer:

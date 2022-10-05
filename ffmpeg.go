@@ -87,11 +87,14 @@ func (ffmpeg *ffmpegReader) Destroy() error {
 
 func (ffmpeg *ffmpegReader) Read() ([]color.RGBA, *rl.Image, error) {
 	_, err := io.ReadFull(ffmpeg.reader, ffmpeg.buf)
+	if err != nil {
+		return nil, nil, err
+	}
 	data2 := make([]color.RGBA, len(ffmpeg.buf)/3)
 	for i := range data2 {
 		data2[i] = color.RGBA{R: ffmpeg.buf[i*3], G: ffmpeg.buf[i*3+1], B: ffmpeg.buf[i*3+2], A: 255}
 	}
-	return data2, nil, err
+	return data2, nil, nil
 }
 
 func (ffmpeg *ffmpegReader) GetDimensions() (int32, int32) {
