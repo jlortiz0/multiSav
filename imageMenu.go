@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"image/color"
+	"sync"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 	rg "jlortiz.org/multisav/raygui-go"
@@ -13,6 +14,7 @@ type ImageMenu struct {
 	Producer     ImageProducer
 	target       rl.Vector2
 	img          *rl.Image
+	imgLock      *sync.Mutex
 	texture      rl.Texture2D
 	prevMoveDir  bool
 	state        imageMenuState
@@ -58,6 +60,7 @@ func NewImageMenu(prod ImageProducer) *ImageMenu {
 	menu.target.Y -= TEXT_SIZE + 10
 	menu.cam.Offset = rl.Vector2{Y: menu.target.Y / 2, X: menu.target.X / 2}
 	menu.cam.Zoom = 1
+	menu.imgLock = new(sync.Mutex)
 	return menu
 }
 
@@ -75,7 +78,9 @@ func (menu *ImageMenu) loadImage() {
 	}
 	menu.state = IMSTATE_LOADING
 	go func() {
+		menu.imgLock.Lock()
 		menu.fName = menu.Producer.Get(menu.Selected, &menu.img, &menu.ffmpeg)
+		menu.imgLock.Unlock()
 		if (menu.img == nil || menu.img.Height == 0) && menu.ffmpeg == nil {
 			if !menu.Producer.BoundsCheck(menu.Selected) {
 				menu.Selected = menu.Producer.Len() - 1
@@ -106,19 +111,22 @@ func (menu *ImageMenu) loadImage() {
 					menu.ffmpeg = nil
 					text := err.Error()
 					vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
+					menu.imgLock.Lock()
 					menu.img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
 					rl.ImageDrawTextEx(menu.img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
+					menu.imgLock.Unlock()
 					menu.state = IMSTATE_ERRORMINOR
 					break
 				}
 				if i == nil {
 					menu.ffmpegData <- data
 				} else {
-					// TODO: DANGER DANGER CONCURRENT ACCESS
+					menu.imgLock.Lock()
 					if menu.img != nil {
 						rl.UnloadImage(menu.img)
 					}
 					menu.img = i
+					menu.imgLock.Unlock()
 				}
 			}
 			close(menu.ffmpegData)
@@ -251,9 +259,11 @@ func (menu *ImageMenu) Prerender() LoopStatus {
 		if menu.texture.ID > 0 {
 			rl.UnloadTexture(menu.texture)
 		}
+		menu.imgLock.Lock()
 		menu.texture = rl.LoadTextureFromImage(menu.img)
 		rl.UnloadImage(menu.img)
 		menu.img = nil
+		menu.imgLock.Unlock()
 		menu.cam.Target = rl.Vector2{Y: float32(menu.texture.Height) / 2, X: float32(menu.texture.Width) / 2}
 		menu.cam.Zoom = 1
 	}
@@ -264,9 +274,11 @@ func (menu *ImageMenu) Prerender() LoopStatus {
 		if menu.texture.ID > 0 {
 			rl.UnloadTexture(menu.texture)
 		}
+		menu.imgLock.Lock()
 		menu.texture = rl.LoadTextureFromImage(menu.img)
 		rl.UnloadImage(menu.img)
 		menu.img = nil
+		menu.imgLock.Unlock()
 		rl.SetTextureFilter(menu.texture, rl.FilterBilinear)
 		menu.cam.Target = rl.Vector2{Y: float32(menu.texture.Height) / 2, X: float32(menu.texture.Width) / 2}
 		menu.cam.Zoom = getZoomForTexture(menu.texture, menu.target)

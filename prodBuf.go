@@ -25,7 +25,7 @@ type BufferedImageProducer struct {
 	selSender chan int
 	selRecv   chan bool
 	lazy      bool
-	// TODO: MUTEX THIS
+	bufLock   *sync.Mutex
 	buffer    [][]byte
 	extending *sync.Once
 }
@@ -65,6 +65,7 @@ func NewBufferedImageProducer(site ImageSite, kind int, args []interface{}, pers
 		buf.lazy = len(buf.items) != 0
 	}
 	buf.buffer = make([][]byte, BIP_BUFAFTER+BIP_BUFBEFORE+1)
+	buf.bufLock = new(sync.Mutex)
 	buf.selSender = make(chan int, 2)
 	buf.selRecv = make(chan bool, 1)
 	buf.extending = new(sync.Once)
@@ -79,16 +80,20 @@ func NewBufferedImageProducer(site ImageSite, kind int, args []interface{}, pers
 			}
 			if sel < prevSel {
 				x := prevSel - sel
+				buf.bufLock.Lock()
 				copy(buf.buffer[minint(x, len(buf.buffer)):], buf.buffer)
 				for i := 0; i < minint(x, len(buf.buffer)); i++ {
 					buf.buffer[i] = nil
 				}
+				buf.bufLock.Unlock()
 			} else {
 				x := sel - prevSel
+				buf.bufLock.Lock()
 				copy(buf.buffer, buf.buffer[minint(x, len(buf.buffer)):])
 				for i := maxint(len(buf.buffer)-x, 0); i < len(buf.buffer); i++ {
 					buf.buffer[i] = nil
 				}
+				buf.bufLock.Unlock()
 			}
 			buf.selRecv <- true
 			for i := range buf.buffer {
@@ -133,7 +138,11 @@ func NewBufferedImageProducer(site ImageSite, kind int, args []interface{}, pers
 					if err == nil {
 						data, err := io.ReadAll(resp.Body)
 						if err == nil {
-							buf.buffer[i] = data
+							buf.bufLock.Lock()
+							if buf.buffer[i] == nil {
+								buf.buffer[i] = data
+							}
+							buf.bufLock.Unlock()
 						}
 					}
 				}
@@ -245,8 +254,10 @@ func (buf *BufferedImageProducer) ActionHandler(key int32, sel int, call int) Ac
 }
 
 func (buf *BufferedImageProducer) remove(sel int) {
+	buf.bufLock.Lock()
 	copy(buf.buffer[BIP_BUFBEFORE:], buf.buffer[BIP_BUFBEFORE+1:])
 	buf.buffer[BIP_BUFAFTER+BIP_BUFBEFORE] = nil
+	buf.bufLock.Unlock()
 	copy(buf.items[sel:], buf.items[sel+1:])
 	buf.items = buf.items[:len(buf.items)-1]
 }
