@@ -505,6 +505,9 @@ func (red *RedditImageEntry) Combine(ie ImageEntry) {
 	red.data = ie.GetGalleryInfo(false)
 	if len(red.data) == 0 {
 		red.data = nil
+	} else if len(red.data) == 1 {
+		red.Combine(red.data[0])
+		red.data = nil
 	}
 }
 

@@ -429,13 +429,14 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 	// TODO: copy changes to thread loader
 	// TODO: handle &amp; (why is that in a URL in the first place?)
 	switch ext[1:] {
+	case "gifv":
+		URL = strings.Replace(URL, ".gifv", ".mp4", 1)
+		fallthrough
 	case "mp4":
 		fallthrough
 	case "webm":
 		fallthrough
 	case "gif":
-		fallthrough
-	case "gifv":
 		fallthrough
 	case "mov":
 		x, y := buf.items[sel].GetDimensions()

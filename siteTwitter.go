@@ -292,8 +292,11 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 }
 
 func (t TwitterSite) GetRequest(URL string) (*http.Response, error) {
+	URL = strings.ReplaceAll(URL, "&amp;", "&")
 	req, _ := http.NewRequest("GET", URL, http.NoBody)
-	t.Authorizer.Add(req)
+	if !strings.Contains(URL, "pbs.twimg") {
+		t.Authorizer.Add(req)
+	}
 	return t.Client.Client.Do(req)
 }
 
@@ -305,24 +308,32 @@ func (t TwitterSite) ResolveURL(URL string) (string, ImageEntry) {
 	switch u.Hostname() {
 	case "www.twitter.com":
 		fallthrough
+	case "mobile.twitter.com":
+		fallthrough
 	case "twitter.com":
 		s := u.Path
 		ind := strings.Index(s, "status")
 		if ind == -1 {
 			return "", nil
 		}
-		s = s[ind+6:]
+		s = s[ind+7:]
+		ind = strings.IndexByte(s, '/')
+		if ind != -1 {
+			s = s[:ind]
+		}
 		x2, err := t.TweetLookup(context.Background(), []string{s}, twitter.TweetLookupOpts{
 			Expansions:  []twitter.Expansion{twitter.ExpansionAttachmentsMediaKeys, twitter.ExpansionAuthorID},
 			MediaFields: []twitter.MediaField{twitter.MediaFieldHeight, twitter.MediaFieldMediaKey, twitter.MediaFieldURL, twitter.MediaFieldWidth, twitter.MediaFieldType, twitter.MediaFieldVariants},
 			TweetFields: []twitter.TweetField{twitter.TweetFieldAuthorID, twitter.TweetFieldAttachments, twitter.TweetFieldEntities, twitter.TweetFieldID, twitter.TweetFieldText},
 		})
-		if err != nil {
+		if err != nil || len(x2.Raw.Errors) != 0 {
 			return "", nil
 		}
 		x := x2.Raw.Tweets[0]
 		return "", &TwitterImageEntry{x.ID, x.Text, x2.Raw.Includes.Media, x.Entities.URLs, x2.Raw.Includes.Users[0].Name, "", nil}
 	case "pbs.twimg.com":
+		fallthrough
+	case "video.twimg.com":
 		fallthrough
 	case "twimg.com":
 		return RESOLVE_FINAL, nil
@@ -331,7 +342,7 @@ func (t TwitterSite) ResolveURL(URL string) (string, ImageEntry) {
 }
 
 func (t TwitterSite) GetResolvableDomains() []string {
-	return []string{"twitter.com", "pbs.twimg.com", "twimg.com", "www.twitter.com"}
+	return []string{"twitter.com", "pbs.twimg.com", "twimg.com", "www.twitter.com", "mobile.twitter.com", "video.twimg.com"}
 }
 
 type TwitterImageEntry struct {
@@ -371,7 +382,7 @@ func (t *TwitterImageEntry) GetInfo() string {
 }
 
 func (t *TwitterImageEntry) GetType() ImageEntryType {
-	if len(t.media) > 1 {
+	if len(t.media) > 2 {
 		return IETYPE_GALLERY
 	} else if len(t.media) > 0 {
 		return IETYPE_REGULAR
@@ -467,6 +478,8 @@ func (t *TwitterGalleryEntry) GetSaveName() string {
 	ind := strings.LastIndexByte(s, '.')
 	return fmt.Sprintf("%s_%d.%s", s[:ind], t.index, s[ind+1:])
 }
+
+func (*TwitterGalleryEntry) GetGalleryInfo(bool) []ImageEntry { return nil }
 
 type TwitterProducer struct {
 	*BufferedImageProducer

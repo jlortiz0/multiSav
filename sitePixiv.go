@@ -41,7 +41,7 @@ func (p PixivSite) GetListingInfo() []ListingInfo {
 }
 
 func (p PixivSite) GetResolvableDomains() []string {
-	return []string{"pixiv.net", "i.pximg.net"}
+	return []string{"pixiv.net", "www.pixiv.net", "i.pximg.net"}
 }
 
 type PixivImageListing struct {
