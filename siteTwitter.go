@@ -19,17 +19,15 @@ type TwitterSite struct {
 	*twitter.Client
 }
 
-type twitterAuthorizer struct {
-	key string
-}
+type twitterAuthorizer byte
 
-func (t twitterAuthorizer) Add(req *http.Request) {
-	req.Header.Add("Authorization", t.key)
-}
+func (t twitterAuthorizer) Add(req *http.Request) {}
 
 func NewTwitterSite(bearer, refresh string) TwitterSite {
 	if refresh == "" {
-		return TwitterSite{&twitter.Client{Authorizer: twitterAuthorizer{bearer}, Client: http.DefaultClient, Host: "https://api.twitter.com"}}
+		return TwitterSite{&twitter.Client{Authorizer: twitterAuthorizer(0), Client: oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(&oauth2.Token{
+			AccessToken: bearer,
+		})), Host: "https://api.twitter.com"}}
 	}
 	config := &oauth2.Config{
 		ClientID:     TwitterID,
@@ -40,7 +38,7 @@ func NewTwitterSite(bearer, refresh string) TwitterSite {
 	config.Endpoint.AuthURL = "https://twitter.com/i/oauth2/authorize"
 	config.Endpoint.TokenURL = "https://api.twitter.com/2/oauth2/token"
 	token := &oauth2.Token{AccessToken: bearer, RefreshToken: refresh, Expiry: time.Now().Add(time.Hour / 2)}
-	return TwitterSite{&twitter.Client{Client: config.Client(context.Background(), token), Host: "https://api.twitter.com"}}
+	return TwitterSite{&twitter.Client{Authorizer: twitterAuthorizer(0), Client: config.Client(context.Background(), token), Host: "https://api.twitter.com"}}
 }
 
 func (t TwitterSite) Destroy() {}
@@ -197,9 +195,8 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 		}
 		var resp *twitter.ListTweetLookupResponse
 		resp, err = t.ListTweetLookup(context.Background(), s, twitter.ListTweetLookupOpts{
-			Expansions: []twitter.Expansion{twitter.ExpansionAttachmentsMediaKeys, twitter.ExpansionAuthorID},
-			// TODO: ?!? this is part of the request? Maybe submit a PR to the package to fix this.
-			// MediaFields: []twitter.MediaField{twitter.MediaFieldHeight, twitter.MediaFieldMediaKey, twitter.MediaFieldURL, twitter.MediaFieldWidth, twitter.MediaFieldType, twitter.MediaFieldVariants},
+			Expansions:      []twitter.Expansion{twitter.ExpansionAttachmentsMediaKeys, twitter.ExpansionAuthorID},
+			MediaFields:     []twitter.MediaField{twitter.MediaFieldHeight, twitter.MediaFieldMediaKey, twitter.MediaFieldURL, twitter.MediaFieldWidth, twitter.MediaFieldType, twitter.MediaFieldVariants},
 			TweetFields:     []twitter.TweetField{twitter.TweetFieldAuthorID, twitter.TweetFieldAttachments, twitter.TweetFieldEntities, twitter.TweetFieldID, twitter.TweetFieldText},
 			MaxResults:      100,
 			PaginationToken: token,
