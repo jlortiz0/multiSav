@@ -23,7 +23,7 @@ const (
 	auth_url      = "https://oauth.secure.pixiv.net/auth/token"
 	base_url      = "https://app-api.pixiv.net/v"
 	ios_version   = "15.7"
-	user_agent    = "PixivIOSApp/7.15.11 (iOS " + ios_version + "; iPhone13,2)"
+	user_agent    = "PixivIOSApp/7.15.14 (iOS " + ios_version + "; iPhone13,2)"
 	client_id     = "MOBrBDS8blbauoSck0ZfDbtuzpyT"
 	client_secret = "lsACyCD94FhDUtGTXi3QzcFE2uU1hqtDaKeqrdwj"
 )
