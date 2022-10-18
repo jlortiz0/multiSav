@@ -20,3 +20,5 @@ replace jlortiz.org/multisav/redditapi => ./redditapi
 replace jlortiz.org/multisav/raygui-go => ./raygui-go
 
 replace jlortiz.org/multisav/pixivapi => ./pixivapi
+
+replace github.com/g8rswimmer/go-twitter/v2 => github.com/jlortiz0/go-twitter/v2 v2.1.3-0.20221018050935-6eff13d54906
