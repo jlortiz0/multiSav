@@ -3,3 +3,4 @@ redditApi/login.json
 jlortiz_TEST
 .vscode/**
 pixivapi/out.json
+tokens.go

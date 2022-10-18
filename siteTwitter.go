@@ -8,9 +8,11 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	twitter "github.com/g8rswimmer/go-twitter/v2"
 	rl "github.com/gen2brain/raylib-go/raylib"
+	"golang.org/x/oauth2"
 )
 
 type TwitterSite struct {
@@ -25,15 +27,20 @@ func (t twitterAuthorizer) Add(req *http.Request) {
 	req.Header.Add("Authorization", t.key)
 }
 
-// TODO: Sometimes getting a twitter pbs image results in 403 for seemingly no reason
-// Perhaps requests there should not be authorized?
-func NewTwitterSite(bearer string) TwitterSite {
-	if !strings.HasPrefix(bearer, "Bearer ") {
-		bearer = "Bearer " + bearer
+func NewTwitterSite(bearer, refresh string) TwitterSite {
+	if refresh == "" {
+		return TwitterSite{&twitter.Client{Authorizer: twitterAuthorizer{bearer}, Client: http.DefaultClient, Host: "https://api.twitter.com"}}
 	}
-	t := TwitterSite{&twitter.Client{Authorizer: twitterAuthorizer{bearer}, Client: http.DefaultClient, Host: "https://api.twitter.com"}}
-	// TODO: Login
-	return t
+	config := &oauth2.Config{
+		ClientID:     TwitterID,
+		ClientSecret: TwitterSecret,
+		RedirectURL:  "http://localhost:5738/twitter",
+		Scopes:       []string{"tweet.read", "users.read", "list.read", "offline.access", "bookmark.read", "bookmark.write"},
+	}
+	config.Endpoint.AuthURL = "https://twitter.com/i/oauth2/authorize"
+	config.Endpoint.TokenURL = "https://api.twitter.com/2/oauth2/token"
+	token := &oauth2.Token{AccessToken: bearer, RefreshToken: refresh, Expiry: time.Now().Add(time.Hour / 2)}
+	return TwitterSite{&twitter.Client{Client: config.Client(context.Background(), token), Host: "https://api.twitter.com"}}
 }
 
 func (t TwitterSite) Destroy() {}

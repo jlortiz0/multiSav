@@ -33,13 +33,15 @@ func loginHelper() {
 	}
 	f.Close()
 	var fields struct {
-		Id            string
-		Secret        string
-		Login         string
-		Password      string
-		ImgurId       string
-		TwitterBearer string
-		PixivToken    string
+		Id       string
+		Secret   string
+		Login    string
+		Password string
+		Twitter  struct {
+			Token   string
+			Refresh string
+		}
+		PixivToken string
 	}
 	err = json.Unmarshal(data[:n], &fields)
 	if err != nil {
@@ -55,11 +57,15 @@ func loginHelper() {
 	for _, x := range siteReddit.GetResolvableDomains() {
 		resolveMap[x] = siteReddit
 	}
-	img := NewImgurResolver(fields.ImgurId)
+	img := NewImgurResolver(ImgurID)
 	for _, x := range img.GetResolvableDomains() {
 		resolveMap[x] = img
 	}
-	siteTwitter = NewTwitterSite(fields.TwitterBearer)
+	if fields.Twitter.Token != "" {
+		siteTwitter = NewTwitterSite(fields.Twitter.Token, fields.Twitter.Refresh)
+	} else {
+		siteTwitter = NewTwitterSite(TwitterBearer, "")
+	}
 	for _, x := range siteTwitter.GetResolvableDomains() {
 		resolveMap[x] = siteTwitter
 	}
@@ -104,8 +110,10 @@ var saveData struct {
 		Login    string
 		Password string
 	}
-	Imgur    string
-	Twitter  string
+	Twitter struct {
+		Token   string
+		Refresh string
+	}
 	Pixiv    string
 	Listings []SavedListing
 }

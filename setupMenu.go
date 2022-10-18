@@ -158,14 +158,15 @@ cm:
 }
 
 func SetUpSites() bool {
-	cm := NewChoiceMenu([]string{"Reddit", "Imgur", "Twitter", "Pixiv", "Back"})
-	if stdEventLoop(cm) == LOOP_QUIT {
-		return true
+	cm := NewChoiceMenu([]string{"Reddit", "Twitter", "Pixiv", "Back"})
+	ret := stdEventLoop(cm)
+	if ret != LOOP_EXIT {
+		return ret == LOOP_QUIT
 	}
 	kind := cm.Selected
 	cm.Destroy()
 	switch kind {
-	case 4:
+	case 3:
 		return false
 	case 0:
 		// Set up 2-4 keys
@@ -212,31 +213,12 @@ func SetUpSites() bool {
 			}
 		}
 	case 1:
-		args := []interface{}{saveData.Imgur}
+		args := []interface{}{""}
 		flags := make([]bool, 1)
 		cArgs := []ListingArgument{
 			{
-				name: "Client ID",
-			},
-		}
-		for !rl.WindowShouldClose() {
-			rl.BeginDrawing()
-			rl.ClearBackground(color.RGBA{R: 64, G: 64, B: 64})
-			out := DrawArgumentsUI("Imgur", cArgs, args, flags)
-			rl.EndDrawing()
-			if out != nil && len(out) == 0 {
-				break
-			} else if len(out) != 0 {
-				saveData.Imgur = args[0].(string)
-				break
-			}
-		}
-	case 2:
-		args := []interface{}{saveData.Twitter}
-		flags := make([]bool, 1)
-		cArgs := []ListingArgument{
-			{
-				name: "Bearer Token",
+				name: "Use superRedirect to set up Twitter",
+				kind: LARGTYPE_LABEL,
 			},
 		}
 		for !rl.WindowShouldClose() {
@@ -244,14 +226,11 @@ func SetUpSites() bool {
 			rl.ClearBackground(color.RGBA{R: 64, G: 64, B: 64})
 			out := DrawArgumentsUI("Twitter", cArgs, args, flags)
 			rl.EndDrawing()
-			if out != nil && len(out) == 0 {
-				break
-			} else if len(out) != 0 {
-				saveData.Twitter = args[0].(string)
+			if out != nil {
 				break
 			}
 		}
-	case 3:
+	case 2:
 		args := []interface{}{saveData.Pixiv}
 		flags := make([]bool, 1)
 		cArgs := []ListingArgument{
