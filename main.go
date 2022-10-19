@@ -19,10 +19,6 @@ var sitePixiv PixivSite
 const TEXT_SIZE = 18
 const FRAME_RATE = 60
 
-func loginHelper() {
-
-}
-
 var font rl.Font
 
 const (
@@ -56,7 +52,7 @@ func loadSaveData() error {
 	f, err := os.Open("multiSav.json")
 	if err != nil {
 		if os.IsNotExist(err) {
-			saveData.Listings = []SavedListing{{"Downloads", SITE_LOCAL, 0, []interface{}{"Downloads"}, nil}}
+			saveData.Downloads = "Downloads"
 			return nil
 		}
 		return err
@@ -70,6 +66,9 @@ func loadSaveData() error {
 }
 
 func loginToSites() {
+	if _, err := os.Stat(saveData.Downloads); err != nil {
+		os.MkdirAll(saveData.Downloads, 0600)
+	}
 	siteReddit = NewRedditSite(saveData.Reddit)
 	resolveMap = make(map[string]Resolver)
 	for _, x := range siteReddit.GetResolvableDomains() {
@@ -83,7 +82,8 @@ func loginToSites() {
 	for _, x := range siteTwitter.GetResolvableDomains() {
 		resolveMap[x] = siteTwitter
 	}
-	sitePixiv, err := NewPixivSite(saveData.Pixiv)
+	var err error
+	sitePixiv, err = NewPixivSite(saveData.Pixiv)
 	if err != nil {
 		panic(err)
 	}
@@ -120,7 +120,6 @@ func saveSaveData() error {
 }
 
 func main() {
-	loginHelper()
 	rl.SetConfigFlags(rl.FlagVsyncHint)
 	rl.SetConfigFlags(rl.FlagWindowResizable)
 	rl.InitWindow(1024, 768, "multiSav")
@@ -138,12 +137,14 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	loginToSites()
 	fadeOut(func() { rl.ClearBackground(rl.Black) })
 MainLoop:
 	for {
-		names := make([]string, len(saveData.Listings), len(saveData.Listings)+4)
+		names := make([]string, len(saveData.Listings)+1, len(saveData.Listings)+4)
+		names[0] = "Downloads"
 		for i, v := range saveData.Listings {
-			names[i] = v.Name
+			names[i+1] = v.Name
 		}
 		names = append(names, "Edit Listings", "Options", "Quit")
 		cm := NewChoiceMenu(names)
@@ -152,8 +153,8 @@ MainLoop:
 		}
 		sel := cm.Selected
 		cm.Destroy()
-		if sel >= len(saveData.Listings) {
-			switch sel - len(saveData.Listings) {
+		if sel >= len(saveData.Listings)+1 {
+			switch sel - len(saveData.Listings) - 1 {
 			case 0:
 				if EditListings() {
 					break MainLoop
@@ -165,8 +166,16 @@ MainLoop:
 			case 2:
 				break MainLoop
 			}
+		} else if sel == 0 {
+			producer := NewOfflineImageProducer(saveData.Downloads)
+			menu := NewImageMenu(producer)
+			if stdEventLoop(menu) == LOOP_QUIT {
+				break MainLoop
+			}
+			menu.Destroy()
+			rl.SetWindowTitle("multiSav")
 		} else {
-			data := saveData.Listings[sel]
+			data := saveData.Listings[sel-1]
 			var producer ImageProducer
 			switch data.Site {
 			case SITE_LOCAL:
@@ -184,7 +193,7 @@ MainLoop:
 			}
 			listing := producer.GetListing()
 			if listing != nil {
-				saveData.Listings[sel].Persistent = listing.GetPersistent()
+				saveData.Listings[sel-1].Persistent = listing.GetPersistent()
 			}
 			menu.Destroy()
 			rl.SetWindowTitle("multiSav")

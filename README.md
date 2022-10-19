@@ -6,6 +6,5 @@ You know, it would be nice if I combined this and ImageSort, ignoring that they'
 
 ### To do list
  - Write instructions
- - Allow the user to set the downloads folder
- - The various things I put in the comments. Especially related to mutexes.
+ - The various things I put in the comments.
  - Replace ffmpeg.go with an actually decent system

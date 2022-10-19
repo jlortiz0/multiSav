@@ -404,6 +404,8 @@ func (menu *ImageMenu) Renderer() {
 		vec = rl.MeasureTextEx(font, menu.fName, TEXT_SIZE, 0)
 		vec.Y = menu.target.Y + 5
 		vec.X = menu.target.X/2 - vec.X/2
+		// TODO: Make this a label that opens the info box on click
+		// May need to modify ImageProducer again
 		rl.DrawTextEx(font, menu.fName, vec, TEXT_SIZE, 0, rl.RayWhite)
 		if menu.state&IMSTATE_GOTO == 0 {
 			s := fmt.Sprintf("%d/%d", menu.Selected+1, menu.Producer.Len())
@@ -465,11 +467,14 @@ func (menu *ImageMenu) Destroy() {
 	if menu.texture.ID > 0 {
 		rl.UnloadTexture(menu.texture)
 	}
-	if menu.img != nil {
-		rl.UnloadImage(menu.img)
-	}
 	if menu.ffmpeg != nil {
 		menu.ffmpeg.Destroy()
+		menu.ffmpeg = nil
+		for range menu.ffmpegData {
+		}
+	}
+	if menu.img != nil {
+		rl.UnloadImage(menu.img)
 	}
 	menu.Producer.Destroy()
 }

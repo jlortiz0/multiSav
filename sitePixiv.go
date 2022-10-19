@@ -56,7 +56,7 @@ func (p *PixivImageListing) GetInfo() (int, []interface{}) {
 }
 
 func (p *PixivImageListing) GetPersistent() interface{} {
-	return p.persist
+	return float64(p.persist)
 }
 
 func (p PixivSite) GetListing(kind int, args []interface{}, persist interface{}) (ImageListing, []ImageEntry) {
@@ -281,7 +281,7 @@ func (p PixivProducer) ActionHandler(key int32, sel int, call int) ActionRet {
 		return p.BufferedImageProducer.ActionHandler(key, sel, call)
 	}
 	if key == rl.KeyX {
-		if p.listing.(*PixivImageListing).kind == 1 || rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift) {
+		if saveData.Settings.SaveOnX || p.listing.(*PixivImageListing).kind == 1 || rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift) {
 			ret := p.BufferedImageProducer.ActionHandler(key, sel, call)
 			if ret&ARET_REMOVE != 0 {
 				useful.Unbookmark()

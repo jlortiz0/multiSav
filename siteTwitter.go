@@ -504,7 +504,7 @@ func (t TwitterProducer) ActionHandler(key int32, sel int, call int) ActionRet {
 		return t.BufferedImageProducer.ActionHandler(key, sel, call)
 	}
 	if key == rl.KeyX {
-		if t.listing.(*TwitterImageListing).kind == 5 || rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift) || t.listing.(*TwitterImageListing).myId == "" {
+		if saveData.Settings.SaveOnX || t.listing.(*TwitterImageListing).kind == 5 || rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift) || t.listing.(*TwitterImageListing).myId == "" {
 			ret := t.BufferedImageProducer.ActionHandler(key, sel, call)
 			if ret&ARET_REMOVE != 0 {
 				t.site.RemoveTweetBookmark(context.Background(), t.listing.(*TwitterImageListing).myId, useful.ID)
