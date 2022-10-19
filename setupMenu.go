@@ -65,7 +65,7 @@ func DrawArgumentsUI(name string, args []ListingArgument, out []interface{}, fla
 			case LARGTYPE_BOOL:
 				out[i] = rg.GuiCheckBox(rl.Rectangle{X: target.X/2 + 5, Y: vec2.Y - 3, Width: TEXT_SIZE + 5, Height: TEXT_SIZE + 5}, "", out[i].(bool))
 			case LARGTYPE_URL:
-				// Character limit seems too small for a url
+				// TODO: Character limit seems too small for a url
 				// Further investigation needed
 				fallthrough
 			case LARGTYPE_STRING:

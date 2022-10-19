@@ -14,6 +14,7 @@ import (
 	"time"
 
 	cfbp "github.com/DaRealFreak/cloudflare-bp-go"
+	"golang.org/x/oauth2"
 )
 
 // https://github.com/upbit/pixivpy used as reference for this package
@@ -59,36 +60,31 @@ const (
 )
 
 type Client struct {
-	clientId     string
-	clientSecret string
-	accessToken  string
-	refreshToken string
-	client       *http.Client
-	myId         int
-	expiry       time.Time
+	client *http.Client
+	token  *oauth2.Token
+	config *oauth2.Config
+	myId   int
+	expiry time.Time
 }
 
 func NewClient() *Client {
 	c := new(Client)
-	c.clientId = Client_ID
-	c.clientSecret = Client_secret
 	c.client = new(http.Client)
 	c.client.Transport = cfbp.AddCloudFlareByPass(nil)
 	return c
 }
 
 func (p *Client) SetToken(access, refresh string) {
-	p.accessToken = access
-	p.refreshToken = refresh
+	p.token = &oauth2.Token{AccessToken: access, RefreshToken: refresh, Expiry: time.Now().Add(time.Minute * 10)}
 }
 
 func (p *Client) Login(token string) error {
 	ts := time.Now().UTC().Format("2006-01-02T15:04:05") + "+00:00"
 	buf := new(bytes.Buffer)
 	buf.WriteString("client_id=")
-	buf.WriteString(p.clientId)
+	buf.WriteString(Client_ID)
 	buf.WriteString("&client_secret=")
-	buf.WriteString(p.clientSecret)
+	buf.WriteString(Client_secret)
 	buf.WriteString("&grant_type=refresh_token&include_policy=true&refresh_token=")
 	buf.WriteString(token)
 	req, _ := http.NewRequest("POST", auth_url, buf)
@@ -125,19 +121,20 @@ func (p *Client) Login(token string) error {
 	if output.Error_description != "" {
 		return errors.New(output.Error_description)
 	}
-	p.accessToken = output.Access_token
-	p.refreshToken = output.Refresh_token
 	p.myId, err = strconv.Atoi(output.User.ID)
-	p.expiry = time.Now().Add(time.Second * time.Duration(output.Expires_in))
+	p.token = &oauth2.Token{AccessToken: output.Access_token, RefreshToken: output.Refresh_token, Expiry: time.Now().Add(time.Second * time.Duration(output.Expires_in))}
 	return err
 }
 
-func (p *Client) RefreshAuth() error {
-	return p.Login(p.refreshToken)
+func (p *Client) checkToken() error {
+	if !p.token.Valid() {
+		return p.Login(p.token.RefreshToken)
+	}
+	return nil
 }
 
 func (p *Client) RefreshToken() string {
-	return p.refreshToken
+	return p.token.RefreshToken
 }
 
 func (p *Client) doGetRequest(url string) (*http.Response, error) {
@@ -145,43 +142,33 @@ func (p *Client) doGetRequest(url string) (*http.Response, error) {
 }
 
 func (p *Client) GetRequest(url string) (*http.Response, error) {
-	if p.accessToken == "" {
-		return nil, nil
+	if p.token == nil {
+		return nil, errors.New("not logged in")
 	}
-	if time.Now().After(p.expiry) {
-		err := p.RefreshAuth()
-		if err != nil {
-			return nil, err
-		}
-	}
+	p.checkToken()
 	req, _ := http.NewRequest("GET", url, http.NoBody)
-	req.Header.Add("Authorization", "Bearer "+p.accessToken)
 	req.Header.Add("User-Agent", user_agent)
 	req.Header.Add("app-os", "ios")
 	req.Header.Add("app-os-version", ios_version)
 	req.Header.Add("Accept-Language", "en-US,en;q=0.5")
 	req.Header.Add("Referer", "https://app-api.pixiv.net/")
+	p.token.SetAuthHeader(req)
 	return p.client.Do(req)
 }
 
 func (p *Client) buildPostRequest(url string, body string) *http.Request {
-	if p.accessToken == "" {
+	if p.token == nil {
 		return nil
 	}
-	if time.Now().After(p.expiry) {
-		err := p.RefreshAuth()
-		if err != nil {
-			panic(err)
-		}
-	}
+	p.checkToken()
 	req, _ := http.NewRequest("POST", base_url+url, strings.NewReader(body))
-	req.Header.Add("Authorization", "Bearer "+p.accessToken)
 	req.Header.Add("User-Agent", user_agent)
 	req.Header.Add("app-os", "ios")
 	req.Header.Add("app-os-version", ios_version)
 	req.Header.Add("Accept-Language", "en-US,en;q=0.5")
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Add("Content-Length", strconv.Itoa(len(body)))
+	p.token.SetAuthHeader(req)
 	return req
 }
 
