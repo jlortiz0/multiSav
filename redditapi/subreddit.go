@@ -27,7 +27,7 @@ func (red *Reddit) Subreddit(id string) (*Subreddit, error) {
 		Data Subreddit
 	}
 	req := red.buildRequest("GET", "r/"+id+"/about", http.NoBody)
-	resp, _ := red.Client.Do(req)
+	resp, _ := http.DefaultClient.Do(req)
 	data, _ := io.ReadAll(resp.Body)
 	req.Body.Close()
 	err := json.Unmarshal(data, &helper)
@@ -76,7 +76,7 @@ func (sub *Subreddit) Search(limit int, q string, sort string, t string) (*Submi
 
 func (sub *Subreddit) Subscribe() error {
 	req := sub.reddit.buildRequest("POST", "api/subscribe?action=sub&sr="+sub.Name, http.NoBody)
-	resp, err := sub.reddit.Client.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -90,7 +90,7 @@ func (sub *Subreddit) Subscribe() error {
 
 func (sub *Subreddit) Unsubscribe() error {
 	req := sub.reddit.buildRequest("POST", "api/subscribe?action=unsub&sr="+sub.Name, http.NoBody)
-	resp, err := sub.reddit.Client.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
 	}

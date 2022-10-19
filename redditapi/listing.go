@@ -54,7 +54,7 @@ func newSubmissionIterator(URL string, red *Reddit, limit int) (*SubmissionItera
 	}
 	url := fmt.Sprintf("%s%climit=%d", URL, chr, minPosInt(LISTING_PAGE_LIMIT, limit))
 	req := red.buildRequest("GET", url, http.NoBody)
-	resp, err := red.Client.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +93,7 @@ func (iter *SubmissionIterator) Next() (*Submission, error) {
 			chr = '&'
 		}
 		url := fmt.Sprintf("%s%cafter=%s&count=%d&limit=%d", iter.URL, chr, iter.lastId, iter.count, minPosInt(LISTING_PAGE_LIMIT, iter.limit-iter.count))
-		resp, err := iter.Reddit.Client.Do(iter.Reddit.buildRequest("GET", url, http.NoBody))
+		resp, err := http.DefaultClient.Do(iter.Reddit.buildRequest("GET", url, http.NoBody))
 		if err != nil {
 			return nil, err
 		}
@@ -175,7 +175,7 @@ func newCommentIterator(URL string, red *Reddit, limit int) (*CommentIterator, e
 	}
 	url := fmt.Sprintf("%s%climit=%d", URL, chr, minPosInt(LISTING_PAGE_LIMIT, limit))
 	req := red.buildRequest("GET", url, http.NoBody)
-	resp, err := red.Client.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -211,7 +211,7 @@ func (iter *CommentIterator) Next() (*Comment, error) {
 			chr = '&'
 		}
 		url := fmt.Sprintf("%s%cafter=%s&count=%d&limit=%d", iter.URL, chr, iter.lastId, iter.count, minPosInt(LISTING_PAGE_LIMIT, iter.limit-iter.count))
-		resp, err := iter.Reddit.Client.Do(iter.Reddit.buildRequest("GET", url, http.NoBody))
+		resp, err := http.DefaultClient.Do(iter.Reddit.buildRequest("GET", url, http.NoBody))
 		if err != nil {
 			return nil, err
 		}

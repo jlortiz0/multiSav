@@ -24,7 +24,7 @@ func (red *Reddit) Redditor(name string) (*Redditor, error) {
 		Data Redditor
 	}
 	rq := red.buildRequest("GET", "user/"+name+"/about", http.NoBody)
-	resp, err := red.Client.Do(rq)
+	resp, err := http.DefaultClient.Do(rq)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func (red *Reddit) Redditor(name string) (*Redditor, error) {
 
 func (usr *Redditor) Block() error {
 	rq := usr.reddit.buildRequest("POST", "api/block_user?name="+usr.Name, http.NoBody)
-	resp, err := usr.reddit.Client.Do(rq)
+	resp, err := http.DefaultClient.Do(rq)
 	if err != nil {
 		return err
 	}
@@ -55,7 +55,7 @@ func (usr *Redditor) Block() error {
 
 func (usr *Redditor) Unblock() error {
 	rq := usr.reddit.buildRequest("POST", "api/unfriend?type=enemy&name="+usr.Name, http.NoBody)
-	resp, err := usr.reddit.Client.Do(rq)
+	resp, err := http.DefaultClient.Do(rq)
 	if err != nil {
 		return err
 	}
@@ -71,7 +71,7 @@ func (usr *Redditor) Report(reason string) error {
 		return errors.New("non-empty reason required")
 	}
 	rq := usr.reddit.buildRequest("POST", "api/report_user?user="+usr.Name+"&reason="+reason, http.NoBody)
-	resp, err := usr.reddit.Client.Do(rq)
+	resp, err := http.DefaultClient.Do(rq)
 	if err != nil {
 		return err
 	}
