@@ -24,8 +24,8 @@ const (
 	base_url      = "https://app-api.pixiv.net/v"
 	ios_version   = "15.7"
 	user_agent    = "PixivIOSApp/7.15.14 (iOS " + ios_version + "; iPhone13,2)"
-	client_id     = "MOBrBDS8blbauoSck0ZfDbtuzpyT"
-	client_secret = "lsACyCD94FhDUtGTXi3QzcFE2uU1hqtDaKeqrdwj"
+	Client_ID     = "MOBrBDS8blbauoSck0ZfDbtuzpyT"
+	Client_secret = "lsACyCD94FhDUtGTXi3QzcFE2uU1hqtDaKeqrdwj"
 )
 const debug_output = false
 
@@ -70,8 +70,8 @@ type Client struct {
 
 func NewClient() *Client {
 	c := new(Client)
-	c.clientId = client_id
-	c.clientSecret = client_secret
+	c.clientId = Client_ID
+	c.clientSecret = Client_secret
 	c.client = new(http.Client)
 	c.client.Transport = cfbp.AddCloudFlareByPass(nil)
 	return c
