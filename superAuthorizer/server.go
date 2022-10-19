@@ -66,7 +66,6 @@ func waitToDie(ch chan os.Signal, srv *http.Server) {
 }
 
 func main() {
-	// TODO: Pixiv
 	// TODO: Switch all personal APIs to use oauth2 and autorefresh
 	if _, err := os.Stat("../superAuthorizer"); err == nil {
 		os.Chdir("..")
@@ -134,10 +133,10 @@ func main() {
 
 	for {
 		fmt.Print("Super Authorizer\n1. Twitter\n2. Pixiv\n3. Reddit\n4. Exit\n\nSel: ")
-		var i int
+		i := 4
 		n, _ := fmt.Scanf("%d\n", &i)
 		if n != 1 {
-			i = 3
+			i = 4
 		}
 		switch i {
 		case 4:
@@ -162,7 +161,7 @@ func main() {
 			fmt.Println("Press enter to continue.")
 			fmt.Scanf("\n")
 		case 2:
-			fmt.Println("When the page opens in your browser, open inspect element and go to the network tab\nAfter authorizing, you will see a blank page. Click on the network request to \"callback\"\nPaste the \"Request URL\" below:")
+			fmt.Println("When the page opens in your browser, sign in. You will see a message saying \"Invalid request/\"\nPaste the URL of the page where you get that message below:")
 			t, err := pixivToken.Token()
 			if err != nil {
 				fmt.Printf("An error occured: %s\n", err.Error())
