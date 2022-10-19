@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"image/color"
 	"io"
 	"os"
@@ -10,7 +9,6 @@ import (
 	"github.com/adrg/sysfont"
 	rl "github.com/gen2brain/raylib-go/raylib"
 	rg "jlortiz.org/multisav/raygui-go"
-	"jlortiz.org/multisav/redditapi"
 )
 
 var resolveMap map[string]Resolver
@@ -22,67 +20,7 @@ const TEXT_SIZE = 18
 const FRAME_RATE = 60
 
 func loginHelper() {
-	data := make([]byte, 1024)
-	f, err := os.Open("redditapi/login.json")
-	if err != nil {
-		panic(fmt.Errorf("failed to open login data file: %s", err.Error()))
-	}
-	n, err := f.Read(data)
-	if err != nil {
-		panic(fmt.Errorf("failed to read login data: %s", err.Error()))
-	}
-	f.Close()
-	var fields struct {
-		Id       string
-		Secret   string
-		Login    string
-		Password string
-		Twitter  struct {
-			Token   string
-			Refresh string
-		}
-		PixivToken string
-	}
-	err = json.Unmarshal(data[:n], &fields)
-	if err != nil {
-		panic(fmt.Errorf("failed to decode login data: %s", err.Error()))
-	}
-	red := redditapi.NewReddit("linux:org.jlortiz.multiSav:v0.5.1 (by /u/jlortiz)", fields.Id, fields.Secret)
-	err = red.Login(fields.Login, fields.Password)
-	if err != nil {
-		panic(fmt.Errorf("failed to log in: %s", err.Error()))
-	}
-	siteReddit = RedditSite{red}
-	resolveMap = make(map[string]Resolver)
-	for _, x := range siteReddit.GetResolvableDomains() {
-		resolveMap[x] = siteReddit
-	}
-	img := NewImgurResolver(ImgurID)
-	for _, x := range img.GetResolvableDomains() {
-		resolveMap[x] = img
-	}
-	if fields.Twitter.Token != "" {
-		siteTwitter = NewTwitterSite(fields.Twitter.Token, fields.Twitter.Refresh)
-	} else {
-		siteTwitter = NewTwitterSite(TwitterBearer, "")
-	}
-	for _, x := range siteTwitter.GetResolvableDomains() {
-		resolveMap[x] = siteTwitter
-	}
-	sitePixiv, err = NewPixivSite(fields.PixivToken)
-	if err != nil {
-		panic(err)
-	}
-	for _, x := range sitePixiv.GetResolvableDomains() {
-		resolveMap[x] = sitePixiv
-	}
-	var b byte
-	for _, x := range BlockingResolver(b).GetResolvableDomains() {
-		resolveMap[x] = BlockingResolver(b)
-	}
-	for _, x := range StripQueryResolver(b).GetResolvableDomains() {
-		resolveMap[x] = StripQueryResolver(b)
-	}
+
 }
 
 var font rl.Font
@@ -105,16 +43,20 @@ type SavedListing struct {
 
 var saveData struct {
 	Reddit struct {
-		Id       string
-		Secret   string
-		Login    string
-		Password string
+		Token, Refresh string
 	}
 	Twitter struct {
 		Token   string
 		Refresh string
 	}
-	Pixiv    string
+	Pixiv struct {
+		Token   string
+		Refresh string
+	}
+	Downloads string
+	Settings  struct {
+		SaveOnX bool
+	}
 	Listings []SavedListing
 }
 
@@ -133,6 +75,40 @@ func loadSaveData() error {
 		return err
 	}
 	return json.Unmarshal(data, &saveData)
+}
+
+func loginToSites() {
+	siteReddit = NewRedditSite(saveData.Reddit.Token, saveData.Reddit.Refresh)
+	resolveMap = make(map[string]Resolver)
+	for _, x := range siteReddit.GetResolvableDomains() {
+		resolveMap[x] = siteReddit
+	}
+	img := NewImgurResolver(ImgurID)
+	for _, x := range img.GetResolvableDomains() {
+		resolveMap[x] = img
+	}
+	if saveData.Twitter.Token != "" {
+		siteTwitter = NewTwitterSite(saveData.Twitter.Token, saveData.Twitter.Refresh)
+	} else {
+		siteTwitter = NewTwitterSite(TwitterBearer, "")
+	}
+	for _, x := range siteTwitter.GetResolvableDomains() {
+		resolveMap[x] = siteTwitter
+	}
+	sitePixiv, err := NewPixivSite(saveData.Pixiv.Refresh)
+	if err != nil {
+		panic(err)
+	}
+	for _, x := range sitePixiv.GetResolvableDomains() {
+		resolveMap[x] = sitePixiv
+	}
+	var b byte
+	for _, x := range BlockingResolver(b).GetResolvableDomains() {
+		resolveMap[x] = BlockingResolver(b)
+	}
+	for _, x := range StripQueryResolver(b).GetResolvableDomains() {
+		resolveMap[x] = StripQueryResolver(b)
+	}
 }
 
 func saveSaveData() error {

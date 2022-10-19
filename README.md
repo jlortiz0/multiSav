@@ -7,7 +7,5 @@ You know, it would be nice if I combined this and ImageSort, ignoring that they'
 ### To do list
  - Write instructions
  - Allow the user to set the downloads folder
- - Proper logins for the sites
-   - Might need to get my own website
  - The various things I put in the comments. Especially related to mutexes.
  - Replace ffmpeg.go with an actually decent system

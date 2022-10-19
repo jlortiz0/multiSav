@@ -15,8 +15,8 @@ type RedditSite struct {
 	*redditapi.Reddit
 }
 
-func NewRedditSite(clientId, clientSecret, user, pass string) RedditSite {
-	red := redditapi.NewReddit("linux:org.jlortiz.multiSav:v0.3.2 (by /u/jlortiz)", clientId, clientSecret)
+func NewRedditSite(token, refresh string) RedditSite {
+	red := redditapi.NewReddit("linux:org.jlortiz.multiSav:v0.7.0 (by /u/jlortiz)", clientId, clientSecret)
 	if user != "" {
 		red.Login(user, pass)
 	}

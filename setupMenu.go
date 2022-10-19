@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"image/color"
 	"net/url"
+	"os"
+	"path"
 	"strings"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
+	"github.com/sqweek/dialog"
 	rg "jlortiz.org/multisav/raygui-go"
 )
 
@@ -158,7 +161,7 @@ cm:
 }
 
 func SetUpSites() bool {
-	cm := NewChoiceMenu([]string{"Reddit", "Twitter", "Pixiv", "Back"})
+	cm := NewChoiceMenu([]string{"Downloads", "Options", "Logout", "Back"})
 	ret := stdEventLoop(cm)
 	if ret != LOOP_EXIT {
 		return ret == LOOP_QUIT
@@ -169,84 +172,104 @@ func SetUpSites() bool {
 	case 3:
 		return false
 	case 0:
-		// Set up 2-4 keys
-		// Need at least client ID and client secret
-		// Login optional
-		args := []interface{}{saveData.Reddit.Id, saveData.Reddit.Secret, saveData.Reddit.Login, saveData.Reddit.Password}
-		if saveData.Reddit.Login == "" {
-			args[2] = "nobody"
-			args[3] = "anonymous"
+		db := dialog.Directory()
+		dir := saveData.Downloads
+		if !path.IsAbs(dir) {
+			tmp, _ := os.Getwd()
+			dir = path.Join(tmp, dir)
 		}
-		flags := make([]bool, 4)
+		s, err := db.SetStartDir(dir).Title("Select downloads folder").Browse()
+		if err == nil {
+			if s[len(s)-1] == os.PathSeparator {
+				s = s[:len(s)-1]
+			}
+			saveData.Downloads = s
+		}
+	case 1:
+		args := []interface{}{saveData.Settings.SaveOnX}
+		flags := make([]bool, 1)
 		cArgs := []ListingArgument{
 			{
-				name: "Client ID",
-			},
-			{
-				name: "Client Secret",
-			},
-			{
-				name: "Username (optional)",
-			},
-			{
-				name: "Password (optional)",
+				name: "Always download on X",
+				kind: LARGTYPE_BOOL,
 			},
 		}
 		for !rl.WindowShouldClose() {
 			rl.BeginDrawing()
 			rl.ClearBackground(color.RGBA{R: 64, G: 64, B: 64})
-			out := DrawArgumentsUI("Reddit", cArgs, args, flags)
+			out := DrawArgumentsUI("Options", cArgs, args, flags)
 			rl.EndDrawing()
 			if out != nil && len(out) == 0 {
 				break
 			} else if len(out) != 0 {
-				saveData.Reddit.Id = args[0].(string)
-				saveData.Reddit.Secret = args[1].(string)
-				saveData.Reddit.Login = args[2].(string)
-				if saveData.Reddit.Login == "nobody" {
-					saveData.Reddit.Login = ""
-					saveData.Reddit.Password = ""
-				} else {
-					saveData.Reddit.Password = args[3].(string)
-				}
-				break
-			}
-		}
-	case 1:
-		args := []interface{}{""}
-		flags := make([]bool, 1)
-		cArgs := []ListingArgument{
-			{
-				name: "Use superRedirect to set up Twitter",
-				kind: LARGTYPE_LABEL,
-			},
-		}
-		for !rl.WindowShouldClose() {
-			rl.BeginDrawing()
-			rl.ClearBackground(color.RGBA{R: 64, G: 64, B: 64})
-			out := DrawArgumentsUI("Twitter", cArgs, args, flags)
-			rl.EndDrawing()
-			if out != nil {
+				saveData.Settings.SaveOnX = args[0].(bool)
 				break
 			}
 		}
 	case 2:
-		args := []interface{}{saveData.Pixiv}
-		flags := make([]bool, 1)
-		cArgs := []ListingArgument{
-			{
-				name: "Refresh Token",
-			},
+		args := []interface{}{false, false, false}
+		flags := make([]bool, 3)
+		cArgs := make([]ListingArgument, 3)
+		if saveData.Reddit.Refresh == "" {
+			cArgs[0] = ListingArgument{
+				name: "Not logged in to Reddit",
+				kind: LARGTYPE_LABEL,
+			}
+		} else {
+			cArgs[0] = ListingArgument{
+				name: "Reddit",
+				kind: LARGTYPE_BOOL,
+			}
+		}
+		if saveData.Twitter.Refresh == "" {
+			cArgs[1] = ListingArgument{
+				name: "Not logged in to Twitter",
+				kind: LARGTYPE_LABEL,
+			}
+		} else {
+			cArgs[1] = ListingArgument{
+				name: "Twitter",
+				kind: LARGTYPE_BOOL,
+			}
+		}
+		if saveData.Pixiv.Refresh == "" {
+			cArgs[2] = ListingArgument{
+				name: "Not logged in to Pixiv",
+				kind: LARGTYPE_LABEL,
+			}
+		} else {
+			cArgs[2] = ListingArgument{
+				name: "Pixiv",
+				kind: LARGTYPE_BOOL,
+			}
 		}
 		for !rl.WindowShouldClose() {
 			rl.BeginDrawing()
 			rl.ClearBackground(color.RGBA{R: 64, G: 64, B: 64})
-			out := DrawArgumentsUI("Pixiv", cArgs, args, flags)
+			out := DrawArgumentsUI("Logout", cArgs, args, flags)
 			rl.EndDrawing()
 			if out != nil && len(out) == 0 {
 				break
 			} else if len(out) != 0 {
-				saveData.Pixiv = args[0].(string)
+				if args[0].(bool) {
+					saveData.Reddit = struct {
+						Token   string
+						Refresh string
+					}{}
+				}
+				if args[1].(bool) {
+					saveData.Twitter = struct {
+						Token   string
+						Refresh string
+					}{}
+				}
+				if args[2].(bool) {
+					saveData.Pixiv = struct {
+						Token   string
+						Refresh string
+					}{}
+				}
+				loginToSites()
 				break
 			}
 		}
