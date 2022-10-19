@@ -1,8 +1,10 @@
 package redditapi
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -44,12 +46,31 @@ func (r *Reddit) checkToken() {
 }
 
 func (r *Reddit) Login(refresh string) error {
-	token := &oauth2.Token{RefreshToken: refresh}
-	token, err := r.config.TokenSource(context.Background(), token).Token()
+	buf := new(bytes.Buffer)
+	buf.WriteString("grant_type=refresh_token&refresh_token=")
+	buf.WriteString(refresh)
+	req, _ := http.NewRequest("POST", "https://www.reddit.com/api/v1/access_token", buf)
+	req.SetBasicAuth(r.config.ClientID, r.config.ClientSecret)
+	req.Header.Add("User-Agent", r.userAgent)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
 	}
-	r.token = token
+	data, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return errors.New(string(data))
+	}
+	var tokenData struct {
+		Access_token string
+		Expires_in   int
+		Token_type   string
+	}
+	err = json.Unmarshal(data, &tokenData)
+	if err != nil {
+		return err
+	}
+	r.token = &oauth2.Token{AccessToken: tokenData.Access_token, TokenType: tokenData.Token_type, RefreshToken: refresh, Expiry: time.Now().Add(time.Duration(tokenData.Expires_in-2) * time.Second)}
 	return nil
 }
 
