@@ -62,9 +62,7 @@ const (
 type Client struct {
 	client *http.Client
 	token  *oauth2.Token
-	config *oauth2.Config
 	myId   int
-	expiry time.Time
 }
 
 func NewClient() *Client {
