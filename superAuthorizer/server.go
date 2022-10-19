@@ -148,13 +148,7 @@ func main() {
 			if err != nil {
 				fmt.Printf("An error occured: %s\n", err.Error())
 			} else {
-				var tw struct {
-					Token   string
-					Refresh string
-				}
-				tw.Token = t.AccessToken
-				tw.Refresh = t.RefreshToken
-				saveData["Twitter"] = tw
+				saveData["Twitter"] = t.RefreshToken
 				saveSaveData()
 				fmt.Println("Success! Token has been saved.")
 			}
@@ -166,13 +160,7 @@ func main() {
 			if err != nil {
 				fmt.Printf("An error occured: %s\n", err.Error())
 			} else {
-				var tw struct {
-					Token   string
-					Refresh string
-				}
-				tw.Token = t.AccessToken
-				tw.Refresh = t.RefreshToken
-				saveData["Pixiv"] = tw
+				saveData["Pixiv"] = t.RefreshToken
 				saveSaveData()
 				fmt.Println("Success! Token has been saved.")
 			}
@@ -184,13 +172,7 @@ func main() {
 			if err != nil {
 				fmt.Printf("An error occured: %s\n", err.Error())
 			} else {
-				var tw struct {
-					Token   string
-					Refresh string
-				}
-				tw.Token = t.AccessToken
-				tw.Refresh = t.RefreshToken
-				saveData["Reddit"] = tw
+				saveData["Reddit"] = t.RefreshToken
 				saveSaveData()
 				fmt.Println("Success! Token has been saved.")
 			}

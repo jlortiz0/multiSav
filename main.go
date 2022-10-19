@@ -42,17 +42,9 @@ type SavedListing struct {
 }
 
 var saveData struct {
-	Reddit struct {
-		Token, Refresh string
-	}
-	Twitter struct {
-		Token   string
-		Refresh string
-	}
-	Pixiv struct {
-		Token   string
-		Refresh string
-	}
+	Reddit    string
+	Twitter   string
+	Pixiv     string
 	Downloads string
 	Settings  struct {
 		SaveOnX bool
@@ -78,7 +70,7 @@ func loadSaveData() error {
 }
 
 func loginToSites() {
-	siteReddit = NewRedditSite(saveData.Reddit.Token, saveData.Reddit.Refresh)
+	siteReddit = NewRedditSite(saveData.Reddit)
 	resolveMap = make(map[string]Resolver)
 	for _, x := range siteReddit.GetResolvableDomains() {
 		resolveMap[x] = siteReddit
@@ -87,15 +79,11 @@ func loginToSites() {
 	for _, x := range img.GetResolvableDomains() {
 		resolveMap[x] = img
 	}
-	if saveData.Twitter.Token != "" {
-		siteTwitter = NewTwitterSite(saveData.Twitter.Token, saveData.Twitter.Refresh)
-	} else {
-		siteTwitter = NewTwitterSite(TwitterBearer, "")
-	}
+	siteTwitter = NewTwitterSite(saveData.Twitter)
 	for _, x := range siteTwitter.GetResolvableDomains() {
 		resolveMap[x] = siteTwitter
 	}
-	sitePixiv, err := NewPixivSite(saveData.Pixiv.Refresh)
+	sitePixiv, err := NewPixivSite(saveData.Pixiv)
 	if err != nil {
 		panic(err)
 	}

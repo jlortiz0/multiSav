@@ -210,7 +210,7 @@ func SetUpSites() bool {
 		args := []interface{}{false, false, false}
 		flags := make([]bool, 3)
 		cArgs := make([]ListingArgument, 3)
-		if saveData.Reddit.Refresh == "" {
+		if saveData.Reddit == "" {
 			cArgs[0] = ListingArgument{
 				name: "Not logged in to Reddit",
 				kind: LARGTYPE_LABEL,
@@ -221,7 +221,7 @@ func SetUpSites() bool {
 				kind: LARGTYPE_BOOL,
 			}
 		}
-		if saveData.Twitter.Refresh == "" {
+		if saveData.Twitter == "" {
 			cArgs[1] = ListingArgument{
 				name: "Not logged in to Twitter",
 				kind: LARGTYPE_LABEL,
@@ -232,7 +232,7 @@ func SetUpSites() bool {
 				kind: LARGTYPE_BOOL,
 			}
 		}
-		if saveData.Pixiv.Refresh == "" {
+		if saveData.Pixiv == "" {
 			cArgs[2] = ListingArgument{
 				name: "Not logged in to Pixiv",
 				kind: LARGTYPE_LABEL,
@@ -252,22 +252,13 @@ func SetUpSites() bool {
 				break
 			} else if len(out) != 0 {
 				if args[0].(bool) {
-					saveData.Reddit = struct {
-						Token   string
-						Refresh string
-					}{}
+					saveData.Reddit = ""
 				}
 				if args[1].(bool) {
-					saveData.Twitter = struct {
-						Token   string
-						Refresh string
-					}{}
+					saveData.Twitter = ""
 				}
 				if args[2].(bool) {
-					saveData.Pixiv = struct {
-						Token   string
-						Refresh string
-					}{}
+					saveData.Pixiv = ""
 				}
 				loginToSites()
 				break

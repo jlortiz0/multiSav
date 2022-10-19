@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
 
 	twitter "github.com/g8rswimmer/go-twitter/v2"
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -23,10 +22,10 @@ type twitterAuthorizer byte
 
 func (t twitterAuthorizer) Add(req *http.Request) {}
 
-func NewTwitterSite(bearer, refresh string) TwitterSite {
+func NewTwitterSite(refresh string) TwitterSite {
 	if refresh == "" {
 		return TwitterSite{&twitter.Client{Authorizer: twitterAuthorizer(0), Client: oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(&oauth2.Token{
-			AccessToken: bearer,
+			AccessToken: TwitterBearer,
 		})), Host: "https://api.twitter.com"}}
 	}
 	config := &oauth2.Config{
@@ -37,7 +36,7 @@ func NewTwitterSite(bearer, refresh string) TwitterSite {
 	}
 	config.Endpoint.AuthURL = "https://twitter.com/i/oauth2/authorize"
 	config.Endpoint.TokenURL = "https://api.twitter.com/2/oauth2/token"
-	token := &oauth2.Token{AccessToken: bearer, RefreshToken: refresh, Expiry: time.Now().Add(time.Hour / 2)}
+	token := &oauth2.Token{RefreshToken: refresh}
 	return TwitterSite{&twitter.Client{Authorizer: twitterAuthorizer(0), Client: config.Client(context.Background(), token), Host: "https://api.twitter.com"}}
 }
 

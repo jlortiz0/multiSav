@@ -15,17 +15,15 @@ type RedditSite struct {
 	*redditapi.Reddit
 }
 
-func NewRedditSite(token, refresh string) RedditSite {
-	red := redditapi.NewReddit("linux:org.jlortiz.multiSav:v0.7.0 (by /u/jlortiz)", clientId, clientSecret)
-	if user != "" {
-		red.Login(user, pass)
+func NewRedditSite(token string) RedditSite {
+	red := redditapi.NewReddit("linux:org.jlortiz.multiSav:v0.7.0 (by /u/jlortiz)", RedditID, RedditSecret)
+	if token != "" {
+		red.Login(token)
 	}
 	return RedditSite{red}
 }
 
-func (red RedditSite) Destroy() {
-	red.Logout()
-}
+func (red RedditSite) Destroy() {}
 
 func (red RedditSite) GetListingInfo() []ListingInfo {
 	return []ListingInfo{
