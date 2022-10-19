@@ -28,7 +28,6 @@ func TestSubmissionSave(T *testing.T) {
 	if s.Saved == false {
 		T.Error("submission not saved serverside")
 	}
-	red.Logout()
 }
 
 func TestSubmissionUnsave(T *testing.T) {
@@ -55,7 +54,6 @@ func TestSubmissionUnsave(T *testing.T) {
 	if s.Saved == true {
 		T.Error("submission not unsaved serverside")
 	}
-	red.Logout()
 }
 
 func TestSubmissionVarious(T *testing.T) {
@@ -79,7 +77,6 @@ func TestSubmissionVarious(T *testing.T) {
 	if err != nil {
 		T.Errorf("failed to downvote: %s", err.Error())
 	}
-	red.Logout()
 }
 
 func TestSubmissionDelete(T *testing.T) {
@@ -95,5 +92,4 @@ func TestSubmissionDelete(T *testing.T) {
 	if err != nil {
 		T.Errorf("failed to delete: %s", err.Error())
 	}
-	red.Logout()
 }

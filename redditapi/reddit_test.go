@@ -9,11 +9,7 @@ import (
 )
 
 func TestLogin(T *testing.T) {
-	red := loginHelper(T)
-	err := red.Logout()
-	if err != nil {
-		T.Error(err.Error())
-	}
+	loginHelper(T)
 }
 
 func loginHelper(T *testing.T) *redditapi.Reddit {
@@ -29,17 +25,16 @@ func loginHelper(T *testing.T) *redditapi.Reddit {
 	}
 	f.Close()
 	var fields struct {
-		Id       string
-		Secret   string
-		Login    string
-		Password string
+		Id      string
+		Secret  string
+		Refresh string
 	}
 	err = json.Unmarshal(data[:n], &fields)
 	if err != nil {
 		T.Fatalf("Failed to decode login data: %s", err.Error())
 	}
 	red := redditapi.NewReddit("linux:org.jlortiz.test.GolangRedditAPI:v0.0.1 (by /u/jlortiz)", fields.Id, fields.Secret)
-	err = red.Login(fields.Login, fields.Password)
+	err = red.Login(fields.Refresh)
 	if err != nil {
 		T.Fatalf("Failed to log in: %s", err.Error())
 	}
@@ -70,5 +65,4 @@ func TestListingNew(T *testing.T) {
 	if ls.Count() != 5 {
 		T.Error("Listing count should be the number of things processed")
 	}
-	red.Logout()
 }

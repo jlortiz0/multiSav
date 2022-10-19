@@ -28,5 +28,4 @@ func TestMultiredditSlice(T *testing.T) {
 			T.Fail()
 		}
 	}
-	red.Logout()
 }

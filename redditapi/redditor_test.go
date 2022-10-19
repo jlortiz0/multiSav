@@ -9,7 +9,6 @@ func TestRedditor(T *testing.T) {
 		T.Fatalf("failed to load profile: %s", err.Error())
 	}
 	T.Log(user)
-	red.Logout()
 }
 
 func TestSubmissions(T *testing.T) {
@@ -30,7 +29,6 @@ func TestSubmissions(T *testing.T) {
 		}
 		T.Log(x.Title)
 	}
-	red.Logout()
 }
 
 func TestComments(T *testing.T) {
@@ -57,5 +55,4 @@ func TestComments(T *testing.T) {
 			T.Log(x.Edited)
 		}
 	}
-	red.Logout()
 }

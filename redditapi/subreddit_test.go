@@ -25,7 +25,6 @@ func TestListNew(T *testing.T) {
 			break
 		}
 	}
-	red.Logout()
 }
 
 func TestListTop(T *testing.T) {
@@ -69,7 +68,6 @@ func TestListTop(T *testing.T) {
 		}
 		T.Log(post.Title)
 	}
-	red.Logout()
 }
 
 func TestSearch(T *testing.T) {
@@ -116,7 +114,6 @@ func TestSearch(T *testing.T) {
 			break
 		}
 	}
-	red.Logout()
 }
 
 func TestSubscribe(T *testing.T) {
@@ -143,5 +140,4 @@ func TestSubscribe(T *testing.T) {
 	if err != nil {
 		T.Fatalf("failed to unsubscribe: %s", err.Error())
 	}
-	red.Logout()
 }
