@@ -401,12 +401,18 @@ func (menu *ImageMenu) Renderer() {
 			float32(menu.texture.Width)*menu.cam.Zoom, float32(menu.texture.Height)*menu.cam.Zoom)
 		vec := rl.NewVector2(5, menu.target.Y+5)
 		rl.DrawTextEx(font, s, vec, TEXT_SIZE, 0, rl.RayWhite)
-		vec = rl.MeasureTextEx(font, menu.fName, TEXT_SIZE, 0)
+		vec2 := rl.MeasureTextEx(font, menu.fName, TEXT_SIZE, 0)
 		vec.Y = menu.target.Y + 5
-		vec.X = menu.target.X/2 - vec.X/2
-		// TODO: Make this a label that opens the info box on click
-		// May need to modify ImageProducer again
-		rl.DrawTextEx(font, menu.fName, vec, TEXT_SIZE, 0, rl.RayWhite)
+		vec.X = menu.target.X/2 - vec2.X/2
+		// TODO: Prevent this from overlapping other text boxes
+		if rg.GuiLabelButton(rl.Rectangle{X: vec.X, Y: vec.Y, Height: vec2.Y, Width: vec2.X}, menu.fName) {
+			s := menu.Producer.GetInfo(menu.Selected)
+			if s != "" {
+				rl.EndDrawing()
+				messageOverlay(wordWrapper(s), menu)
+				rl.BeginDrawing()
+			}
+		}
 		if menu.state&IMSTATE_GOTO == 0 {
 			s := fmt.Sprintf("%d/%d", menu.Selected+1, menu.Producer.Len())
 			if menu.Producer.IsLazy() {

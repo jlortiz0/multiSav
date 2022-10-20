@@ -66,7 +66,6 @@ func waitToDie(ch chan os.Signal, srv *http.Server) {
 }
 
 func main() {
-	// TODO: Switch all personal APIs to use oauth2 and autorefresh
 	if _, err := os.Stat("../superAuthorizer"); err == nil {
 		os.Chdir("..")
 	}
