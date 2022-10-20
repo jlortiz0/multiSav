@@ -75,7 +75,6 @@ func (img ImgurResolver) ResolveURL(URL string) (string, ImageEntry) {
 		}
 	case "i.imgur.com":
 		if strings.HasSuffix(URL, ".gifv") {
-			// TODO: determine if I could just change .gifv to .webm
 			suff := URL[strings.LastIndexByte(URL, '/')+1:]
 			return img.ResolveURL("https://imgur.com/" + suff[:len(suff)-5])
 		}
@@ -169,7 +168,10 @@ func (img *ImgurImageEntry) GetInfo() string {
 	return img.Title + "\n" + img.Description
 }
 
-func (img *ImgurImageEntry) GetDimensions() (int, int) { return img.Width, img.Height }
+// TODO: Sometimes Imgur seems to report wrong dimensions for this (x 1 too high)! Figure out why
+// func (img *ImgurImageEntry) GetDimensions() (int, int) { return img.Width, img.Height }
+
+func (img *ImgurImageEntry) GetDimensions() (int, int) { return 0, 0 }
 
 func (img *ImgurImageEntry) GetPostURL() string { return "https://imgur.com/" + img.ID }
 

@@ -77,7 +77,9 @@ func NewFfmpegReaderKnownSize(path string, x, y int32) *ffmpegReader {
 
 func (ffmpeg *ffmpegReader) Destroy() error {
 	ffmpeg.reader.Close()
-	ffmpeg.buf = nil
+	// This could cause a concurrency error if the buffer is being converted to color.RGBA at this time
+	// I'm too lazy to put a lock on this, so hope the caller doesn't mind an extra frame being processed
+	// ffmpeg.buf = nil
 	err := ffmpeg.Process.Kill()
 	if err != nil {
 		return err
