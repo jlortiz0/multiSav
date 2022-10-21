@@ -1,12 +1,8 @@
 #include "stream.h"
+
 #include <libavutil/error.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-void freeHelper(void *_, uint8_t *thing) {
-    (void)_;
-    free(thing);
-}
 
 int main(int argc, char **argv) {
     char *fName = "iwonb.webm";
@@ -51,13 +47,15 @@ int main(int argc, char **argv) {
     putc(32, fptr); /* 24 bit bitmap */
     putc(8, fptr);
     size_t written = fwrite(buf, 4, p.x * p.y, fptr);
-    if (written != p.x * p.y) {
+    if (written != (size_t)(p.x * p.y)) {
         perror("fwrite");
         fclose(fptr);
+        free(buf);
         libavreader_destroy(reader);
         return 2;
     }
     fclose(fptr);
+    free(buf);
     libavreader_destroy(reader);
     return 0;
 }
