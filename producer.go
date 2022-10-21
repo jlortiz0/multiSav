@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"os/exec"
+	"path"
 	"sort"
 	"strings"
-	"syscall"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -307,14 +306,10 @@ func (prod *OfflineImageProducer) ActionHandler(keycode int32, sel int, call int
 		} else {
 			return ARET_MOVEUP | ARET_AGAIN | ARET_CLOSEFFMPEG
 		}
-	} else if keycode == rl.KeyV && os.PathSeparator == '\\' {
-		exec.Command("rundll32.exe", "url.dll,FileProtocolHandler", prod.fldr+string(os.PathSeparator)+prod.items[sel]).Run()
-	} else if keycode == rl.KeyH && os.PathSeparator == '\\' {
-		cwd, _ := os.Getwd()
-		cmd := exec.Command("explorer", "/select,", fmt.Sprintf("\"%s%c%s%c%s\"", cwd, os.PathSeparator, prod.fldr, os.PathSeparator, prod.items[sel]))
-		cwd = fmt.Sprintf("explorer /select, %s", cmd.Args[2])
-		cmd.SysProcAttr = &syscall.SysProcAttr{CmdLine: cwd}
-		cmd.Run()
+	} else if keycode == rl.KeyV {
+		openFile(path.Join(prod.fldr, prod.items[sel]))
+	} else if keycode == rl.KeyH {
+		highlightFile(path.Join(prod.fldr, prod.items[sel]))
 	}
 	return ARET_NOTHING
 }

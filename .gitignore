@@ -4,3 +4,7 @@ jlortiz_TEST
 .vscode/**
 pixivapi/out.json
 tokens.go
+multisav
+raygui-go/raygui.h
+*.o
+streamy/*.webm
