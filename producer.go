@@ -361,7 +361,12 @@ func (prod *OfflineImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 	case "gif":
 		fallthrough
 	case "mov":
-		*ffmpeg = NewFfmpegReader(prod.fldr + string(os.PathSeparator) + prod.items[sel])
+		// *ffmpeg = NewFfmpegReader(prod.fldr + string(os.PathSeparator) + prod.items[sel])
+		var err error
+		*ffmpeg, err = NewStreamy(prod.fldr + string(os.PathSeparator) + prod.items[sel])
+		if err != nil {
+			panic(err)
+		}
 		w, h := (*ffmpeg).GetDimensions()
 		*img = rl.GenImageColor(int(w), int(h), rl.Blank)
 	default:

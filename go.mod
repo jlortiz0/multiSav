@@ -13,6 +13,7 @@ require (
 	jlortiz.org/multisav/pixivapi v0.0.0-00010101000000-000000000000
 	jlortiz.org/multisav/raygui-go v0.0.0
 	jlortiz.org/multisav/redditapi v0.0.0
+	jlortiz.org/multisav/streamy v0.0.0
 )
 
 replace jlortiz.org/multisav/redditapi => ./redditapi
@@ -20,5 +21,7 @@ replace jlortiz.org/multisav/redditapi => ./redditapi
 replace jlortiz.org/multisav/raygui-go => ./raygui-go
 
 replace jlortiz.org/multisav/pixivapi => ./pixivapi
+
+replace jlortiz.org/multisav/streamy => ./streamy
 
 replace github.com/g8rswimmer/go-twitter/v2 => github.com/jlortiz0/go-twitter/v2 v2.1.3-0.20221018050935-6eff13d54906
