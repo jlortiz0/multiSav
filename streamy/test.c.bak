@@ -1,0 +1,63 @@
+#include "stream.h"
+#include <libavutil/error.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+void freeHelper(void *_, uint8_t *thing) {
+    (void)_;
+    free(thing);
+}
+
+int main(int argc, char **argv) {
+    char *fName = "iwonb.webm";
+    if (argc > 1) {
+        fName = argv[1];
+    }
+
+    LibavReader *reader;
+    int code = libavreader_new(fName, &reader);
+    if (code) {
+        printf("Error code: %d (%s)\n", code, av_err2str(code));
+        return 1;
+    }
+    pair_int p = libavreader_dimensions(reader);
+    printf("Dimensions: %dx%d\n", p.x, p.y);
+    uint8_t *buf = calloc(p.x * p.y, 4);
+    for (int i = 0; i < 5; i++) {
+        code = libavreader_next(reader, buf);
+        if (code) {
+            printf("Error code: %d (%s)\n", code, av_err2str(code));
+            libavreader_destroy(reader);
+            return 1;
+        }
+    }
+    FILE *fptr = fopen("out.tga", "wb");
+    putc(0, fptr);
+    putc(0, fptr);
+    putc(2, fptr); /* uncompressed RGB */
+    putc(0, fptr);
+    putc(0, fptr);
+    putc(0, fptr);
+    putc(0, fptr);
+    putc(0, fptr);
+    putc(0, fptr);
+    putc(0, fptr); /* X origin */
+    putc(0, fptr);
+    putc(0, fptr); /* y origin */
+    putc((p.x & 0x00FF), fptr);
+    putc((p.x & 0xFF00) / 256, fptr);
+    putc((p.y & 0x00FF), fptr);
+    putc((p.y & 0xFF00) / 256, fptr);
+    putc(32, fptr); /* 24 bit bitmap */
+    putc(8, fptr);
+    size_t written = fwrite(buf, 4, p.x * p.y, fptr);
+    if (written != p.x * p.y) {
+        perror("fwrite");
+        fclose(fptr);
+        libavreader_destroy(reader);
+        return 2;
+    }
+    fclose(fptr);
+    libavreader_destroy(reader);
+    return 0;
+}

@@ -1,9 +1,9 @@
+#include "stream.h"
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libavutil/frame.h>
+#include <libavutil/imgutils.h>
 #include <libswscale/swscale.h>
-#include <stdbool.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 typedef struct LibavReader {
@@ -12,10 +12,11 @@ typedef struct LibavReader {
     AVFrame *frame;
     AVPacket *packet;
     struct SwsContext *scaler;
+    AVFrame *frame2;
     int idx;
 } LibavReader;
 
-int libavreader_new(char *fName, LibavReader **ptr) {
+int libavreader_new(const char *fName, LibavReader **ptr) {
     LibavReader *thing = malloc(sizeof(LibavReader));
     thing->context = avformat_alloc_context();
     int code = avformat_open_input(&thing->context, fName, NULL, NULL);
@@ -31,9 +32,9 @@ int libavreader_new(char *fName, LibavReader **ptr) {
         return code;
     }
     thing->codec = NULL;
-    for (int i = 0; i < thing->context->nb_streams; i++) {
+    for (unsigned int i = 0; i < thing->context->nb_streams; i++) {
         if (thing->context->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
-            AVCodec *c = avcodec_find_decoder(thing->context->streams[i]->codecpar->codec_id);
+            const AVCodec *c = avcodec_find_decoder(thing->context->streams[i]->codecpar->codec_id);
             if (!c) {
                 return -1;
             }
@@ -41,7 +42,7 @@ int libavreader_new(char *fName, LibavReader **ptr) {
             avcodec_parameters_to_context(thing->codec, thing->context->streams[i]->codecpar);
             code = avcodec_open2(thing->codec, c, NULL);
             if (code) {
-                avcodec_free_context(thing->codec);
+                avcodec_free_context(&thing->codec);
                 avformat_free_context(thing->context);
                 free(thing);
                 return code;
@@ -59,6 +60,10 @@ int libavreader_new(char *fName, LibavReader **ptr) {
     thing->packet = av_packet_alloc();
     if (thing->codec->pix_fmt != AV_PIX_FMT_RGBA) {
         thing->scaler = sws_getContext(thing->codec->width, thing->codec->height, thing->codec->pix_fmt, thing->codec->width, thing->codec->height, AV_PIX_FMT_RGBA, 0, NULL, NULL, 0);
+        thing->frame2 = av_frame_alloc();
+        thing->frame2->height = thing->codec->height;
+    } else {
+        thing->scaler = NULL;
     }
     *ptr = thing;
     return 0;
@@ -81,24 +86,26 @@ int libavreader_next(LibavReader *l, uint8_t *buf) {
             if (code) {
                 return code;
             }
-            return libavreader_new(l, buf);
+            return libavreader_next(l, buf);
         }
         return code;
     }
+    AVFrame *toCopy = l->frame;
     if (l->scaler != NULL) {
-        sws_scale(l->scaler, (const uint8_t *const *)l->frame->buf, l->frame->linesize, 0, l->frame->height, buf, 0);
-    } else {
-        memcpy(buf, (const uint8_t *)l->frame->buf, 4 * l->frame->height * l->frame->width);
+        // av_frame_copy_props(l->frame2, l->frame);
+        code = sws_scale_frame(l->scaler, l->frame2, l->frame);
+        if (code < 0) {
+            return code;
+        }
+        toCopy = l->frame2;
     }
+    av_image_copy_to_buffer(buf, toCopy->height * toCopy->width * 4, (const uint8_t *const *)toCopy->data, toCopy->linesize, toCopy->format, toCopy->width, toCopy->height, 4);
+    av_frame_unref(l->frame);
+    av_frame_unref(l->frame2);
     return 0;
 }
 
-typedef struct {
-    int x;
-    int y;
-} pair_int;
-
-pair_int libavreader_dimensions(LibavReader *l) {
+pair_int libavreader_dimensions(const LibavReader *l) {
     pair_int p = {0};
     if (l == NULL || l->codec == NULL) {
         return p;
@@ -110,11 +117,14 @@ pair_int libavreader_dimensions(LibavReader *l) {
 
 void libavreader_destroy(LibavReader *l) {
     if (l != NULL) {
-        sws_freeContext(l->scaler);
+        if (l->scaler != NULL) {
+            av_frame_free(&l->frame2);
+            sws_freeContext(l->scaler);
+        }
         av_frame_free(&l->frame);
         av_packet_free(&l->packet);
         avcodec_close(l->codec);
-        avcodec_free_context(&l->context);
+        avcodec_free_context(&l->codec);
         avformat_close_input(&l->context);
     }
 }
