@@ -79,7 +79,14 @@ int libavreader_next(LibavReader *l, uint8_t *buf) {
     if (code) {
         if (code == AVERROR(EAGAIN)) {
             code = av_read_frame(l->context, l->packet);
-            if (code) {
+            if (code == AVERROR_EOF) {
+                avio_seek(l->context->pb, 0, SEEK_SET);
+                code = avformat_seek_file(l->context, l->idx, 0, 0, 0, 0);
+                if (code) {
+                    return code;
+                }
+                return libavreader_next(l, buf);
+            } else if (code) {
                 return code;
             }
             if (l->packet->stream_index != l->idx) {

@@ -1,6 +1,7 @@
 package streamy
 
 // #cgo pkg-config: libavformat libavcodec libavutil libswscale
+// #include <libavutil/error.h>
 // #include "stream.h"
 // #include <stdlib.h>
 import "C"
@@ -8,7 +9,7 @@ import "C"
 import (
 	"errors"
 	"image/color"
-	"strconv"
+	"strings"
 	"unsafe"
 )
 
@@ -31,7 +32,7 @@ func NewAvVideoReader(file string) (AvVideoReader, error) {
 	var v *C.LibavReader
 	code := C.libavreader_new(fName, &v)
 	if code != 0 {
-		return out, errors.New(strconv.Itoa(int(code)))
+		return out, errHelper(code)
 	}
 	out.ptr = v
 	p := C.libavreader_dimensions(v)
@@ -53,7 +54,7 @@ func (v AvVideoReader) Destroy() error {
 func (v AvVideoReader) Read() ([]color.RGBA, error) {
 	code := C.libavreader_next(v.ptr, (*C.uint8_t)(&v.buf[0]))
 	if code != 0 {
-		return nil, errors.New(strconv.Itoa(int(code)))
+		return nil, errHelper(code)
 	}
 	return unsafe.Slice((*color.RGBA)(unsafe.Pointer(&v.buf[0])), v.sz), nil
 }
@@ -61,7 +62,18 @@ func (v AvVideoReader) Read() ([]color.RGBA, error) {
 func (v AvVideoReader) Read8() ([]byte, error) {
 	code := C.libavreader_next(v.ptr, (*C.uint8_t)(&v.buf[0]))
 	if code != 0 {
-		return nil, errors.New(strconv.Itoa(int(code)))
+		return nil, errHelper(code)
 	}
 	return v.buf, nil
+}
+
+func errHelper(code C.int) error {
+	var errbuf [64]byte
+	C.av_strerror(code, (*C.char)(unsafe.Pointer(&errbuf[0])), C.AV_ERROR_MAX_STRING_SIZE)
+	text := string(errbuf[:])
+	ind := strings.IndexByte(text, 0)
+	if ind != -1 {
+		text = text[:ind]
+	}
+	return errors.New(text)
 }
