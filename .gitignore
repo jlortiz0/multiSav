@@ -8,3 +8,5 @@ multisav
 raygui-go/raygui.h
 *.o
 streamy/*.webm
+streamy/*.png
+streamy/*.tga
