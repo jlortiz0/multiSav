@@ -1,6 +1,14 @@
+//go:build windows
+// +build windows
+
 package main
 
-// +build windows
+import (
+	"os"
+	"os/exec"
+	"path"
+	"syscall"
+)
 
 func openFile(f string) {
 	exec.Command("rundll32.exe", "url.dll,FileProtocolHandler", f).Run()
@@ -9,7 +17,7 @@ func openFile(f string) {
 func highlightFile(f string) {
 	cwd, _ := os.Getwd()
 	cmd := exec.Command("explorer", "/select,", path.Join(cwd, f))
-	cwd = fmt.Sprintf("explorer /select, %s", cmd.Args[2])
+	cwd = "explorer /select, " + cmd.Args[2]
 	cmd.SysProcAttr = &syscall.SysProcAttr{CmdLine: cwd}
 	cmd.Run()
 }
