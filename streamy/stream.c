@@ -148,3 +148,8 @@ void libavreader_destroy(LibavReader *l) {
         free(l);
     }
 }
+
+float libavreader_fps(const LibavReader *l) {
+    int fr = av_q2intfloat(l->context->streams[l->idx]->avg_frame_rate);
+    return *((float *) &fr);
+}

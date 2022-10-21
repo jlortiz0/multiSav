@@ -8,59 +8,73 @@ import "C"
 
 import (
 	"errors"
+	"image"
 	"image/color"
 	"strings"
 	"unsafe"
 )
 
-type VideoReader interface {
-	Destroy() error
-	Read() ([]byte, error)
-	GetDimensions() (int32, int32)
-}
-
 type AvVideoReader struct {
-	ptr *C.LibavReader
-	buf []byte
+	ptr     *C.LibavReader
+	buf     []byte
+	target  float32
+	counter float32
 }
 
-func NewAvVideoReader(file string) (AvVideoReader, error) {
+func NewAvVideoReader(file string, fps float32) (*AvVideoReader, error) {
 	fName := C.CString(file)
 	defer C.free(unsafe.Pointer(fName))
 	var out AvVideoReader
 	var v *C.LibavReader
 	code := C.libavreader_new(fName, &v)
 	if code != 0 {
-		return out, errHelper(code)
+		return nil, errHelper(code)
 	}
 	out.ptr = v
 	p := C.libavreader_dimensions(v)
 	out.buf = make([]byte, p.x*p.y*4)
-	return out, nil
+	if fps != 0 {
+		out.target = float32(C.libavreader_fps(v)) / fps
+	} else {
+		out.target = 1
+	}
+	code = C.libavreader_next(v, (*C.uint8_t)(&out.buf[0]))
+	if code != 0 {
+		return nil, errHelper(code)
+	}
+	return &out, nil
 }
 
-func (v AvVideoReader) GetDimensions() (int, int) {
+func (v *AvVideoReader) GetDimensions() (int32, int32) {
 	out := C.libavreader_dimensions(v.ptr)
-	return int(out.x), int(out.y)
+	return int32(out.x), int32(out.y)
 }
 
-func (v AvVideoReader) Destroy() error {
+func (v *AvVideoReader) Destroy() error {
 	C.libavreader_destroy(v.ptr)
 	return nil
 }
 
-func (v AvVideoReader) Read() ([]color.RGBA, error) {
-	code := C.libavreader_next(v.ptr, (*C.uint8_t)(&v.buf[0]))
-	if code != 0 {
-		return nil, errHelper(code)
+func (v *AvVideoReader) Read() ([]color.RGBA, error) {
+	v.counter += v.target
+	for v.counter >= 1 {
+		code := C.libavreader_next(v.ptr, (*C.uint8_t)(&v.buf[0]))
+		if code != 0 {
+			return nil, errHelper(code)
+		}
+		v.counter--
 	}
 	return unsafe.Slice((*color.RGBA)(unsafe.Pointer(&v.buf[0])), len(v.buf)/4), nil
 }
 
-func (v AvVideoReader) Read8() ([]byte, error) {
-	code := C.libavreader_next(v.ptr, (*C.uint8_t)(&v.buf[0]))
-	if code != 0 {
-		return nil, errHelper(code)
+func (v *AvVideoReader) Read8() ([]byte, error) {
+	v.counter += v.target
+	for v.counter >= 1 {
+		code := C.libavreader_next(v.ptr, (*C.uint8_t)(&v.buf[0]))
+		if code != 0 {
+			return nil, errHelper(code)
+		}
+		v.counter--
 	}
 	return v.buf, nil
 }
@@ -74,4 +88,21 @@ func errHelper(code C.int) error {
 		text = text[:ind]
 	}
 	return errors.New(text)
+}
+
+func GetVideoFrame(file string) (*image.RGBA, error) {
+	fName := C.CString(file)
+	defer C.free(unsafe.Pointer(fName))
+	var v *C.LibavReader
+	code := C.libavreader_new(fName, &v)
+	if code != 0 {
+		return nil, errHelper(code)
+	}
+	p := C.libavreader_dimensions(v)
+	img := image.NewRGBA(image.Rect(0, 0, int(p.x), int(p.y)))
+	code = C.libavreader_next(v, (*C.uint8_t)(unsafe.Pointer(&img.Pix[0])))
+	if code != 0 {
+		return nil, errHelper(code)
+	}
+	return img, nil
 }

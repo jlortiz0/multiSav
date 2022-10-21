@@ -1,7 +1,7 @@
 redditApi/login.json
 *.exe
 jlortiz_TEST
-.vscode/**
+.vscode
 pixivapi/out.json
 tokens.go
 multisav

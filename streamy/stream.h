@@ -17,3 +17,5 @@ typedef struct {
 pair_int libavreader_dimensions(const LibavReader *l);
 
 void libavreader_destroy(LibavReader *l);
+
+float libavreader_fps(const LibavReader *l);

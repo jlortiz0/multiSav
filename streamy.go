@@ -14,11 +14,11 @@ type VideoReader interface {
 }
 
 type StreamyWrapperClass struct {
-	streamy.AvVideoReader
+	*streamy.AvVideoReader
 }
 
 func NewStreamy(f string) (StreamyWrapperClass, error) {
-	s, err := streamy.NewAvVideoReader(f)
+	s, err := streamy.NewAvVideoReader(f, FRAME_RATE)
 	return StreamyWrapperClass{s}, err
 }
 
@@ -28,9 +28,4 @@ func (s StreamyWrapperClass) Read() ([]color.RGBA, *rl.Image, error) {
 		d = nil
 	}
 	return d, nil, err
-}
-
-func (s StreamyWrapperClass) GetDimensions() (int32, int32) {
-	x, y := s.AvVideoReader.GetDimensions()
-	return int32(x), int32(y)
 }

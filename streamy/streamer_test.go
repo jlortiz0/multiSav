@@ -10,7 +10,7 @@ import (
 )
 
 func TestSomething(T *testing.T) {
-	rd, err := streamy.NewAvVideoReader("iwonb.webm")
+	rd, err := streamy.NewAvVideoReader("iwonb.webm", 0)
 	if err != nil {
 		T.Fatal(err)
 	}
@@ -30,7 +30,7 @@ func TestSomething(T *testing.T) {
 	// 	T.Fatal(err)
 	// }
 	// f.Close()
-	img := &image.RGBA{Pix: data, Stride: sx * 4, Rect: image.Rectangle{Max: image.Pt(sx, sy)}}
+	img := &image.RGBA{Pix: data, Stride: int(sx) * 4, Rect: image.Rectangle{Max: image.Pt(int(sx), int(sy))}}
 	f, err := os.OpenFile("out.png", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 	if err != nil {
 		T.Fatal(err)
