@@ -22,7 +22,6 @@ type VideoReader interface {
 type AvVideoReader struct {
 	ptr *C.LibavReader
 	buf []byte
-	sz  uint32
 }
 
 func NewAvVideoReader(file string) (AvVideoReader, error) {
@@ -37,7 +36,6 @@ func NewAvVideoReader(file string) (AvVideoReader, error) {
 	out.ptr = v
 	p := C.libavreader_dimensions(v)
 	out.buf = make([]byte, p.x*p.y*4)
-	out.sz = uint32(p.x * p.y)
 	return out, nil
 }
 
@@ -56,7 +54,7 @@ func (v AvVideoReader) Read() ([]color.RGBA, error) {
 	if code != 0 {
 		return nil, errHelper(code)
 	}
-	return unsafe.Slice((*color.RGBA)(unsafe.Pointer(&v.buf[0])), v.sz), nil
+	return unsafe.Slice((*color.RGBA)(unsafe.Pointer(&v.buf[0])), len(v.buf)/4), nil
 }
 
 func (v AvVideoReader) Read8() ([]byte, error) {
