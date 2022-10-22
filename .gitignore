@@ -10,3 +10,5 @@ raygui-go/raygui.h
 streamy/*.webm
 streamy/*.png
 streamy/*.tga
+streamy/*.mp4
+streamy/*.gif
