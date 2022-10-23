@@ -270,38 +270,12 @@ func (prod *OfflineImageProducer) ActionHandler(keycode int32, sel int, call int
 	if prod.empty != 0 {
 		return ARET_NOTHING
 	}
-	if keycode == rl.KeyX || keycode == rl.KeyC {
+	if keycode == rl.KeyC {
 		if call != 0 {
-			targetFldr := "Sort" + string(os.PathSeparator)
-			if keycode == rl.KeyC {
-				targetFldr = "Trash" + string(os.PathSeparator)
-			}
-			newName := prod.items[sel]
-			if _, err := os.Stat(targetFldr + newName); err == nil {
-				x := -1
-				dLoc := strings.IndexByte(newName, '.')
-				before := newName
-				var after string
-				if dLoc != -1 {
-					before = newName[:dLoc]
-					after = newName[dLoc+1:]
-				}
-				for ; err == nil; _, err = os.Stat(fmt.Sprintf("%s%s_%d.%s", targetFldr, before, x, after)) {
-					x++
-				}
-				newName = fmt.Sprintf("%s_%d.%s", before, x, after)
-			}
-			os.Rename(prod.fldr+string(os.PathSeparator)+prod.items[sel], targetFldr+newName)
+			os.Remove(path.Join(prod.fldr, prod.items[sel]))
 			return ARET_REMOVE
-		} else if keycode == rl.KeyC {
-			if strings.HasSuffix(prod.fldr, "Trash") {
-				return ARET_NOTHING
-			}
-			return ARET_MOVEDOWN | ARET_AGAIN | ARET_CLOSEFFMPEG
-		} else if strings.HasSuffix(prod.fldr, "Sort") {
-			return ARET_NOTHING
 		} else {
-			return ARET_MOVEUP | ARET_AGAIN | ARET_CLOSEFFMPEG
+			return ARET_MOVEDOWN | ARET_AGAIN | ARET_CLOSEFFMPEG
 		}
 	} else if keycode == rl.KeyV {
 		openFile(path.Join(prod.fldr, prod.items[sel]))
@@ -331,7 +305,7 @@ func (prod *OfflineImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 		}
 		return ""
 	}
-	_, err := os.Stat(prod.fldr + string(os.PathSeparator) + prod.items[sel])
+	_, err := os.Stat(path.Join(prod.fldr, prod.items[sel]))
 	for err != nil {
 		if len(prod.items) == 1 {
 			prod.items = nil
@@ -347,7 +321,7 @@ func (prod *OfflineImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 		if sel == prod.Len() {
 			return ""
 		}
-		_, err = os.Stat(prod.fldr + string(os.PathSeparator) + prod.items[sel])
+		_, err = os.Stat(path.Join(prod.fldr, prod.items[sel]))
 	}
 	ind := strings.LastIndexByte(prod.items[sel], '.')
 	switch strings.ToLower(prod.items[sel][ind+1:]) {
@@ -358,16 +332,15 @@ func (prod *OfflineImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 	case "gif":
 		fallthrough
 	case "mov":
-		// *ffmpeg = NewFfmpegReader(prod.fldr + string(os.PathSeparator) + prod.items[sel])
 		var err error
-		*ffmpeg, err = NewStreamy(prod.fldr + string(os.PathSeparator) + prod.items[sel])
+		*ffmpeg, err = NewStreamy(path.Join(prod.fldr, prod.items[sel]))
 		if err != nil {
 			panic(err)
 		}
 		w, h := (*ffmpeg).GetDimensions()
 		*img = rl.GenImageColor(int(w), int(h), rl.Blank)
 	default:
-		*img = rl.LoadImage(prod.fldr + string(os.PathSeparator) + prod.items[sel])
+		*img = rl.LoadImage(path.Join(prod.fldr, prod.items[sel]))
 		if (*img).Height == 0 {
 			*img = drawMessage("Failed to load image?")
 			return "\\/err" + prod.items[sel]
@@ -380,7 +353,7 @@ func (prod *OfflineImageProducer) GetInfo(sel int) string {
 	if !prod.BoundsCheck(sel) {
 		return ""
 	}
-	stat, err := os.Stat(prod.fldr + string(os.PathSeparator) + prod.items[sel])
+	stat, err := os.Stat(path.Join(prod.fldr, prod.items[sel]))
 	if err == nil {
 		size := stat.Size()
 		if size > 1024*1024 {
