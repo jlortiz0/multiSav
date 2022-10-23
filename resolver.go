@@ -32,12 +32,13 @@ func (StripQueryResolver) Destroy() {}
 type BlockingResolver byte
 
 // TODO: Detect when the user's DNS is blocking something and prompt them to switch.
+// It seems that catbox.moe likes to lose images... should I readd it?
 func (BlockingResolver) GetResolvableDomains() []string {
 	return nil // []string{"files.catbox.moe"}
 }
 
 func (BlockingResolver) ResolveURL(string) (string, ImageEntry) {
-	return "", nil
+	return RESOLVE_FINAL, nil
 }
 
 func (BlockingResolver) GetRequest(u string) (*http.Response, error) {

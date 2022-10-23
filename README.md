@@ -6,5 +6,4 @@ You know, it would be nice if I combined this and ImageSort, ignoring that they'
 
 ### To do list
  - Write instructions
- - The various things I put in the comments.
- - Replace ffmpeg.go with an actually decent system
+ - The various things I put in the comments

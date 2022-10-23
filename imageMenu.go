@@ -401,11 +401,25 @@ func (menu *ImageMenu) Renderer() {
 			float32(menu.texture.Width)*menu.cam.Zoom, float32(menu.texture.Height)*menu.cam.Zoom)
 		vec := rl.NewVector2(5, menu.target.Y+5)
 		rl.DrawTextEx(font, s, vec, TEXT_SIZE, 0, rl.RayWhite)
-		vec2 := rl.MeasureTextEx(font, menu.fName, TEXT_SIZE, 0)
-		vec.Y = menu.target.Y + 5
-		vec.X = menu.target.X/2 - vec2.X/2
-		// TODO: Prevent this from overlapping other text boxes
-		if rg.GuiLabelButton(rl.Rectangle{X: vec.X, Y: vec.Y, Height: vec2.Y, Width: vec2.X}, menu.fName) {
+		vec2 := float32(rl.MeasureText(menu.fName, TEXT_SIZE))
+		vec.Y = menu.target.Y
+		vec.X = menu.target.X/2 - vec2/2
+		vec3 := rl.MeasureTextEx(font, s, TEXT_SIZE, 0)
+		if vec.X < vec3.X+5 {
+			vec.X = vec3.X + 5
+		}
+		if vec2 > menu.target.X-75-vec.X {
+			c := float32(rl.MeasureText("...", TEXT_SIZE))
+			try := menu.fName
+			for vec2 > menu.target.X-75-c-vec.X {
+				per := int((menu.target.X - 75 - c - vec.X) / vec2 * float32(len(try)))
+				try = menu.fName[:per]
+				vec2 = float32(rl.MeasureText(try, TEXT_SIZE))
+			}
+			menu.fName = try + "..."
+			vec2 += c
+		}
+		if rg.GuiLabelButton(rl.Rectangle{X: vec.X, Y: vec.Y, Height: TEXT_SIZE + 10, Width: vec2}, menu.fName) {
 			s := menu.Producer.GetInfo(menu.Selected)
 			if s != "" {
 				rl.EndDrawing()
@@ -429,10 +443,6 @@ func (menu *ImageMenu) Renderer() {
 				if menu.Selected < 0 {
 					menu.Selected = 0
 				}
-				// if menu.Selected >= len(menu.itemList) {
-				// 	menu.Selected = len(menu.itemList) - 1
-				// }
-				// menu.loadImage()
 			}
 		}
 		y := rl.GetMouseY()
