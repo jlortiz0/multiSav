@@ -259,6 +259,15 @@ func (red RedditSite) ExtendListing(cont ImageListing) []ImageEntry {
 			if x == nil {
 				break
 			}
+			if x.Hidden {
+				continue
+			}
+			if x.Saved && iter2.kind != 5 {
+				continue
+			}
+			if x.Author_is_blocked {
+				continue
+			}
 			if len(x.Crosspost_parent_list) != 0 {
 				// Hack to allow requests to work with crossposts while still loading important fields
 				// For instance, fgallery data is only populated for the original post, but just replacing the object can lead to issues saving
@@ -277,6 +286,9 @@ func (red RedditSite) ExtendListing(cont ImageListing) []ImageEntry {
 				continue
 			}
 			if x.Saved && iter2.kind != 5 {
+				continue
+			}
+			if x.Author_is_blocked {
 				continue
 			}
 			data = append(data, &RedditImageEntry{Submission: x})
@@ -323,6 +335,10 @@ func (red RedditSite) ResolveURL(URL string) (string, ImageEntry) {
 				return "", nil
 			}
 			return "", &RedditImageEntry{Submission: sub}
+		}
+		if s[0] == 'g' {
+			// Probably a blocked post
+			return RESOLVE_FINAL, nil
 		}
 	case "preview.redd.it":
 		s := u.Path
@@ -372,8 +388,6 @@ func (red *RedditImageEntry) GetType() ImageEntryType {
 	return IETYPE_REGULAR
 }
 
-// TODO: Remove blocked posts from listings
-// But not deleted ones! Just blocked ones.
 func (red *RedditImageEntry) GetGalleryInfo(lazy bool) []ImageEntry {
 	if red.data != nil {
 		return red.data
@@ -487,6 +501,7 @@ func (red *RedditImageEntry) Combine(ie ImageEntry) {
 		red.info += "\n" + s
 	}
 	red.URL = ie.GetURL()
+	red.scanned = true
 	s = ie.GetName()
 	if s != "" {
 		red.Title = s
@@ -502,7 +517,9 @@ func (red *RedditImageEntry) Combine(ie ImageEntry) {
 	if len(red.data) == 0 {
 		red.data = nil
 	} else if len(red.data) == 1 {
-		red.Combine(red.data[0])
+		if red.data[0].GetURL() != "" {
+			red.URL = red.data[0].GetURL()
+		}
 		red.data = nil
 	}
 }

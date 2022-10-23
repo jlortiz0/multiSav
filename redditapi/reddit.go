@@ -90,7 +90,7 @@ func (r *Reddit) buildRequest(method, url string, body io.Reader) *http.Request 
 func (r *Reddit) GetRequest(url string) (*http.Response, error) {
 	rq, _ := http.NewRequest("GET", url, http.NoBody)
 	rq.Header.Add("User-Agent", r.userAgent)
-	// TODO: Is this needed?
+	// Is this needed? Probably won't hurt
 	r.token.SetAuthHeader(rq)
 	return http.DefaultClient.Do(rq)
 }

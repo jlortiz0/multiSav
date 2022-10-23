@@ -61,6 +61,8 @@ type Submission struct {
 		}
 	}
 	Crosspost_parent_list []*Submission
+	Unrepliable_reason    string
+	Author_is_blocked     bool
 	reddit                *Reddit
 }
 
