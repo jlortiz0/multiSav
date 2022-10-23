@@ -397,7 +397,7 @@ func (red *RedditImageEntry) GetGalleryInfo(lazy bool) []ImageEntry {
 		if ind != -1 {
 			x.S.U = x.S.U[:ind]
 		}
-		data = append(data, &RedditGalleryEntry{RedditImageEntry: *red, name: fmt.Sprintf("%s (%d/%d)", red.Title, i+1, len(red.Gallery_data.Items)), url: x.S.U, x: x.S.X, y: x.S.Y, index: i + 1})
+		data = append(data, &RedditGalleryEntry{RedditImageEntry: *red, name: fmt.Sprintf("%s (%d/%d)", red.Title, i+1, len(red.Gallery_data.Items)), url: x.S.U, index: i + 1})
 	}
 	return data
 }
@@ -457,18 +457,6 @@ func wordWrapper(s string) string {
 // it should only trigger when said URL is the only word in the post, ignoring spacing codes such as &nbsp
 func (red *RedditImageEntry) GetText() string {
 	return wordWrapper(red.Selftext)
-}
-
-func (red *RedditImageEntry) GetDimensions() (int, int) {
-	if len(red.Preview.Images) != 0 {
-		return red.Preview.Images[0].Source.Width, red.Preview.Images[0].Source.Height
-	}
-	if len(red.Media_metadata) != 0 {
-		for _, v := range red.Media_metadata {
-			return v.S.X, v.S.Y
-		}
-	}
-	return 0, 0
 }
 
 func (red *RedditImageEntry) GetPostURL() string {
@@ -547,16 +535,11 @@ type RedditGalleryEntry struct {
 	RedditImageEntry
 	name  string
 	url   string
-	x, y  int
 	index int
 }
 
 func (red *RedditGalleryEntry) GetURL() string {
 	return red.url
-}
-
-func (red *RedditGalleryEntry) GetDimensions() (int, int) {
-	return red.x, red.y
 }
 
 func (red *RedditGalleryEntry) GetName() string {

@@ -224,10 +224,6 @@ func (p *PixivImageEntry) GetType() ImageEntryType {
 	return IETYPE_REGULAR
 }
 
-func (p *PixivImageEntry) GetDimensions() (int, int) {
-	return p.Width, p.Height
-}
-
 func (p *PixivImageEntry) GetPostURL() string {
 	return "https://pixiv.net/en/artworks/" + strconv.Itoa(p.ID)
 }

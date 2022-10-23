@@ -137,7 +137,6 @@ type ImageEntry interface {
 	// Additionally, the returned slice need only be the correct length; it can otherwise be blank
 	GetGalleryInfo(bool) []ImageEntry
 	GetType() ImageEntryType
-	GetDimensions() (int, int)
 	GetPostURL() string
 	GetInfo() string
 	GetSaveName() string
@@ -171,8 +170,6 @@ func (*TextImageEntry) GetURL() string { return "" }
 func (*TextImageEntry) GetGalleryInfo(bool) []ImageEntry { return nil }
 
 func (*TextImageEntry) GetType() ImageEntryType { return IETYPE_TEXT }
-
-func (*TextImageEntry) GetDimensions() (int, int) { return -1, -1 }
 
 func (*TextImageEntry) GetPostURL() string { return "" }
 

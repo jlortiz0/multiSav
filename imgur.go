@@ -131,8 +131,6 @@ func (img *ImgurGalleryEntry) GetInfo() string {
 	return img.Title + "\n" + img.Description
 }
 
-func (*ImgurGalleryEntry) GetDimensions() (int, int) { return -1, -1 }
-
 func (img *ImgurGalleryEntry) GetPostURL() string { return "https://imgur.com/a/" + img.ID }
 
 func (img *ImgurGalleryEntry) GetURL() string { return img.Link }
@@ -140,13 +138,12 @@ func (img *ImgurGalleryEntry) GetURL() string { return img.Link }
 func (img *ImgurGalleryEntry) GetSaveName() string { return img.Images[0].GetSaveName() }
 
 type ImgurImageEntry struct {
-	ID            string
-	Title         string
-	Description   string
-	Link          string
-	Mp4           string
-	Width, Height int
-	index         int
+	ID          string
+	Title       string
+	Description string
+	Link        string
+	Mp4         string
+	index       int
 }
 
 func (*ImgurImageEntry) GetType() ImageEntryType { return IETYPE_REGULAR }
@@ -167,11 +164,6 @@ func (img *ImgurImageEntry) GetInfo() string {
 	}
 	return img.Title + "\n" + img.Description
 }
-
-// TODO: Sometimes Imgur seems to report wrong dimensions for this (x 1 too high)! Figure out why
-// func (img *ImgurImageEntry) GetDimensions() (int, int) { return img.Width, img.Height }
-
-func (img *ImgurImageEntry) GetDimensions() (int, int) { return 0, 0 }
 
 func (img *ImgurImageEntry) GetPostURL() string { return "https://imgur.com/" + img.ID }
 

@@ -435,12 +435,6 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 	case "gif":
 		fallthrough
 	case "mov":
-		// x, y := buf.items[sel].GetDimensions()
-		// if x != 0 {
-		// 	*ffmpeg = NewFfmpegReaderKnownSize(URL, int32(x), int32(y))
-		// } else {
-		// 	*ffmpeg = NewFfmpegReader(URL)
-		// }
 		var err error
 		*ffmpeg, err = NewStreamy(URL)
 		if err != nil {
