@@ -7,3 +7,4 @@ You know, it would be nice if I combined this and ImageSort, ignoring that they'
 ### To do list
  - Write instructions
  - The various things I put in the comments
+  - Find a bunch of weird edge cases

@@ -215,7 +215,12 @@ func NewMessage(msg string) *Message {
 	return out
 }
 
-func (*Message) Prerender() LoopStatus { return LOOP_CONT }
+func (*Message) Prerender() LoopStatus {
+	if rl.IsMouseButtonPressed(rl.MouseLeftButton) {
+		return LOOP_BACK
+	}
+	return LOOP_CONT
+}
 
 func (*Message) RecalcTarget() {}
 

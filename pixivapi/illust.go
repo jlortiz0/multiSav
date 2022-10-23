@@ -26,7 +26,7 @@ type Illustration struct {
 	Type       IllustrationType
 	Image_urls multisize
 	Caption    string
-	// TODO: What does this mean?
+	// What does this mean? Is it an R18 bool?
 	Restrict int
 	User     *User
 	Tags     []struct {
@@ -36,7 +36,7 @@ type Illustration struct {
 	Page_count  int
 	Width       int
 	Height      int
-	// TODO: What do these mean?
+	// What do these mean?
 	Sanity_level int
 	X_restrict   int
 	Series       struct {

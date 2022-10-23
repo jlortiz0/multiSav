@@ -136,7 +136,7 @@ func NewBufferedImageProducer(site ImageSite, kind int, args []interface{}, pers
 					} else {
 						resp, err = resolve.GetRequest(URL)
 					}
-					if resp.StatusCode/100 > 3 {
+					if err == nil && resp.StatusCode/100 > 3 {
 						ind2 := strings.LastIndexByte(URL, '?')
 						if ind2 != -1 {
 							URL = URL[:ind2]
