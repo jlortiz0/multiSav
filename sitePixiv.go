@@ -24,7 +24,12 @@ func NewPixivSite(refresh string) (PixivSite, error) {
 	return PixivSite{ret}, ret.Login(refresh)
 }
 
-func (p PixivSite) Destroy() {}
+func (p PixivSite) Destroy() {
+	s := sitePixiv.RefreshToken()
+	if s != "" {
+		saveData.Pixiv = s
+	}
+}
 
 func (p PixivSite) GetListingInfo() []ListingInfo {
 	return []ListingInfo{

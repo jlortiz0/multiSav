@@ -40,7 +40,15 @@ func NewTwitterSite(refresh string) TwitterSite {
 	return TwitterSite{&twitter.Client{Authorizer: twitterAuthorizer(0), Client: config.Client(context.Background(), token), Host: "https://api.twitter.com"}}
 }
 
-func (t TwitterSite) Destroy() {}
+func (t TwitterSite) Destroy() {
+	s, ok := t.Client.Client.Transport.(*oauth2.Transport)
+	if ok {
+		s2, _ := s.Source.Token()
+		if s2 != nil {
+			saveData.Twitter = s2.RefreshToken
+		}
+	}
+}
 
 func (t TwitterSite) GetListingInfo() []ListingInfo {
 	return []ListingInfo{
