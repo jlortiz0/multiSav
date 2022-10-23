@@ -94,7 +94,7 @@ func (fd *FileDialog) GuiFileDialog() {
 	}
 
 	var b bool
-	b, fd.path = GuiTextBox(rl.Rectangle{X: fd.position.X + 10, Y: fd.position.Y + 35, Width: fd.size.Y - 65, Height: 25}, fd.path, 256, fd.state&fdstate_pathedit != 0)
+	b, fd.path = GuiTextBox(rl.Rectangle{X: fd.position.X + 10, Y: fd.position.Y + 35, Width: fd.size.Y - 65, Height: 25}, fd.path, fd.state&fdstate_pathedit != 0)
 	if b {
 		if fd.state&fdstate_pathedit != 0 {
 			stat, err := os.Stat(fd.path)
@@ -133,7 +133,7 @@ func (fd *FileDialog) GuiFileDialog() {
 	}
 
 	GuiLabel(rl.Rectangle{X: fd.position.X + 10, Y: fd.position.Y + fd.size.Y - 60, Width: 68, Height: 25}, "File name:")
-	b, fd.fName = GuiTextBox(rl.Rectangle{X: fd.position.X + 75, Y: fd.position.Y + fd.size.Y - 60, Width: fd.size.X - 200, Height: 25}, fd.fName, 128, fd.state&fdstate_filenameedit != 0)
+	b, fd.fName = GuiTextBox(rl.Rectangle{X: fd.position.X + 75, Y: fd.position.Y + fd.size.Y - 60, Width: fd.size.X - 200, Height: 25}, fd.fName, fd.state&fdstate_filenameedit != 0)
 	if b {
 		if fd.state&fdstate_filenameedit != 0 && fd.fName != "" {
 			_, err := os.Stat(path.Join(fd.path, fd.fName))

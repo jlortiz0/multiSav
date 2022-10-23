@@ -65,11 +65,11 @@ func DrawArgumentsUI(name string, args []ListingArgument, out []interface{}, fla
 			case LARGTYPE_BOOL:
 				out[i] = rg.GuiCheckBox(rl.Rectangle{X: target.X/2 + 5, Y: vec2.Y - 3, Width: TEXT_SIZE + 5, Height: TEXT_SIZE + 5}, "", out[i].(bool))
 			case LARGTYPE_URL:
-				// TODO: Determine character limit equation (or use a better text box implementation (or use a different renderer))
+				// TODO: write a scrolling text box
 				fallthrough
 			case LARGTYPE_STRING:
 				var ret bool
-				ret, out[i] = rg.GuiTextBox(rl.Rectangle{X: target.X/2 + 5, Y: vec2.Y - 5, Width: target.X/4 - 10, Height: TEXT_SIZE + 10}, out[i].(string), 64, flags[i])
+				ret, out[i] = rg.GuiTextBox(rl.Rectangle{X: target.X/2 + 5, Y: vec2.Y - 5, Width: target.X/4 - 10, Height: TEXT_SIZE + 10}, out[i].(string), flags[i])
 				if ret {
 					flags[i] = !flags[i]
 				}

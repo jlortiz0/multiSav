@@ -353,8 +353,9 @@ func (r RedditSite) GetRequest(u string) (*http.Response, error) {
 
 type RedditImageEntry struct {
 	*redditapi.Submission
-	info string
-	data []ImageEntry
+	info    string
+	data    []ImageEntry
+	scanned bool
 }
 
 func (red *RedditImageEntry) GetType() ImageEntryType {
@@ -408,6 +409,17 @@ func (red *RedditImageEntry) GetName() string {
 
 func (red *RedditImageEntry) GetURL() string {
 	if red.Is_self || red.Is_gallery {
+		if red.Is_self && !red.scanned {
+			red.scanned = true
+			s := strings.ReplaceAll(red.Selftext, "&nbsp;", "")
+			s = strings.Trim(s, " \n\t()")
+			u, _ := url.Parse(s)
+			if u != nil {
+				red.URL = s
+				red.Is_self = false
+				return red.URL
+			}
+		}
 		return "https://reddit.com" + red.Permalink
 	}
 	return red.URL
@@ -453,8 +465,6 @@ func wordWrapper(s string) string {
 	return s2.String()
 }
 
-// TODO: something to try and grab URLs from text posts
-// it should only trigger when said URL is the only word in the post, ignoring spacing codes such as &nbsp
 func (red *RedditImageEntry) GetText() string {
 	return wordWrapper(red.Selftext)
 }

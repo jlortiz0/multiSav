@@ -70,12 +70,12 @@ func GuiValueBox(bounds rl.Rectangle, title string, value *int, minValue, maxVal
 	return bool(C.GuiValueBox(cRectangle(bounds), cTitle, cIntPtr(value), C.int(minValue), C.int(maxValue), C.bool(editMode)))
 }
 
-func GuiTextBox(bounds rl.Rectangle, text string, textSize int, editMode bool) (bool, string) {
+func GuiTextBox(bounds rl.Rectangle, text string, editMode bool) (bool, string) {
 	var cText [256]C.char
 	for i, v := range text {
 		cText[i] = C.char(v)
 	}
-	ret := bool(C.GuiTextBox(cRectangle(bounds), &cText[0], C.int(textSize), C.bool(editMode)))
+	ret := bool(C.GuiTextBox(cRectangle(bounds), &cText[0], 256, C.bool(editMode)))
 	var data [256]byte
 	var i int
 	for _, v := range cText {
@@ -88,12 +88,12 @@ func GuiTextBox(bounds rl.Rectangle, text string, textSize int, editMode bool) (
 	return ret, string(data[:i])
 }
 
-func GuiTextBoxMulti(bounds rl.Rectangle, text string, textSize int, editMode bool) (bool, string) {
+func GuiTextBoxMulti(bounds rl.Rectangle, text string, editMode bool) (bool, string) {
 	var cText [4096]C.char
 	for i, v := range text {
 		cText[i] = C.char(v)
 	}
-	ret := bool(C.GuiTextBoxMulti(cRectangle(bounds), &cText[0], C.int(textSize), C.bool(editMode)))
+	ret := bool(C.GuiTextBoxMulti(cRectangle(bounds), &cText[0], 4096, C.bool(editMode)))
 	var data [4096]byte
 	var i int
 	for _, v := range cText {

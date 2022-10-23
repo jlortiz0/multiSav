@@ -108,7 +108,7 @@ func NewBufferedImageProducer(site ImageSite, kind int, args []interface{}, pers
 						continue
 					}
 					URL = ret[0].GetURL()
-				} else if buf.items[sel+i-BIP_BUFBEFORE].GetType() != IETYPE_REGULAR {
+				} else if buf.items[sel+i-BIP_BUFBEFORE].GetType() == IETYPE_TEXT {
 					continue
 				}
 				ind := strings.LastIndexByte(URL, '.')
@@ -136,7 +136,18 @@ func NewBufferedImageProducer(site ImageSite, kind int, args []interface{}, pers
 					} else {
 						resp, err = resolve.GetRequest(URL)
 					}
-					if err == nil {
+					if resp.StatusCode/100 > 3 {
+						ind2 := strings.LastIndexByte(URL, '?')
+						if ind2 != -1 {
+							URL = URL[:ind2]
+							if resolve == nil {
+								resp, err = http.DefaultClient.Get(URL)
+							} else {
+								resp, err = resolve.GetRequest(URL)
+							}
+						}
+					}
+					if err == nil && resp.StatusCode/100 < 3 {
 						data, err := io.ReadAll(resp.Body)
 						if err == nil {
 							buf.bufLock.Lock()
@@ -378,7 +389,7 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 		go func() { <-buf.selRecv }()
 		return buf.items[sel].GetName()
 	} else if buf.items[sel].GetType() == IETYPE_UGOIRA {
-		// TODO: DANGER DANGER SPECIAL CASING
+		// DANGER DANGER SPECIAL CASING
 		useful := buf.items[sel].(*PixivImageEntry)
 		metadata, err := useful.GetUgoiraMetadata()
 		if err != nil {
@@ -425,7 +436,6 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 		ext = "." + ext[1:]
 	}
 	<-buf.selRecv
-	// TODO: copy changes to thread loader
 	// TODO: handle &amp; (why is that in a URL in the first place?)
 	switch ext[1:] {
 	case "mp4":
@@ -435,6 +445,9 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 	case "gif":
 		fallthrough
 	case "mov":
+		// Would it be better to pass some kind of fd to libav?
+		// In case we need to make the request with headers or something
+		// It would store received packets in a buffer, allowing for seeking
 		var err error
 		*ffmpeg, err = NewStreamy(URL)
 		if err != nil {
@@ -474,20 +487,23 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 				return "\\/err" + buf.items[sel].GetName()
 			}
 			if resp.StatusCode/100 > 3 {
-				URL = URL[:ind2]
-				if resolve == nil {
-					resp, err = http.DefaultClient.Get(URL)
-				} else {
-					resp, err = resolve.GetRequest(URL)
-				}
-				if err != nil {
-					*img = drawMessage(wordWrapper(err.Error()))
-					return "\\/err" + buf.items[sel].GetName()
-				}
-				if resp.StatusCode/100 > 3 {
-					// Should I draw the body too?
-					*img = drawMessage(resp.Status)
-					return "\\/err" + buf.items[sel].GetName()
+				ind2 = strings.LastIndexByte(URL, '?')
+				if ind2 != -1 {
+					URL = URL[:ind2]
+					if resolve == nil {
+						resp, err = http.DefaultClient.Get(URL)
+					} else {
+						resp, err = resolve.GetRequest(URL)
+					}
+					if err != nil {
+						*img = drawMessage(wordWrapper(err.Error()))
+						return "\\/err" + buf.items[sel].GetName()
+					}
+					if resp.StatusCode/100 > 3 {
+						// Should I draw the body too?
+						*img = drawMessage(resp.Status)
+						return "\\/err" + buf.items[sel].GetName()
+					}
 				}
 			}
 			data, err = io.ReadAll(resp.Body)
@@ -510,12 +526,6 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 		if *ffmpeg != nil {
 			(*ffmpeg).Destroy()
 			*ffmpeg = nil
-			// rl.UnloadImage(*img)
-			// text := fmt.Sprintf("Press Enter for gallery viewer (%d images)", len(buf.items[sel].GetGalleryInfo(true)))
-			// vec := rl.MeasureTextEx(font, text, TEXT_SIZE, 0)
-			// *img = rl.GenImageColor(int(vec.X)+16, int(vec.Y)+10, rl.RayWhite)
-			// rl.ImageDrawTextEx(*img, rl.Vector2{X: 8, Y: 5}, font, text, TEXT_SIZE, 0, rl.Black)
-			// return "\\/err" + buf.items[sel].GetName()
 		}
 		size := float32((**img).Height) / 32
 		if size < float32(font.BaseSize) {
