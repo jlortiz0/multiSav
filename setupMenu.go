@@ -53,6 +53,11 @@ func DrawArgumentsUI(name string, args []ListingArgument, out []interface{}, fla
 				rl.DrawTextEx(font, args[i].options[0].(string), rl.Vector2{X: target.X/2 + 5, Y: vec2.Y}, TEXT_SIZE, 0, rl.Black)
 				continue
 			}
+			s, ok := out[i].(string)
+			if ok {
+				rg.GuiComboBox(rl.Rectangle{X: target.X/2 + 5, Y: vec2.Y - 5, Width: target.X/4 - 10, Height: TEXT_SIZE + 10}, s, 0)
+				continue
+			}
 			name := strings.Builder{}
 			name.WriteString(fmt.Sprint(v.options[0]))
 			for _, n := range v.options[1:] {
@@ -145,14 +150,17 @@ cm:
 	cArgs[0].name = "Name"
 	cArgs[0].kind = LARGTYPE_STRING
 	cArgs = append(cArgs, choices[kind].args...)
+	fadeIn(func() { DrawArgumentsUI(choices[kind].name, cArgs, args, flags) })
 	for !rl.WindowShouldClose() {
 		rl.BeginDrawing()
 		rl.ClearBackground(color.RGBA{R: 64, G: 64, B: 64})
 		out := DrawArgumentsUI(choices[kind].name, cArgs, args, flags)
 		rl.EndDrawing()
 		if out != nil && len(out) == 0 {
+			fadeOut(func() { DrawArgumentsUI(choices[kind].name, cArgs, args, flags) })
 			goto cm
 		} else if len(out) != 0 {
+			fadeOut(func() { DrawArgumentsUI(choices[kind].name, cArgs, args, flags) })
 			return kind, args
 		}
 	}
@@ -248,9 +256,11 @@ func SetUpSites() bool {
 				break
 			} else if len(out) != 0 {
 				if args[0].(bool) {
+					siteReddit.Logout()
 					saveData.Reddit = ""
 				}
 				if args[1].(bool) {
+					siteTwitter.Logout()
 					saveData.Twitter = ""
 				}
 				if args[2].(bool) {

@@ -39,6 +39,5 @@ While the source code of this program is licensed under the zlib License, this p
 ## To do list
  - Write better instructions
  - Gracefully handle refresh token errors
- - Properly log out instead of deleting the refresh tokens
  - The various things I put in the comments
  - Find a bunch of weird edge cases

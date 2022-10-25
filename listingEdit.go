@@ -181,6 +181,17 @@ func EditListings() bool {
 			cArgs[2] = data.Name
 			cArgs = append(cArgs, data.Args...)
 			flags = make([]bool, len(data.Args)+3)
+			for i, x := range args[3:] {
+				if len(x.options) != 0 && x.kind == LARGTYPE_STRING {
+					thing := cArgs[i+3].(string)
+					for i2, x2 := range x.options {
+						if thing == x2.(string) {
+							cArgs[i+3] = i2
+							break
+						}
+					}
+				}
+			}
 		}
 		fadeIn(func() { DrawArgumentsUI(data.Name, args, cArgs, flags) })
 		for !rl.WindowShouldClose() {
@@ -190,7 +201,7 @@ func EditListings() bool {
 			rl.EndDrawing()
 			if out != nil && len(out) == 0 {
 				fadeOut(func() { DrawArgumentsUI(data.Name, args, cArgs, flags) })
-				return false
+				return EditListings()
 			} else if len(out) != 0 {
 				fadeOut(func() { DrawArgumentsUI(data.Name, args, cArgs, flags) })
 				if data.Site == SITE_LOCAL {
