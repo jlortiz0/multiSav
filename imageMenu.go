@@ -25,6 +25,7 @@ type ImageMenu struct {
 	ffmpeg       VideoReader
 	fName        string
 	ffmpegData   chan []color.RGBA
+	prodLoader   <-chan ImageProducer
 }
 
 type imageMenuState int
@@ -51,11 +52,10 @@ func getZoomForTexture(tex rl.Texture2D, target rl.Vector2) float32 {
 	return minf32(target.Y/float32(tex.Height), target.X/float32(tex.Width))
 }
 
-func NewImageMenu(prod ImageProducer) *ImageMenu {
+func NewImageMenu(prod func() <-chan ImageProducer) *ImageMenu {
 	menu := new(ImageMenu)
-	menu.Producer = prod
-	rl.SetWindowTitle(menu.Producer.GetTitle())
-	menu.state = IMSTATE_SHOULDLOAD | IMSTATE_GOTO
+	menu.prodLoader = prod()
+	menu.state = IMSTATE_LOADING | IMSTATE_GOTO
 	menu.target = rl.Vector2{X: float32(rl.GetScreenWidth()), Y: float32(rl.GetScreenHeight())}
 	menu.target.Y -= TEXT_SIZE + 10
 	menu.cam.Offset = rl.Vector2{Y: menu.target.Y / 2, X: menu.target.X / 2}
@@ -237,6 +237,16 @@ func (menu *ImageMenu) HandleKey(keycode int32) LoopStatus {
 }
 
 func (menu *ImageMenu) Prerender() LoopStatus {
+	if menu.prodLoader != nil {
+		select {
+		case menu.Producer = <-menu.prodLoader:
+			menu.prodLoader = nil
+			rl.SetWindowTitle(menu.Producer.GetTitle())
+			menu.state = IMSTATE_SHOULDLOAD | IMSTATE_GOTO
+		default:
+			return LOOP_CONT
+		}
+	}
 	if menu.state == IMSTATE_SHOULDLOAD|IMSTATE_GOTO {
 		menu.state = IMSTATE_SHOULDLOAD
 		if menu.Producer.Len() == 0 && (!menu.Producer.IsLazy() || !menu.Producer.BoundsCheck(0)) {
@@ -353,7 +363,7 @@ func (menu *ImageMenu) Prerender() LoopStatus {
 }
 
 func (menu *ImageMenu) Renderer() {
-	if menu.state == IMSTATE_LOADING {
+	if menu.state&^IMSTATE_GOTO == IMSTATE_LOADING {
 		rl.BeginMode2D(menu.cam)
 		rl.DrawTexture(menu.texture, 0, 0, rl.White)
 		rl.EndMode2D()
@@ -428,16 +438,23 @@ func (menu *ImageMenu) Renderer() {
 			}
 		}
 		if menu.state&IMSTATE_GOTO == 0 {
-			s := fmt.Sprintf("%d/%d", menu.Selected+1, menu.Producer.Len())
-			if menu.Producer.IsLazy() {
-				s += "+"
+			s := "..."
+			if menu.Producer != nil {
+				s = fmt.Sprintf("%d/%d", menu.Selected+1, menu.Producer.Len())
+				if menu.Producer.IsLazy() {
+					s += "+"
+				}
 			}
 			if (rg.GuiLabelButton(rl.Rectangle{X: menu.target.X - 75, Y: menu.target.Y, Width: 70, Height: TEXT_SIZE + 10}, s)) {
 				menu.state |= IMSTATE_GOTO
 				menu.tempSel = menu.Selected + 1
 			}
 		} else {
-			if rg.GuiValueBox(rl.Rectangle{X: menu.target.X - 75, Y: menu.target.Y, Width: 75, Height: TEXT_SIZE + 10}, "goto", &menu.tempSel, 1, menu.Producer.Len(), true) {
+			var max int
+			if menu.Producer != nil {
+				max = menu.Producer.Len()
+			}
+			if rg.GuiValueBox(rl.Rectangle{X: menu.target.X - 75, Y: menu.target.Y, Width: 75, Height: TEXT_SIZE + 10}, "goto", &menu.tempSel, 1, max, true) {
 				menu.state = IMSTATE_SHOULDLOAD
 				menu.Selected = menu.tempSel - 1
 				if menu.Selected < 0 {
@@ -492,7 +509,13 @@ func (menu *ImageMenu) Destroy() {
 	if menu.img != nil {
 		rl.UnloadImage(menu.img)
 	}
-	menu.Producer.Destroy()
+	if menu.prodLoader != nil {
+		go func() {
+			<-menu.prodLoader
+		}()
+	} else {
+		menu.Producer.Destroy()
+	}
 }
 
 func (menu *ImageMenu) RecalcTarget() {

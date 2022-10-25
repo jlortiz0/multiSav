@@ -554,11 +554,17 @@ func (buf *BufferedImageProducer) GetListing() ImageListing {
 }
 
 func NewGalleryMenu(img ImageEntry, site ImageSite) *ImageMenu {
-	prod := NewBufferedImageProducer(nil, 0, nil, nil)
-	prod.items = img.GetGalleryInfo(false)
-	prod.extending = nil
-	prod.lazy = false
-	prod.site = site
-	menu := NewImageMenu(prod)
+	menu := NewImageMenu(func() <-chan ImageProducer {
+		ch := make(chan ImageProducer)
+		go func() {
+			prod := NewBufferedImageProducer(nil, 0, nil, nil)
+			prod.items = img.GetGalleryInfo(false)
+			prod.extending = nil
+			prod.lazy = false
+			prod.site = site
+			ch <- prod
+		}()
+		return ch
+	})
 	return menu
 }

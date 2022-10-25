@@ -167,8 +167,13 @@ MainLoop:
 				break MainLoop
 			}
 		} else if sel == 0 {
-			producer := NewOfflineImageProducer(saveData.Downloads)
-			menu := NewImageMenu(producer)
+			menu := NewImageMenu(func() <-chan ImageProducer {
+				ch := make(chan ImageProducer)
+				go func() {
+					ch <- NewOfflineImageProducer(saveData.Downloads)
+				}()
+				return ch
+			})
 			if stdEventLoop(menu) == LOOP_QUIT {
 				break MainLoop
 			}
@@ -176,24 +181,32 @@ MainLoop:
 			rl.SetWindowTitle("multiSav")
 		} else {
 			data := saveData.Listings[sel-1]
-			var producer ImageProducer
-			switch data.Site {
-			case SITE_LOCAL:
-				producer = NewOfflineImageProducer(data.Args[0].(string))
-			case SITE_REDDIT:
-				producer = NewRedditProducer(siteReddit, data.Kind, data.Args, data.Persistent)
-			case SITE_TWITTER:
-				producer = NewTwitterProducer(siteTwitter, data.Kind, data.Args, data.Persistent)
-			case SITE_PIXIV:
-				producer = NewPixivProducer(sitePixiv, data.Kind, data.Args, data.Persistent)
-			}
-			menu := NewImageMenu(producer)
+			menu := NewImageMenu(func() <-chan ImageProducer {
+				ch := make(chan ImageProducer)
+				go func() {
+					var producer ImageProducer
+					switch data.Site {
+					case SITE_LOCAL:
+						producer = NewOfflineImageProducer(data.Args[0].(string))
+					case SITE_REDDIT:
+						producer = NewRedditProducer(siteReddit, data.Kind, data.Args, data.Persistent)
+					case SITE_TWITTER:
+						producer = NewTwitterProducer(siteTwitter, data.Kind, data.Args, data.Persistent)
+					case SITE_PIXIV:
+						producer = NewPixivProducer(sitePixiv, data.Kind, data.Args, data.Persistent)
+					}
+					ch <- producer
+				}()
+				return ch
+			})
 			if stdEventLoop(menu) == LOOP_QUIT {
 				break MainLoop
 			}
-			listing := producer.GetListing()
-			if listing != nil {
-				saveData.Listings[sel-1].Persistent = listing.GetPersistent()
+			if menu.Producer != nil {
+				listing := menu.Producer.GetListing()
+				if listing != nil {
+					saveData.Listings[sel-1].Persistent = listing.GetPersistent()
+				}
 			}
 			menu.Destroy()
 			rl.SetWindowTitle("multiSav")
