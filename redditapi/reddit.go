@@ -45,6 +45,10 @@ func (r *Reddit) checkToken() {
 	}
 }
 
+func (r *Reddit) IsLoggedIn() bool {
+	return r.token != nil
+}
+
 func (r *Reddit) Login(refresh string) error {
 	buf := new(bytes.Buffer)
 	buf.WriteString("grant_type=refresh_token&refresh_token=")
@@ -141,6 +145,9 @@ func (r *Reddit) Search(limit int, q string, sort string, t string) (*Submission
 }
 
 func (r *Reddit) Self() *Redditor {
+	if r.token == nil {
+		return nil
+	}
 	rq := r.buildRequest("GET", "api/v1/me", http.NoBody)
 	resp, err := http.DefaultClient.Do(rq)
 	if err != nil {

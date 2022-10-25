@@ -18,13 +18,15 @@ type TwitterSite struct {
 	*twitter.Client
 }
 
-type twitterAuthorizer byte
+type twitterAuthorizer struct {
+	b bool
+}
 
 func (t twitterAuthorizer) Add(req *http.Request) {}
 
 func NewTwitterSite(refresh string) TwitterSite {
 	if refresh == "" {
-		return TwitterSite{&twitter.Client{Authorizer: twitterAuthorizer(0), Client: oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(&oauth2.Token{
+		return TwitterSite{&twitter.Client{Authorizer: twitterAuthorizer{false}, Client: oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(&oauth2.Token{
 			AccessToken: TwitterBearer,
 		})), Host: "https://api.twitter.com"}}
 	}
@@ -37,7 +39,7 @@ func NewTwitterSite(refresh string) TwitterSite {
 	config.Endpoint.AuthURL = "https://twitter.com/i/oauth2/authorize"
 	config.Endpoint.TokenURL = "https://api.twitter.com/2/oauth2/token"
 	token := &oauth2.Token{RefreshToken: refresh}
-	return TwitterSite{&twitter.Client{Authorizer: twitterAuthorizer(0), Client: config.Client(context.Background(), token), Host: "https://api.twitter.com"}}
+	return TwitterSite{&twitter.Client{Authorizer: twitterAuthorizer{true}, Client: config.Client(context.Background(), token), Host: "https://api.twitter.com"}}
 }
 
 func (t TwitterSite) Destroy() {
@@ -500,7 +502,7 @@ func (t TwitterProducer) ActionHandler(key int32, sel int, call int) ActionRet {
 		return t.BufferedImageProducer.ActionHandler(key, sel, call)
 	}
 	if key == rl.KeyX {
-		if saveData.Settings.SaveOnX || t.listing.(*TwitterImageListing).kind == 5 || rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift) || t.listing.(*TwitterImageListing).myId == "" {
+		if !t.site.Authorizer.(twitterAuthorizer).b || saveData.Settings.SaveOnX || t.listing.(*TwitterImageListing).kind == 5 || rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift) || t.listing.(*TwitterImageListing).myId == "" {
 			ret := t.BufferedImageProducer.ActionHandler(key, sel, call)
 			if ret&ARET_REMOVE != 0 {
 				t.site.RemoveTweetBookmark(context.Background(), t.listing.(*TwitterImageListing).myId, useful.ID)

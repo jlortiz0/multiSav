@@ -277,6 +277,23 @@ func (prod *OfflineImageProducer) ActionHandler(keycode int32, sel int, call int
 		} else {
 			return ARET_MOVEDOWN | ARET_AGAIN | ARET_CLOSEFFMPEG
 		}
+	} else if keycode == rl.KeyX && prod.fldr != saveData.Downloads {
+		newName := prod.items[sel]
+		if _, err := os.Stat(path.Join(saveData.Downloads, newName)); err == nil {
+			x := -1
+			dLoc := strings.IndexByte(newName, '.')
+			before := newName
+			var after string
+			if dLoc != -1 {
+				before = newName[:dLoc]
+				after = newName[dLoc+1:]
+			}
+			for ; err == nil; _, err = os.Stat(fmt.Sprintf("%s%s_%d.%s", saveData.Downloads, before, x, after)) {
+				x++
+			}
+			newName = fmt.Sprintf("%s_%d.%s", before, x, after)
+		}
+		os.Rename(path.Join(prod.fldr, prod.items[sel]), path.Join(saveData.Downloads, newName))
 	} else if keycode == rl.KeyV {
 		openFile(path.Join(prod.fldr, prod.items[sel]))
 	} else if keycode == rl.KeyH {

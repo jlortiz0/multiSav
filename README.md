@@ -40,7 +40,5 @@ While the source code of this program is licensed under the zlib License, this p
  - Write better instructions
  - Gracefully handle refresh token errors
  - Properly log out instead of deleting the refresh tokens
- - Figure out what to do with X and C offline
- - Better handling of X when logged out
  - The various things I put in the comments
  - Find a bunch of weird edge cases
