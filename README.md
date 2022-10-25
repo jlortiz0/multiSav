@@ -22,11 +22,25 @@ Due to Twitter being annoying about distribution of secrets (and they gave me a 
  - RedditSecret (can be blank)
 I suggest placing these definitions in `token.go`, because I did that so it's already in the gitignore.
 
+## Instructions
+
+Images are retrived through listings. You can create a listing by going to Edit Listings > New. Select a site, then select the kind of listing. Give the new listing a name and adjust other options. At time of writing, up to 20 characters can be inputted into an option.
+
+To browse images, use the left and right arrow keys or the targets on the left and right of the screen to switch images. Press Z or click the tutle at the bottom to view information about the current entry. Use the up and down arrow keys to zoom in and out. When zoomed in, use WASD to move the image around.
+
+In an online listing, press V to open the current image or link in a browser, or H to open the post URL in a browser. Press C to remove the current entry (on some sites this may hide the entry from appearing again). Press X to download the image to the downloads folder. On some sites, pressing X may instead save or bookmark the image. Hold shift while pressing X or change the settings to override this. Press enter to view galleries if prompted.
+
+Some features of sites may require that you sign in. To do this, use superAuthorizer. Run the program and select the site to sign in to. A new page will open in your browser prompting you to give access. If your firewall asks if you want to allow superAuthorizer through the firewall, say no. To sign out later, use the Logout menu in multisav's options menu.
+
 ## Legal notes
 
 While the source code of this program is licensed under the zlib License, this program links with FFmpeg's libraries, which may be licensed under the GPL depending on compile options. As such, the compiled version may be licensed under the GPL. If you wish to avoid this, consider using an LGPL-compliant version of the libav libraries.
 
-### To do list
- - Write instructions
+## To do list
+ - Write better instructions
+ - Gracefully handle refresh token errors
+ - Properly log out instead of deleting the refresh tokens
+ - Figure out what to do with X and C offline
+ - Better handling of X when logged out
  - The various things I put in the comments
-  - Find a bunch of weird edge cases
+ - Find a bunch of weird edge cases
