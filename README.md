@@ -7,9 +7,9 @@ You know, it would be nice if I combined this and ImageSort, ignoring that they'
 ## Building
 
 In addition to what is needed from `go mod download`, the following dependencies are required to build:
- - (raylib)[] v???
- - (raygui)[] v???
- - libavcodec, libavformat, libswscale, libavutil v???
+ - (raylib)[https://github.com/raysan5/raylib] v4.2
+ - (raygui)[https://github.com/raysan5/raygui] v3.0
+ - libavcodec, libavformat, libswscale, libavutil v4.2.7 (this corresponds to FFmpeg version/package version, not library version)
    - For Linux, install the dev packages from your package manager of choice
    - For Windows, download the windows-shared build from (BtbN)[https://github.com/BtbN/FFmpeg-Builds/releases] and install the libraries and headers.
 
