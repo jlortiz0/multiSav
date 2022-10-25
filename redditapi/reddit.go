@@ -78,6 +78,28 @@ func (r *Reddit) Login(refresh string) error {
 	return nil
 }
 
+func (r *Reddit) Logout() error {
+	if r.token == nil {
+		return nil
+	}
+	s := new(bytes.Buffer)
+	s.WriteString("token=")
+	s.WriteString(r.token.RefreshToken)
+	s.WriteString("&token_type_hint=refresh_token")
+	rq, _ := http.NewRequest("POST", "https://www.reddit.com/api/v1/revoke_token", s)
+	rq.Header.Add("User-Agent", r.userAgent)
+	rq.SetBasicAuth(r.config.ClientID, r.config.ClientSecret)
+	resp, err := http.DefaultClient.Do(rq)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != 204 {
+		data, _ := io.ReadAll(resp.Body)
+		return errors.New(string(data))
+	}
+	return nil
+}
+
 func (r *Reddit) buildRequest(method, url string, body io.Reader) *http.Request {
 	if r.token != nil {
 		r.checkToken()

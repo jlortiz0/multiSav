@@ -76,6 +76,10 @@ func (p *Client) SetToken(access, refresh string) {
 	p.token = &oauth2.Token{AccessToken: access, RefreshToken: refresh, Expiry: time.Now().Add(time.Minute * 10)}
 }
 
+func (p *Client) IsLoggedIn() bool {
+	return p.token != nil
+}
+
 func (p *Client) Login(token string) error {
 	ts := time.Now().UTC().Format("2006-01-02T15:04:05") + "+00:00"
 	buf := new(bytes.Buffer)
@@ -132,6 +136,9 @@ func (p *Client) checkToken() error {
 }
 
 func (p *Client) RefreshToken() string {
+	if p.token == nil {
+		return ""
+	}
 	return p.token.RefreshToken
 }
 

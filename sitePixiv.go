@@ -21,6 +21,9 @@ type PixivSite struct {
 
 func NewPixivSite(refresh string) (PixivSite, error) {
 	ret := pixivapi.NewClient()
+	if refresh == "" {
+		return PixivSite{ret}, nil
+	}
 	return PixivSite{ret}, ret.Login(refresh)
 }
 
@@ -36,11 +39,11 @@ func (p PixivSite) GetListingInfo() []ListingInfo {
 		{"User", []ListingArgument{{name: "ID or URL"}}},
 		{"Bookmarks", []ListingArgument{{name: "User ID or URL (0 for self)"}}},
 		{"Search", []ListingArgument{{name: "Query"}, {name: "Search kind", options: []interface{}{
-			pixivapi.TAGS_EXACT, pixivapi.TAGS_PARTIAL, pixivapi.TITLE_AND_CAPTION,
+			string(pixivapi.TAGS_EXACT), string(pixivapi.TAGS_PARTIAL), string(pixivapi.TITLE_AND_CAPTION),
 		}}}},
 		{"Recommended", nil},
 		{"Best of", []ListingArgument{{name: "Of", options: []interface{}{
-			pixivapi.DAY, pixivapi.WEEK, pixivapi.MONTH, pixivapi.DAY_MALE, pixivapi.DAY_FEMALE,
+			string(pixivapi.DAY), string(pixivapi.WEEK), string(pixivapi.MONTH), string(pixivapi.DAY_MALE), string(pixivapi.DAY_FEMALE),
 		}}}},
 	}
 }
@@ -65,6 +68,9 @@ func (p *PixivImageListing) GetPersistent() interface{} {
 }
 
 func (p PixivSite) GetListing(kind int, args []interface{}, persist interface{}) (ImageListing, []ImageEntry) {
+	if !p.IsLoggedIn() {
+		return ErrorListing{errors.New("must log in to use Pixiv")}, nil
+	}
 	var ls *pixivapi.IllustrationListing
 	var err error
 	switch kind {

@@ -52,16 +52,33 @@ func (t TwitterSite) Destroy() {
 	}
 }
 
+func (t TwitterSite) Logout() error {
+	return nil
+	// This endpoint seems to only be for app tokens
+	// How would this work for PKCE?
+	s, ok := t.Client.Client.Transport.(*oauth2.Transport)
+	if !ok {
+		return nil
+	}
+	s2, err := s.Source.Token()
+	if s2 == nil {
+		return err
+	}
+	rq, _ := http.NewRequest("POST", "https://api.twitter.com/oauth2/invalidate_token?access_token="+s2.RefreshToken, http.NoBody)
+	_, err = t.Client.Client.Do(rq)
+	return err
+}
+
 func (t TwitterSite) GetListingInfo() []ListingInfo {
 	return []ListingInfo{
 		{
 			"User timeline", []ListingArgument{{name: "User"}, {name: "Include retweets", kind: LARGTYPE_BOOL}},
 		},
 		{
-			"Search: 7 days", []ListingArgument{{name: "Query"}, {name: "Sort", options: []interface{}{twitter.TweetSearchSortOrderRecency, twitter.TweetSearchSortOrderRelevancy}}},
+			"Search: 7 days", []ListingArgument{{name: "Query"}, {name: "Sort", options: []interface{}{string(twitter.TweetSearchSortOrderRecency), string(twitter.TweetSearchSortOrderRelevancy)}}},
 		},
 		{
-			"Search: user, 7 days", []ListingArgument{{name: "User"}, {name: "Query"}, {name: "Sort", options: []interface{}{twitter.TweetSearchSortOrderRecency, twitter.TweetSearchSortOrderRelevancy}}},
+			"Search: user, 7 days", []ListingArgument{{name: "User"}, {name: "Query"}, {name: "Sort", options: []interface{}{string(twitter.TweetSearchSortOrderRecency), string(twitter.TweetSearchSortOrderRelevancy)}}},
 		},
 		{
 			"List", []ListingArgument{{name: "ID or URL"}, {name: "Include retweets and replies", kind: LARGTYPE_BOOL}},
