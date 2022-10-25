@@ -154,7 +154,7 @@ func main() {
 			fmt.Println("Press enter to continue.")
 			fmt.Scanf("\n")
 		case 2:
-			fmt.Println("When the page opens in your browser, sign in. You will see a message saying \"Invalid request/\"\nPaste the URL of the page where you get that message below:")
+			fmt.Println("When the page opens in your browser, sign in. You will see a message saying \"Invalid request\"\nPaste the URL of the page where you get that message below:")
 			t, err := pixivToken.Token()
 			if err != nil {
 				fmt.Printf("An error occured: %s\n", err.Error())

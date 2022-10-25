@@ -451,7 +451,8 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 		var err error
 		*ffmpeg, err = NewStreamy(URL)
 		if err != nil {
-			panic(err)
+			*img = drawMessage(wordWrapper(err.Error()))
+			return "\\/err" + buf.items[sel].GetName()
 		}
 		data := buf.buffer[BIP_BUFBEFORE]
 		if data != nil {
