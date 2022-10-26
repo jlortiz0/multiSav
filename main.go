@@ -90,12 +90,12 @@ func loginToSites() {
 	for _, x := range sitePixiv.GetResolvableDomains() {
 		resolveMap[x] = sitePixiv
 	}
-	var b byte
-	for _, x := range BlockingResolver(b).GetResolvableDomains() {
-		resolveMap[x] = BlockingResolver(b)
+	temp := BlockingResolver{}
+	for _, x := range temp.GetResolvableDomains() {
+		resolveMap[x] = temp
 	}
-	for _, x := range StripQueryResolver(b).GetResolvableDomains() {
-		resolveMap[x] = StripQueryResolver(b)
+	for _, x := range StripQueryResolver(temp).GetResolvableDomains() {
+		resolveMap[x] = StripQueryResolver(temp)
 	}
 }
 

@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-type StripQueryResolver byte
+type StripQueryResolver struct{}
 
 func (StripQueryResolver) GetResolvableDomains() []string {
 	// Some discord images seem to require the query, but some don't work with it
@@ -29,7 +29,7 @@ func (StripQueryResolver) GetRequest(u string) (*http.Response, error) {
 
 func (StripQueryResolver) Destroy() {}
 
-type BlockingResolver byte
+type BlockingResolver struct{}
 
 // TODO: Detect when the user's DNS is blocking something and prompt them to switch.
 // It seems that catbox.moe likes to lose images... should I add a handler for it?

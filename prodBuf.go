@@ -324,6 +324,7 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 	if !ok {
 	Outer:
 		for {
+			// TODO: Strip query
 			ind := strings.LastIndexByte(URL, '.')
 			if ind == -1 {
 				ind = strings.Index(URL, "format=") + 6
