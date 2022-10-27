@@ -303,13 +303,13 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 	}
 	// The buffer should be kept updated even if we won't be reading it this time around
 	buf.selSender <- sel
+	URL := buf.items[sel].GetURL()
 	if buf.items[sel].GetType() == IETYPE_TEXT {
-		*img = drawMessage(buf.items[sel].GetText())
+		*img = drawMessage(wordWrapper(buf.items[sel].GetText()))
 		// We still need to recieve to ensure the buffer is updated, but no need to do it synchronously
 		go func() { <-buf.selRecv }()
 		return buf.items[sel].GetName()
 	}
-	URL := buf.items[sel].GetURL()
 	if URL == "" {
 		s := buf.items[sel].GetText()
 		if s == "" {

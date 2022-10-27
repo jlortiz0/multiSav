@@ -375,7 +375,7 @@ type RedditImageEntry struct {
 }
 
 func (red *RedditImageEntry) GetType() ImageEntryType {
-	if red.Is_self {
+	if red.Is_self || red.Selftext == "[removed]" {
 		return IETYPE_TEXT
 	}
 	if red.Is_gallery || red.data != nil {
@@ -421,17 +421,35 @@ func (red *RedditImageEntry) GetName() string {
 	return red.Title
 }
 
+func splitAny(s string, seps string) []string {
+	out := make([]string, 0, len(s)*len(seps)/20+1)
+	ind := strings.IndexAny(s, seps)
+	for ind != -1 {
+		if ind != 0 {
+			out = append(out, s[:ind])
+		}
+		s = s[ind+1:]
+		ind = strings.IndexAny(s, seps)
+	}
+	if s != "" {
+		out = append(out, s)
+	}
+	return out
+}
+
 func (red *RedditImageEntry) GetURL() string {
 	if red.Is_self || red.Is_gallery {
 		if red.Is_self && !red.scanned {
 			red.scanned = true
-			s := strings.ReplaceAll(red.Selftext, "&nbsp;", "")
-			s = strings.Trim(s, " \n\t()")
-			u, _ := url.Parse(s)
-			if u != nil {
-				red.URL = s
-				red.Is_self = false
-				return red.URL
+			s := red.Selftext
+			s2 := splitAny(s, " \n\t()[]")
+			for _, s3 := range s2 {
+				u, _ := url.Parse(s3)
+				if u != nil && strings.HasPrefix(u.Scheme, "http") {
+					red.URL = s3
+					red.Is_self = false
+					return red.URL
+				}
 			}
 		}
 		return "https://reddit.com" + red.Permalink
