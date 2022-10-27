@@ -7,11 +7,11 @@ You know, it would be nice if I combined this and ImageSort, ignoring that they'
 ## Building
 
 In addition to what is needed from `go mod download`, the following dependencies are required to build:
- - (raylib)[https://github.com/raysan5/raylib] v4.2
- - (raygui)[https://github.com/raysan5/raygui] v3.0
+ - [raylib](https://github.com/raysan5/raylib) v4.2
+ - [raygui](https://github.com/raysan5/raygui) v3.0
  - libavcodec, libavformat, libswscale, libavutil v4.2.7 (this corresponds to FFmpeg version/package version, not library version)
    - For Linux, install the dev packages from your package manager of choice
-   - For Windows, download the windows-shared build from (BtbN)[https://github.com/BtbN/FFmpeg-Builds/releases] and install the libraries and headers.
+   - For Windows, download the windows-shared build from [BtbN](https://github.com/BtbN/FFmpeg-Builds/releases) and install the libraries and headers.
 
 Due to Twitter being annoying about distribution of secrets (and they gave me a secret even though I specfically said this was a native application), and also to avoid hitting the API caps (people probably won't use this, but bots sure will), client tokens for Imgur, Reddit, and Twitter are not included in this package. You will have to define the following constants yourself to get the program to compile:
  - ImgurID
@@ -42,3 +42,5 @@ While the source code of this program is licensed under the zlib License, this p
  - The various things I put in the comments
  - Find a bunch of weird edge cases
  - Ability for a resolver to pass an error
+ - Get to a point that I can call this "released"
+ - Look into a better renderer (why did I pick raylib, of all things?)
