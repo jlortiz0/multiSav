@@ -28,8 +28,6 @@ func (StripQueryResolver) GetRequest(u string) (*http.Response, error) {
 	return http.DefaultClient.Get(u)
 }
 
-func (StripQueryResolver) Destroy() {}
-
 type BlockingResolver struct{}
 
 // TODO: Detect when the user's DNS is blocking something and prompt them to switch.
@@ -50,30 +48,19 @@ func (BlockingResolver) GetRequest(u string) (*http.Response, error) {
 	return nil, errors.New("Cannot handle domain " + URL.Host)
 }
 
-func (BlockingResolver) Destroy() {}
-
-type GfycatResolver struct{}
-
-func (GfycatResolver) GetResolvableDomains() []string {
-	return []string{"gfycat.com", "www.gfycat.com", "thumbs.gfycat.com"}
-}
-
-func (GfycatResolver) ResolveURL(u string) (string, ImageEntry) {
-	if strings.HasPrefix(u, "thumbs.") {
-		return RESOLVE_FINAL, nil
-	}
+func findByProps(u, p string) (string, error) {
 	resp, err := http.Get(u)
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 	s := string(data)
-	ind := strings.Index(s, "property=\"og:video\" content=\"")
+	ind := strings.Index(s, "property=\""+p+"\" content=\"")
 	if ind == -1 {
-		return "", nil
+		return "", errors.New("property not found")
 	}
 	s = s[ind+len("property=\"og:video\" content=\""):]
 	ind = strings.IndexByte(s, '"')
@@ -81,8 +68,52 @@ func (GfycatResolver) ResolveURL(u string) (string, ImageEntry) {
 	return s, nil
 }
 
-func (GfycatResolver) GetRequest(u string) (*http.Response, error) {
+type PropOGVideoResolver struct{}
+
+func (PropOGVideoResolver) GetResolvableDomains() []string {
+	return []string{"gfycat.com", "www.gfycat.com"}
+}
+
+func (PropOGVideoResolver) ResolveURL(u string) (string, ImageEntry) {
+	s, _ := findByProps(u, "og:video")
+	return s, nil
+}
+
+func (PropOGVideoResolver) GetRequest(u string) (*http.Response, error) {
 	return http.DefaultClient.Get(u)
 }
 
-func (GfycatResolver) Destroy() {}
+type PropOGImageResolver struct{}
+
+func (PropOGImageResolver) GetResolvableDomains() []string {
+	return []string{"gelbooru.com", "www.gelbooru.com"}
+}
+
+func (PropOGImageResolver) ResolveURL(u string) (string, ImageEntry) {
+	s, _ := findByProps(u, "og:image")
+	return s, nil
+}
+
+func (PropOGImageResolver) GetRequest(u string) (*http.Response, error) {
+	return http.DefaultClient.Get(u)
+}
+
+type RetryWOQueryResolver struct{}
+
+func (RetryWOQueryResolver) GetResolvableDomains() []string {
+	return []string{"cdn.discordapp.com", "media.discordapp.net"}
+}
+
+func (RetryWOQueryResolver) ResolveURL(string) (string, ImageEntry) { return "", nil }
+
+func (RetryWOQueryResolver) GetRequest(u string) (*http.Response, error) {
+	resp, err := http.Get(u)
+	if err != nil || resp.StatusCode/100 == 2 {
+		return resp, err
+	}
+	ind := strings.IndexByte(u, '?')
+	if ind == -1 {
+		return resp, err
+	}
+	return http.Get(u[:ind])
+}

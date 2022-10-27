@@ -97,8 +97,14 @@ func loginToSites() {
 	for _, x := range StripQueryResolver(temp).GetResolvableDomains() {
 		resolveMap[x] = StripQueryResolver(temp)
 	}
-	for _, x := range GfycatResolver(temp).GetResolvableDomains() {
-		resolveMap[x] = GfycatResolver(temp)
+	for _, x := range PropOGImageResolver(temp).GetResolvableDomains() {
+		resolveMap[x] = PropOGImageResolver(temp)
+	}
+	for _, x := range PropOGVideoResolver(temp).GetResolvableDomains() {
+		resolveMap[x] = PropOGVideoResolver(temp)
+	}
+	for _, x := range RetryWOQueryResolver(temp).GetResolvableDomains() {
+		resolveMap[x] = RetryWOQueryResolver(temp)
 	}
 }
 

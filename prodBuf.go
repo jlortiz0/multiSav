@@ -303,7 +303,7 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 	}
 	// The buffer should be kept updated even if we won't be reading it this time around
 	buf.selSender <- sel
-	URL := buf.items[sel].GetURL()
+	URL := strings.ReplaceAll(buf.items[sel].GetURL(), "&amp;", "&")
 	if buf.items[sel].GetType() == IETYPE_TEXT {
 		*img = drawMessage(wordWrapper(buf.items[sel].GetText()))
 		// We still need to recieve to ensure the buffer is updated, but no need to do it synchronously
@@ -324,8 +324,11 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 	if !ok {
 	Outer:
 		for {
-			// TODO: Strip query
-			ind := strings.LastIndexByte(URL, '.')
+			ind2 := strings.IndexByte(URL, '?')
+			if ind2 == -1 {
+				ind2 = len(URL)
+			}
+			ind := strings.LastIndexByte(URL[:ind2], '.')
 			if ind == -1 {
 				ind = strings.Index(URL, "format=") + 6
 				if ind == 5 {
@@ -370,7 +373,7 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 				break
 			}
 			if newIE != nil {
-				URL = newIE.GetURL()
+				URL = strings.ReplaceAll(newIE.GetURL(), "&amp;", "&")
 				tmp, _ := url.Parse(URL)
 				buf.items[sel].Combine(newIE)
 				if domain.Hostname() == tmp.Hostname() {
@@ -380,7 +383,7 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 			} else if newURL == "" {
 				break
 			}
-			URL = newURL
+			URL = strings.ReplaceAll(newURL, "&amp;", "&")
 		}
 	}
 	if buf.items[sel].GetType() == IETYPE_GALLERY {
@@ -443,7 +446,6 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 		ext = "." + ext[1:]
 	}
 	<-buf.selRecv
-	// TODO: handle &amp; (why is that in a URL in the first place?)
 	switch ext[1:] {
 	case "mp4":
 		fallthrough

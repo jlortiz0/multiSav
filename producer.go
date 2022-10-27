@@ -90,6 +90,7 @@ func (err ErrorListing) GetPersistent() interface{} {
 // Might not actually be a site (cough cough LocalFSImageSite)
 type ImageSite interface {
 	Resolver
+	Destroy()
 	// Get a list of user-friendly listing types
 	// Different listing types may get images in different ways
 	// If this list has only one item, force the user to use that type
@@ -105,7 +106,6 @@ type ImageSite interface {
 }
 
 type Resolver interface {
-	Destroy()
 	// Resolve a URL to another URL, which is hopefully one step closer to getting us an image
 	// If the URL is a link to an image, this function should return RESOLVE_FINAL
 	// To avoid unneeded calls, the caller should check the extension of the URL first

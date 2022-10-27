@@ -20,8 +20,6 @@ func NewImgurResolver(key string) ImgurResolver {
 	return ImgurResolver{key: key}
 }
 
-func (ImgurResolver) Destroy() {}
-
 func (ImgurResolver) GetResolvableDomains() []string {
 	return []string{"imgur.com", "i.imgur.com", "www.imgur.com"}
 }
