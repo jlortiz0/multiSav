@@ -214,6 +214,9 @@ func (p *PixivImageEntry) GetURL() string {
 }
 
 func (p *PixivImageEntry) GetGalleryInfo(b bool) []ImageEntry {
+	if p.Page_count == 1 {
+		return nil
+	}
 	arr := make([]ImageEntry, p.Page_count)
 	if b {
 		return arr

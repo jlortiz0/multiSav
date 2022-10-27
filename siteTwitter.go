@@ -324,8 +324,9 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 func (t TwitterSite) GetRequest(URL string) (*http.Response, error) {
 	URL = strings.ReplaceAll(URL, "&amp;", "&")
 	req, _ := http.NewRequest("GET", URL, http.NoBody)
-	if !strings.Contains(URL, "pbs.twimg") {
-		t.Authorizer.Add(req)
+	if strings.Contains(URL, "pbs.twimg") {
+		resp, err := http.DefaultClient.Do(req)
+		return resp, err
 	}
 	return t.Client.Client.Do(req)
 }

@@ -346,6 +346,8 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 				fallthrough
 			case "gif":
 				fallthrough
+			case "m3u8":
+				fallthrough
 			case "mov":
 				fallthrough
 			case "png":
@@ -369,8 +371,12 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 			}
 			if newIE != nil {
 				URL = newIE.GetURL()
+				tmp, _ := url.Parse(URL)
 				buf.items[sel].Combine(newIE)
-				break
+				if domain.Hostname() == tmp.Hostname() {
+					break
+				}
+				continue
 			} else if newURL == "" {
 				break
 			}
@@ -445,6 +451,8 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 		fallthrough
 	case "gif":
 		fallthrough
+	case "m3u8":
+		fallthrough
 	case "mov":
 		// Would it be better to pass some kind of fd to libav?
 		// In case we need to make the request with headers or something
@@ -489,24 +497,10 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 				return "\\/err" + buf.items[sel].GetName()
 			}
 			if resp.StatusCode/100 > 3 {
-				ind2 = strings.LastIndexByte(URL, '?')
-				if ind2 != -1 {
-					URL = URL[:ind2]
-					if resolve == nil {
-						resp, err = http.DefaultClient.Get(URL)
-					} else {
-						resp, err = resolve.GetRequest(URL)
-					}
-					if err != nil {
-						*img = drawMessage(wordWrapper(err.Error()))
-						return "\\/err" + buf.items[sel].GetName()
-					}
-					if resp.StatusCode/100 > 3 {
-						// Should I draw the body too?
-						*img = drawMessage(resp.Status)
-						return "\\/err" + buf.items[sel].GetName()
-					}
-				}
+				// TODO: Implement a resolver that will try stripping if the first request fails, for discord
+				body, _ := io.ReadAll(resp.Body)
+				*img = drawMessage(wordWrapper(resp.Status + "\n" + string(body)))
+				return "\\/err" + buf.items[sel].GetName()
 			}
 			data, err = io.ReadAll(resp.Body)
 			if err != nil {

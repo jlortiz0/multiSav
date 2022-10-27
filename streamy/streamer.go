@@ -51,7 +51,9 @@ func (v *AvVideoReader) GetDimensions() (int32, int32) {
 }
 
 func (v *AvVideoReader) Destroy() error {
-	C.libavreader_destroy(v.ptr)
+	if v != nil {
+		C.libavreader_destroy(v.ptr)
+	}
 	return nil
 }
 
