@@ -97,6 +97,9 @@ func loginToSites() {
 	for _, x := range StripQueryResolver(temp).GetResolvableDomains() {
 		resolveMap[x] = StripQueryResolver(temp)
 	}
+	for _, x := range GfycatResolver(temp).GetResolvableDomains() {
+		resolveMap[x] = GfycatResolver(temp)
+	}
 }
 
 func saveSaveData() error {

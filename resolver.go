@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -50,3 +51,38 @@ func (BlockingResolver) GetRequest(u string) (*http.Response, error) {
 }
 
 func (BlockingResolver) Destroy() {}
+
+type GfycatResolver struct{}
+
+func (GfycatResolver) GetResolvableDomains() []string {
+	return []string{"gfycat.com", "www.gfycat.com", "thumbs.gfycat.com"}
+}
+
+func (GfycatResolver) ResolveURL(u string) (string, ImageEntry) {
+	if strings.HasPrefix(u, "thumbs.") {
+		return RESOLVE_FINAL, nil
+	}
+	resp, err := http.Get(u)
+	if err != nil {
+		return "", nil
+	}
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", nil
+	}
+	s := string(data)
+	ind := strings.Index(s, "property=\"og:video\" content=\"")
+	if ind == -1 {
+		return "", nil
+	}
+	s = s[ind+len("property=\"og:video\" content=\""):]
+	ind = strings.IndexByte(s, '"')
+	s = s[:ind]
+	return s, nil
+}
+
+func (GfycatResolver) GetRequest(u string) (*http.Response, error) {
+	return http.DefaultClient.Get(u)
+}
+
+func (GfycatResolver) Destroy() {}
