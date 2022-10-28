@@ -269,9 +269,9 @@ func (buf *BufferedImageProducer) remove(sel int) {
 	buf.bufLock.Lock()
 	copy(buf.buffer[BIP_BUFBEFORE:], buf.buffer[BIP_BUFBEFORE+1:])
 	buf.buffer[BIP_BUFAFTER+BIP_BUFBEFORE] = nil
-	buf.bufLock.Unlock()
 	copy(buf.items[sel:], buf.items[sel+1:])
 	buf.items = buf.items[:len(buf.items)-1]
+	buf.bufLock.Unlock()
 }
 
 func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoReader) string {
@@ -290,6 +290,7 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 		// If the above function finishes after this check but before here, the Do will become unusable
 		// So we need to replace it anyway
 		// Due to GC this shouldn't be an issue, and because Do will not return until it is done there should not be a write conflict
+		// TODO: This blows up the stack in debug mode. But Do shouldn't return unless the other one does...
 		buf.extending.Do(func() {})
 		buf.extending = new(sync.Once)
 		// Some might require multiple loads
@@ -336,13 +337,13 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 				}
 			}
 			ext := strings.ToLower(URL[ind:])
-			if len(ext) > 4 {
-				ind = strings.IndexByte(ext, '&')
-				if ind != -1 {
-					ext = ext[:ind]
-				}
+			ind = strings.IndexByte(ext, '&')
+			if ind != -1 {
+				ext = ext[:ind]
 			}
 			switch ext[1:] {
+			case "fmp4":
+				fallthrough
 			case "mp4":
 				fallthrough
 			case "webm":
@@ -447,6 +448,8 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 	}
 	<-buf.selRecv
 	switch ext[1:] {
+	case "fmp4":
+		fallthrough
 	case "mp4":
 		fallthrough
 	case "webm":
@@ -462,6 +465,7 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 		var err error
 		*ffmpeg, err = NewStreamy(URL)
 		if err != nil {
+			*ffmpeg = nil
 			*img = drawMessage(wordWrapper(err.Error()))
 			return "\\/err" + buf.items[sel].GetName()
 		}
