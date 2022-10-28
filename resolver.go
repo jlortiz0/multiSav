@@ -62,10 +62,10 @@ func findByProps(u, p string) (string, error) {
 	if ind == -1 {
 		return "", errors.New("property not found")
 	}
-	s = s[ind+len("property=\"og:video\" content=\""):]
+	s = s[ind+len("property=\"\" content=\"")+len(p):]
 	ind = strings.IndexByte(s, '"')
 	s = s[:ind]
-	return s, nil
+	return strings.Clone(s), nil
 }
 
 type PropOGVideoResolver struct{}

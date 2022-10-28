@@ -35,25 +35,33 @@ func NewReddit(userAgent string, clientId, clientSecret string) *Reddit {
 	return red
 }
 
-func (r *Reddit) checkToken() {
-	if r.token != nil && !r.token.Valid() {
+func (r *Reddit) checkToken() error {
+	if r.token == nil {
+		return r.Login("")
+	} else if !r.token.Valid() {
 		token, err := r.config.TokenSource(context.Background(), r.token).Token()
 		if err != nil {
-			return
+			return err
 		}
 		r.token = token
 	}
+	return nil
 }
 
 func (r *Reddit) IsLoggedIn() bool {
-	return r.token != nil
+	return r.token != nil && r.token.RefreshToken != ""
 }
 
 func (r *Reddit) Login(refresh string) error {
-	buf := new(bytes.Buffer)
-	buf.WriteString("grant_type=refresh_token&refresh_token=")
-	buf.WriteString(refresh)
-	req, _ := http.NewRequest("POST", "https://www.reddit.com/api/v1/access_token", buf)
+	var req *http.Request
+	if refresh == "" {
+		req, _ = http.NewRequest("POST", "https://www.reddit.com/api/v1/access_token", strings.NewReader("grant_type=https://oauth.reddit.com/grants/installed_client&device_id=DO_NOT_TRACK_THIS_DEVICE"))
+	} else {
+		buf := new(bytes.Buffer)
+		buf.WriteString("grant_type=refresh_token&refresh_token=")
+		buf.WriteString(refresh)
+		req, _ = http.NewRequest("POST", "https://www.reddit.com/api/v1/access_token", buf)
+	}
 	req.SetBasicAuth(r.config.ClientID, r.config.ClientSecret)
 	req.Header.Add("User-Agent", r.userAgent)
 	resp, err := http.DefaultClient.Do(req)
@@ -97,16 +105,13 @@ func (r *Reddit) Logout() error {
 		data, _ := io.ReadAll(resp.Body)
 		return errors.New(string(data))
 	}
+	r.token = nil
 	return nil
 }
 
 func (r *Reddit) buildRequest(method, url string, body io.Reader) *http.Request {
-	if r.token != nil {
-		r.checkToken()
-		url = "https://oauth.reddit.com/" + url
-	} else {
-		url = "https://reddit.com/" + url
-	}
+	r.checkToken()
+	url = "https://oauth.reddit.com/" + url
 	rq, _ := http.NewRequest(method, url, body)
 	rq.Header.Add("User-Agent", r.userAgent)
 	r.token.SetAuthHeader(rq)

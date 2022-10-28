@@ -422,6 +422,9 @@ func (red *RedditImageEntry) GetName() string {
 }
 
 func splitAny(s string, seps string) []string {
+	// According to my benchmarks, this is actually less efficient
+	// And so is making a map of seps, at least for small n
+	// return strings.FieldsFunc(s, func(c rune) bool { return strings.ContainsRune(seps, c) })
 	out := make([]string, 0, len(s)*len(seps)/20+1)
 	ind := strings.IndexAny(s, seps)
 	for ind != -1 {

@@ -12,3 +12,5 @@ streamy/*.png
 streamy/*.tga
 streamy/*.mp4
 streamy/*.gif
+*.code-workspace
+tokens_test.go
