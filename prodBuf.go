@@ -11,6 +11,7 @@ import (
 	"path"
 	"strings"
 	"sync"
+	"time"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 	"github.com/pkg/browser"
@@ -290,7 +291,8 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 		// If the above function finishes after this check but before here, the Do will become unusable
 		// So we need to replace it anyway
 		// Due to GC this shouldn't be an issue, and because Do will not return until it is done there should not be a write conflict
-		// TODO: This blows up the stack in debug mode. But Do shouldn't return unless the other one does...
+		// The sleep is there so that the thread gets a chance to start, otherwise this will go into an infinite loop until the scheduler can get to it
+		time.Sleep(time.Millisecond * 50)
 		buf.extending.Do(func() {})
 		buf.extending = new(sync.Once)
 		// Some might require multiple loads
@@ -503,7 +505,6 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 				return "\\/err" + buf.items[sel].GetName()
 			}
 			if resp.StatusCode/100 > 3 {
-				// TODO: Implement a resolver that will try stripping if the first request fails, for discord
 				body, _ := io.ReadAll(resp.Body)
 				*img = drawMessage(wordWrapper(resp.Status + "\n" + string(body)))
 				return "\\/err" + buf.items[sel].GetName()
