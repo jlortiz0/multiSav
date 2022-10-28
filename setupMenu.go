@@ -190,11 +190,15 @@ func SetUpSites() bool {
 			saveData.Downloads = s
 		}
 	case 1:
-		args := []interface{}{saveData.Settings.SaveOnX}
-		flags := make([]bool, 1)
+		args := []interface{}{saveData.Settings.SaveOnX, saveData.Settings.HideOnZ}
+		flags := make([]bool, 2)
 		cArgs := []ListingArgument{
 			{
 				name: "Always download on X",
+				kind: LARGTYPE_BOOL,
+			},
+			{
+				name: "Hide background on Z",
 				kind: LARGTYPE_BOOL,
 			},
 		}
@@ -207,6 +211,7 @@ func SetUpSites() bool {
 				break
 			} else if len(out) != 0 {
 				saveData.Settings.SaveOnX = args[0].(bool)
+				saveData.Settings.HideOnZ = args[1].(bool)
 				break
 			}
 		}

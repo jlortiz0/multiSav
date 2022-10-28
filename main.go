@@ -44,6 +44,7 @@ var saveData struct {
 	Downloads string
 	Settings  struct {
 		SaveOnX bool
+		HideOnZ bool
 	}
 	Listings []SavedListing
 }
@@ -259,7 +260,11 @@ func messageOverlay(text string, menu Menu) {
 		rl.BeginDrawing()
 		rl.ClearBackground(color.RGBA{R: 64, G: 64, B: 64})
 		menu.Renderer()
-		rl.DrawRectangle(0, 0, int32(rl.GetScreenWidth()), int32(rl.GetScreenHeight()), color.RGBA{A: 128})
+		col := color.RGBA{A: 128}
+		if saveData.Settings.HideOnZ {
+			col = color.RGBA{R: 64, G: 64, B: 64}
+		}
+		rl.DrawRectangle(0, 0, int32(rl.GetScreenWidth()), int32(rl.GetScreenHeight()), col)
 		rl.DrawTexture(msg, x, y, rl.White)
 		rl.EndDrawing()
 	}
