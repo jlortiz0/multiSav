@@ -1,6 +1,7 @@
 package streamy_test
 
 import (
+	"bytes"
 	"image"
 	"image/png"
 	"os"
@@ -9,36 +10,64 @@ import (
 	"jlortiz.org/multisav/streamy"
 )
 
-func TestSomething(T *testing.T) {
-	rd, err := streamy.NewAvVideoReader("iwonb.webm", 0)
+const GET_FRAME_MAX = 5
+const FILE_NAME = "iwonb.webm"
+
+func TestNormalOps(t *testing.T) {
+	rd, err := streamy.NewAvVideoReader(FILE_NAME)
 	if err != nil {
-		T.Fatal(err)
+		t.Fatal(err)
 	}
 	sx, sy := rd.GetDimensions()
-	T.Logf("Dimensions: %dx%d", sx, sy)
-	data, err := rd.Read8()
+	t.Logf("Dimensions: %dx%d", sx, sy)
+	t.Logf("FPS: %f", rd.GetFPS())
+	data := make([]byte, sx*sy*4)
+	rd.Read(nil)
+	err = rd.Read(data)
 	if err != nil {
-		T.Fatal(err)
+		t.Fatal(err)
 	}
-	// f, err := os.OpenFile("out.tga", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
-	// if err != nil {
-	// 	T.Fatal(err)
-	// }
-	// f.Write([]byte{0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, byte(sx), byte(sx >> 8), byte(sy), byte(sy >> 8), 32, 8})
-	// _, err = f.Write(data)
-	// if err != nil {
-	// 	T.Fatal(err)
-	// }
-	// f.Close()
 	img := &image.RGBA{Pix: data, Stride: int(sx) * 4, Rect: image.Rectangle{Max: image.Pt(int(sx), int(sy))}}
 	f, err := os.OpenFile("out.png", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 	if err != nil {
-		T.Fatal(err)
+		t.Fatal(err)
 	}
 	err = png.Encode(f, img)
 	if err != nil {
-		T.Fatal(err)
+		t.Fatal(err)
 	}
 	f.Close()
 	rd.Destroy()
+}
+
+func TestErrNotExist(t *testing.T) {
+	_, err := streamy.NewAvVideoReader("nonexist.ouch")
+	if err == nil {
+		t.FailNow()
+	}
+	t.Log(err)
+}
+
+func TestGetFrame(t *testing.T) {
+	rd, err := streamy.NewAvVideoReader(FILE_NAME)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sx, sy := rd.GetDimensions()
+	t.Logf("Dimensions: %dx%d", sx, sy)
+	t.Logf("FPS: %f", rd.GetFPS())
+	data := make([]byte, sx*sy*4)
+	for i := 0; i < GET_FRAME_MAX; i++ {
+		err = rd.Read(data)
+		if err != nil {
+			t.Fatal(err)
+		}
+		img, err := streamy.GetVideoFrame(FILE_NAME, i)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(data, img.Pix) {
+			t.Fatalf("frame %d not equal", i)
+		}
+	}
 }
