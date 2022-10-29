@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"jlortiz.org/multisav/redditapi"
+	"github.com/jlortiz0/multisav/redditapi"
 )
 
 func splitAny(s string, seps string) []string {

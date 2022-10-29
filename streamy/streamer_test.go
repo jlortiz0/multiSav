@@ -7,7 +7,7 @@ import (
 	"os"
 	"testing"
 
-	"jlortiz.org/multisav/streamy"
+	"github.com/jlortiz0/multisav/streamy"
 )
 
 const GET_FRAME_MAX = 5

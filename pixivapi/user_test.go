@@ -3,7 +3,7 @@ package pixivapi_test
 import (
 	"testing"
 
-	"jlortiz.org/multisav/pixivapi"
+	"github.com/jlortiz0/multisav/pixivapi"
 )
 
 func TestUserFetch(T *testing.T) {

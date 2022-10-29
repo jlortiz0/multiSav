@@ -6,7 +6,7 @@ import (
 	"unsafe"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
-	"jlortiz.org/multisav/streamy"
+	"github.com/jlortiz0/multisav/streamy"
 )
 
 type VideoReader interface {

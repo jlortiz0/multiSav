@@ -1,4 +1,4 @@
-module jlortiz.org/multisav/raygui-go
+module github.com/jlortiz0/multisav/raygui-go
 
 go 1.16
 

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"jlortiz.org/multisav/pixivapi"
+	"github.com/jlortiz0/multisav/pixivapi"
 )
 
 func TestLogin(T *testing.T) {

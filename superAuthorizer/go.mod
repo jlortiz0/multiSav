@@ -1,13 +1,13 @@
-module jlortiz.org/multisav/superAuthorizer
+module github.com/jlortiz0/multisav/superAuthorizer
 
 go 1.19
 
-replace jlortiz.org/multisav/pixivapi => ../pixivapi
+replace github.com/jlortiz0/multisav/pixivapi => ../pixivapi
 
 require (
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	golang.org/x/oauth2 v0.1.0
-	jlortiz.org/multisav/pixivapi v0.0.0-00010101000000-000000000000
+	github.com/jlortiz0/multisav/pixivapi v0.0.0-00010101000000-000000000000
 )
 
 require (

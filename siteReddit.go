@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
-	"jlortiz.org/multisav/redditapi"
+	"github.com/jlortiz0/multisav/redditapi"
 )
 
 type RedditSite struct {

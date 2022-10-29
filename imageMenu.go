@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
-	rg "jlortiz.org/multisav/raygui-go"
+	rg "github.com/jlortiz0/multisav/raygui-go"
 )
 
 type ImageMenu struct {

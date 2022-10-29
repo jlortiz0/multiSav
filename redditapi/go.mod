@@ -1,4 +1,4 @@
-module jlortiz.org/multisav/redditapi
+module github.com/jlortiz0/multisav/redditapi
 
 go 1.16
 

@@ -14,10 +14,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/jlortiz0/multisav/pixivapi"
 	"github.com/pkg/browser"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/authhandler"
-	"jlortiz.org/multisav/pixivapi"
 )
 
 var respChannel chan [3]string

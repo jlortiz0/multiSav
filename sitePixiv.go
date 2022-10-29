@@ -12,7 +12,7 @@ import (
 	"time"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
-	"jlortiz.org/multisav/pixivapi"
+	"github.com/jlortiz0/multisav/pixivapi"
 )
 
 type PixivSite struct {
