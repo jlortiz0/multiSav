@@ -92,7 +92,7 @@ func errHelper(code C.int) error {
 	return errors.New(text)
 }
 
-func GetVideoFrame(file string) (*image.RGBA, error) {
+func GetVideoFrame(file string, i int) (*image.RGBA, error) {
 	fName := C.CString(file)
 	defer C.free(unsafe.Pointer(fName))
 	var v *C.LibavReader
@@ -100,8 +100,15 @@ func GetVideoFrame(file string) (*image.RGBA, error) {
 	if code != 0 {
 		return nil, errHelper(code)
 	}
+	defer C.libavreader_destroy(v)
 	p := C.libavreader_dimensions(v)
 	img := image.NewRGBA(image.Rect(0, 0, int(p.x), int(p.y)))
+	for j := 0; j < i; j++ {
+		code = C.libavreader_next(v, nil)
+		if code != 0 {
+			return nil, errHelper(code)
+		}
+	}
 	code = C.libavreader_next(v, (*C.uint8_t)(unsafe.Pointer(&img.Pix[0])))
 	if code != 0 {
 		return nil, errHelper(code)
