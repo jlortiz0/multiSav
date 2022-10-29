@@ -8,7 +8,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -28,7 +27,6 @@ const (
 	Client_ID     = "MOBrBDS8blbauoSck0ZfDbtuzpyT"
 	Client_secret = "lsACyCD94FhDUtGTXi3QzcFE2uU1hqtDaKeqrdwj"
 )
-const debug_output = false
 
 type RankingMode string
 
@@ -186,11 +184,6 @@ func (p *Client) GetIllust(id int) (*Illustration, error) {
 	if err != nil {
 		return nil, err
 	}
-	if debug_output {
-		f, _ := os.OpenFile("out.json", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
-		f.Write(data)
-		f.Close()
-	}
 	var output struct {
 		Illust Illustration
 		Error  struct {
@@ -217,11 +210,6 @@ func (p *Client) GetUser(id int) (*User, error) {
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
-	}
-	if debug_output {
-		f, _ := os.OpenFile("out.json", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
-		f.Write(data)
-		f.Close()
 	}
 	var output struct {
 		User User

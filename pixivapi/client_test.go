@@ -37,7 +37,6 @@ func loginHelper(T *testing.T) *pixivapi.Client {
 	if err != nil {
 		T.Fatalf("Failed to log in: %s", err.Error())
 	}
-	T.Log("New refresh token: " + red.RefreshToken())
 	return red
 }
 

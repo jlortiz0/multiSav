@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"os"
 	"strconv"
 	"strings"
 )
@@ -111,11 +110,6 @@ func (u *User) BookmarkTags(visi Visibility, offset int) (*BookmarkTagsResponse,
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
-	}
-	if debug_output {
-		f, _ := os.OpenFile("out.json", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
-		f.Write(data)
-		f.Close()
 	}
 	var output struct {
 		Bookmark_tags []struct {

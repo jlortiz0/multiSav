@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"os"
 )
 
 type IllustrationListing struct {
@@ -25,11 +24,6 @@ func (p *Client) newIllustrationListing(URL string) (*IllustrationListing, error
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
-	}
-	if debug_output {
-		f, _ := os.OpenFile("out.json", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
-		f.Write(data)
-		f.Close()
 	}
 	var output struct {
 		Illusts  []*Illustration
@@ -109,11 +103,6 @@ func (p *Client) newUserListing(URL string) (*UserListing, error) {
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
-	}
-	if debug_output {
-		f, _ := os.OpenFile("out.json", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
-		f.Write(data)
-		f.Close()
 	}
 	var output struct {
 		User_previews []struct {

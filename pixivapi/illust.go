@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -110,11 +109,6 @@ func (i *Illustration) GetComments(offset int) (*Comments, error) {
 	if err != nil {
 		return nil, err
 	}
-	if debug_output {
-		f, _ := os.OpenFile("out.json", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
-		f.Write(data)
-		f.Close()
-	}
 	var output struct {
 		Comments
 		Next_url string
@@ -154,30 +148,13 @@ func (i *Illustration) Bookmark(visi Visibility) error {
 	b.WriteString("&restrict=")
 	b.WriteString(string(visi))
 	req := i.client.buildPostRequest("2/illust/bookmark/add", b.String())
-	resp, err := i.client.client.Do(req)
-	if debug_output {
-		f, _ := os.OpenFile("out.json", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
-		f.WriteString(b.String())
-		f.Write([]byte{'\n'})
-		f.WriteString(resp.Request.URL.Path)
-		f.Write([]byte{'\n'})
-		io.Copy(f, resp.Body)
-		f.Close()
-	}
+	_, err := i.client.client.Do(req)
 	return err
 }
 
 func (i *Illustration) Unbookmark() error {
 	req := i.client.buildPostRequest("1/illust/bookmark/delete", "illust_id="+strconv.Itoa(i.ID))
-	resp, err := i.client.client.Do(req)
-	if debug_output {
-		f, _ := os.OpenFile("out.json", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
-		f.WriteString("illust_id=")
-		f.WriteString(strconv.Itoa(i.ID))
-		f.Write([]byte{'\n'})
-		io.Copy(f, resp.Body)
-		f.Close()
-	}
+	_, err := i.client.client.Do(req)
 	return err
 }
 
@@ -189,11 +166,6 @@ func (i *Illustration) GetUgoiraMetadata() (*UgoiraMetadata, error) {
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
-	}
-	if debug_output {
-		f, _ := os.OpenFile("out.json", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
-		f.Write(data)
-		f.Close()
 	}
 	var output struct {
 		Ugoira_metadata UgoiraMetadata
