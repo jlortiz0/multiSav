@@ -9,76 +9,50 @@ import "C"
 import (
 	"errors"
 	"image"
-	"image/color"
 	"strings"
 	"unsafe"
 )
 
-type AvVideoReader struct {
-	ptr     *C.LibavReader
-	buf     []byte
-	target  float32
-	counter float32
-}
+type AvVideoReader C.LibavReader
 
-func NewAvVideoReader(file string, fps float32) (*AvVideoReader, error) {
+func NewAvVideoReader(file string) (*AvVideoReader, error) {
 	fName := C.CString(file)
 	defer C.free(unsafe.Pointer(fName))
-	var out AvVideoReader
 	var v *C.LibavReader
 	code := C.libavreader_new(fName, &v)
 	if code != 0 {
 		return nil, errHelper(code)
 	}
-	out.ptr = v
-	p := C.libavreader_dimensions(v)
-	out.buf = make([]byte, p.x*p.y*4)
-	if fps != 0 {
-		out.target = float32(C.libavreader_fps(v)) / fps
-	} else {
-		out.target = 1
-	}
-	code = C.libavreader_next(v, (*C.uint8_t)(&out.buf[0]))
-	if code != 0 {
-		return nil, errHelper(code)
-	}
-	return &out, nil
+	return (*AvVideoReader)(v), nil
 }
 
 func (v *AvVideoReader) GetDimensions() (int32, int32) {
-	out := C.libavreader_dimensions(v.ptr)
+	out := C.libavreader_dimensions((*C.LibavReader)(v))
 	return int32(out.x), int32(out.y)
+}
+
+func (v *AvVideoReader) GetFPS() float32 {
+	return float32(C.libavreader_fps((*C.LibavReader)(v)))
 }
 
 func (v *AvVideoReader) Destroy() error {
 	if v != nil {
-		C.libavreader_destroy(v.ptr)
+		C.libavreader_destroy((*C.LibavReader)(v))
 	}
 	return nil
 }
 
-func (v *AvVideoReader) Read() ([]color.RGBA, error) {
-	v.counter += v.target
-	for v.counter >= 1 {
-		code := C.libavreader_next(v.ptr, (*C.uint8_t)(&v.buf[0]))
-		if code != 0 {
-			return nil, errHelper(code)
-		}
-		v.counter--
+func (v *AvVideoReader) Read(b []uint8) error {
+	var code C.int
+	if b == nil {
+		code = C.libavreader_next((*C.LibavReader)(v), nil)
+	} else {
+		code = C.libavreader_next((*C.LibavReader)(v), (*C.uint8_t)(&b[0]))
 	}
-	return unsafe.Slice((*color.RGBA)(unsafe.Pointer(&v.buf[0])), len(v.buf)/4), nil
-}
-
-func (v *AvVideoReader) Read8() ([]byte, error) {
-	v.counter += v.target
-	for v.counter >= 1 {
-		code := C.libavreader_next(v.ptr, (*C.uint8_t)(&v.buf[0]))
-		if code != 0 {
-			return nil, errHelper(code)
-		}
-		v.counter--
+	if code != 0 {
+		return errHelper(code)
 	}
-	return v.buf, nil
+	return nil
 }
 
 func errHelper(code C.int) error {

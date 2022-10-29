@@ -2,6 +2,8 @@ package main
 
 import (
 	"image/color"
+	"time"
+	"unsafe"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 	"jlortiz.org/multisav/streamy"
@@ -13,23 +15,35 @@ type VideoReader interface {
 	GetDimensions() (int32, int32)
 }
 
-type StreamyWrapperClass streamy.AvVideoReader
+type StreamyWrapperClass struct {
+	*streamy.AvVideoReader
+	buf     []color.RGBA
+	slpTime *time.Ticker
+}
 
 func NewStreamy(f string) (*StreamyWrapperClass, error) {
-	s, err := streamy.NewAvVideoReader(f, FRAME_RATE)
-	return (*StreamyWrapperClass)(s), err
+	s, err := streamy.NewAvVideoReader(f)
+	if err != nil {
+		return nil, err
+	}
+	x, y := s.GetDimensions()
+	buf := make([]color.RGBA, x*y)
+	fps := s.GetFPS()
+	slpTime := FRAME_RATE / fps * float32(time.Second)
+	return &StreamyWrapperClass{s, buf, time.NewTicker(time.Duration(slpTime))}, nil
 }
 
 func (s *StreamyWrapperClass) Read() ([]color.RGBA, *rl.Image, error) {
-	d, err := (*streamy.AvVideoReader)(s).Read()
+	<-s.slpTime.C
+	other := unsafe.Slice((*byte)(unsafe.Pointer(&s.buf[0])), len(s.buf)*4)
+	err := s.AvVideoReader.Read(other)
 	if err != nil {
-		d = nil
+		return nil, nil, err
 	}
-	return d, nil, err
+	return s.buf, nil, nil
 }
 
-func (s *StreamyWrapperClass) Destroy() error { return (*streamy.AvVideoReader)(s).Destroy() }
-
-func (s *StreamyWrapperClass) GetDimensions() (int32, int32) {
-	return (*streamy.AvVideoReader)(s).GetDimensions()
+func (s *StreamyWrapperClass) Destroy() error {
+	s.slpTime.Stop()
+	return s.AvVideoReader.Destroy()
 }
