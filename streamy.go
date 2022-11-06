@@ -19,6 +19,7 @@ type StreamyWrapperClass struct {
 	*streamy.AvVideoReader
 	buf     []color.RGBA
 	slpTime *time.Ticker
+	stop    chan struct{}
 }
 
 func NewStreamy(f string) (*StreamyWrapperClass, error) {
@@ -29,12 +30,17 @@ func NewStreamy(f string) (*StreamyWrapperClass, error) {
 	x, y := s.GetDimensions()
 	buf := make([]color.RGBA, x*y)
 	fps := s.GetFPS()
-	slpTime := FRAME_RATE / fps * float32(time.Second)
-	return &StreamyWrapperClass{s, buf, time.NewTicker(time.Duration(slpTime))}, nil
+	slpTime := fps / FRAME_RATE * float32(time.Second)
+	return &StreamyWrapperClass{s, buf, time.NewTicker(time.Duration(slpTime)), make(chan struct{}, 1)}, nil
 }
 
+// TODO: 33 fps gifs move at a snail's pace, why is that?
 func (s *StreamyWrapperClass) Read() ([]color.RGBA, *rl.Image, error) {
-	<-s.slpTime.C
+	select {
+	case <-s.stop:
+		return s.buf, nil, nil
+	case <-s.slpTime.C:
+	}
 	other := unsafe.Slice((*byte)(unsafe.Pointer(&s.buf[0])), len(s.buf)*4)
 	err := s.AvVideoReader.Read(other)
 	if err != nil {
@@ -44,6 +50,7 @@ func (s *StreamyWrapperClass) Read() ([]color.RGBA, *rl.Image, error) {
 }
 
 func (s *StreamyWrapperClass) Destroy() error {
+	s.stop <- struct{}{}
 	s.slpTime.Stop()
 	return s.AvVideoReader.Destroy()
 }
