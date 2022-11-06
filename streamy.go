@@ -30,11 +30,9 @@ func NewStreamy(f string) (*StreamyWrapperClass, error) {
 	x, y := s.GetDimensions()
 	buf := make([]color.RGBA, x*y)
 	fps := s.GetFPS()
-	slpTime := fps / FRAME_RATE * float32(time.Second)
-	return &StreamyWrapperClass{s, buf, time.NewTicker(time.Duration(slpTime)), make(chan struct{}, 1)}, nil
+	return &StreamyWrapperClass{s, buf, time.NewTicker(time.Second / time.Duration(fps)), make(chan struct{}, 1)}, nil
 }
 
-// TODO: 33 fps gifs move at a snail's pace, why is that?
 func (s *StreamyWrapperClass) Read() ([]color.RGBA, *rl.Image, error) {
 	select {
 	case <-s.stop:

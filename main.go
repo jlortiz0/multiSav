@@ -17,7 +17,6 @@ var siteTwitter TwitterSite
 var sitePixiv PixivSite
 
 const TEXT_SIZE = 18
-const FRAME_RATE = 60
 
 var font rl.Font
 
