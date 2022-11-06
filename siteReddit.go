@@ -425,14 +425,18 @@ func splitAny(s string, seps string) []string {
 	// According to my benchmarks, this is actually less efficient
 	// And so is making a map of seps, at least for small n
 	// return strings.FieldsFunc(s, func(c rune) bool { return strings.ContainsRune(seps, c) })
+	fast := make([]bool, 256)
+	for _, x := range seps {
+		fast[x] = true
+	}
 	out := make([]string, 0, len(s)*len(seps)/20+1)
-	ind := strings.IndexAny(s, seps)
+	ind := strings.IndexFunc(s, func(r rune) bool { return fast[r] })
 	for ind != -1 {
 		if ind != 0 {
 			out = append(out, s[:ind])
 		}
 		s = s[ind+1:]
-		ind = strings.IndexAny(s, seps)
+		ind = strings.IndexFunc(s, func(r rune) bool { return fast[r] })
 	}
 	if s != "" {
 		out = append(out, s)
@@ -449,6 +453,9 @@ func (red *RedditImageEntry) GetURL() string {
 			for _, s3 := range s2 {
 				u, _ := url.Parse(s3)
 				if u != nil && strings.HasPrefix(u.Scheme, "http") {
+					if len(s3) * 2 < len(s) {
+						s3 = strings.Clone(s3)
+					}
 					red.URL = s3
 					red.Is_self = false
 					return red.URL
