@@ -262,7 +262,7 @@ func messageOverlay(text string, menu Menu) {
 		menu.Renderer()
 		col := color.RGBA{A: 128}
 		if saveData.Settings.HideOnZ {
-			col = color.RGBA{R: 64, G: 64, B: 64}
+			col = color.RGBA{R: 64, G: 64, B: 64, A: 255}
 		}
 		rl.DrawRectangle(0, 0, int32(rl.GetScreenWidth()), int32(rl.GetScreenHeight()), col)
 		rl.DrawTexture(msg, x, y, rl.White)

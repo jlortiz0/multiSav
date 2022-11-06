@@ -306,24 +306,25 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 	}
 	// The buffer should be kept updated even if we won't be reading it this time around
 	buf.selSender <- sel
-	URL := strings.ReplaceAll(buf.items[sel].GetURL(), "&amp;", "&")
-	if buf.items[sel].GetType() == IETYPE_TEXT {
-		*img = drawMessage(wordWrapper(buf.items[sel].GetText()))
+	current := buf.items[sel]
+	URL := strings.ReplaceAll(current.GetURL(), "&amp;", "&")
+	if current.GetType() == IETYPE_TEXT {
+		*img = drawMessage(wordWrapper(current.GetText()))
 		// We still need to recieve to ensure the buffer is updated, but no need to do it synchronously
 		go func() { <-buf.selRecv }()
-		return buf.items[sel].GetName()
+		return current.GetName()
 	}
 	if URL == "" {
-		s := buf.items[sel].GetText()
+		s := current.GetText()
 		if s == "" {
-			s = "Missing URL\n" + buf.items[sel].GetPostURL()
+			s = "Missing URL\n" + current.GetPostURL()
 		}
 		*img = drawMessage(s)
 		// We still need to recieve to ensure the buffer is updated, but no need to do it synchronously
 		go func() { <-buf.selRecv }()
-		return buf.items[sel].GetName()
+		return current.GetName()
 	}
-	_, ok := buf.items[sel].(*WrapperImageEntry)
+	_, ok := current.(*WrapperImageEntry)
 	if !ok {
 	Outer:
 		for {
@@ -372,13 +373,13 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 			}
 			newURL, newIE := res.ResolveURL(URL)
 			if newURL == RESOLVE_FINAL {
-				buf.items[sel] = &WrapperImageEntry{buf.items[sel], URL}
+				current = &WrapperImageEntry{current, URL}
 				break
 			}
 			if newIE != nil {
 				URL = strings.ReplaceAll(newIE.GetURL(), "&amp;", "&")
 				tmp, _ := url.Parse(URL)
-				buf.items[sel].Combine(newIE)
+				current.Combine(newIE)
 				if domain.Hostname() == tmp.Hostname() {
 					break
 				}
@@ -389,35 +390,35 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 			URL = strings.ReplaceAll(newURL, "&amp;", "&")
 		}
 	}
-	if buf.items[sel].GetType() == IETYPE_GALLERY {
-		ret := buf.items[sel].GetGalleryInfo(false)
+	if current.GetType() == IETYPE_GALLERY {
+		ret := current.GetGalleryInfo(false)
 		if len(ret) == 0 {
 			*img = drawMessage("This gallery is empty.")
-			return "\\/err" + buf.items[sel].GetName()
+			return "\\/err" + current.GetName()
 		}
 		URL = ret[0].GetURL()
-	} else if buf.items[sel].GetType() == IETYPE_TEXT {
-		*img = drawMessage(buf.items[sel].GetText())
+	} else if current.GetType() == IETYPE_TEXT {
+		*img = drawMessage(current.GetText())
 		// We still need to recieve to ensure the buffer is updated, but no need to do it synchronously
 		go func() { <-buf.selRecv }()
-		return buf.items[sel].GetName()
-	} else if buf.items[sel].GetType() == IETYPE_UGOIRA {
+		return current.GetName()
+	} else if current.GetType() == IETYPE_UGOIRA {
 		// DANGER DANGER SPECIAL CASING
-		useful := buf.items[sel].(*PixivImageEntry)
+		useful := current.(*PixivImageEntry)
 		metadata, err := useful.GetUgoiraMetadata()
 		if err != nil {
 			*img = drawMessage(err.Error())
-			return "\\/err" + buf.items[sel].GetName()
+			return "\\/err" + current.GetName()
 		}
 		resp, err := buf.site.GetRequest(metadata.Zip_urls.Best())
 		if err != nil {
 			*img = drawMessage(err.Error())
-			return "\\/err" + buf.items[sel].GetName()
+			return "\\/err" + current.GetName()
 		}
 		data, err := io.ReadAll(resp.Body)
 		if err != nil {
 			*img = drawMessage(err.Error())
-			return "\\/err" + buf.items[sel].GetName()
+			return "\\/err" + current.GetName()
 		}
 		d := bytes.NewReader(data)
 		r, _ := zip.NewReader(d, int64(len(data)))
@@ -433,8 +434,9 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 	if ind == -1 {
 		ind = strings.LastIndexByte(URL[:ind2], '.')
 		if ind == -1 {
-			fmt.Println(buf.items[sel].GetName(), buf.items[sel].GetType())
-			panic(fmt.Sprint(URL[:ind2], URL, ind2))
+			fmt.Println(current.GetName(), current.GetType(), URL, ind2)
+			*img = drawMessage("Unable to parse URL extension\n" + URL[:ind2])
+			return "\\/err" + current.GetName()
 		}
 	} else {
 		ind += 6 + ind2
@@ -469,14 +471,14 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 		if err != nil {
 			*ffmpeg = nil
 			*img = drawMessage(wordWrapper(err.Error()))
-			return "\\/err" + buf.items[sel].GetName()
+			return "\\/err" + current.GetName()
 		}
 		data := buf.buffer[BIP_BUFBEFORE]
 		if data != nil {
 			*img = rl.LoadImageFromMemory(ext, data, int32(len(data)))
 			if (*img).Height == 0 {
 				*img = drawMessage("Failed to load image?")
-				return "\\/err" + buf.items[sel].GetName()
+				return "\\/err" + current.GetName()
 			}
 		} else {
 			w, h := (*ffmpeg).GetDimensions()
@@ -502,30 +504,30 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 			}
 			if err != nil {
 				*img = drawMessage(wordWrapper(err.Error()))
-				return "\\/err" + buf.items[sel].GetName()
+				return "\\/err" + current.GetName()
 			}
 			if resp.StatusCode/100 > 3 {
 				body, _ := io.ReadAll(resp.Body)
 				*img = drawMessage(wordWrapper(resp.Status + "\n" + string(body)))
-				return "\\/err" + buf.items[sel].GetName()
+				return "\\/err" + current.GetName()
 			}
 			data, err = io.ReadAll(resp.Body)
 			if err != nil {
 				*img = drawMessage(wordWrapper(err.Error()))
-				return "\\/err" + buf.items[sel].GetName()
+				return "\\/err" + current.GetName()
 			}
 		}
 		*img = rl.LoadImageFromMemory(ext, data, int32(len(data)))
 		if (*img).Height == 0 {
 			fmt.Println(string(data))
 			*img = drawMessage("Failed to load image?\n" + URL)
-			return "\\/err" + buf.items[sel].GetName()
+			return "\\/err" + current.GetName()
 		}
 	default:
 		*img = drawMessage("Image format not supported\n" + URL)
-		return "\\/err" + buf.items[sel].GetName()
+		return "\\/err" + current.GetName()
 	}
-	if buf.items[sel].GetType() == IETYPE_GALLERY {
+	if current.GetType() == IETYPE_GALLERY {
 		if *ffmpeg != nil {
 			(*ffmpeg).Destroy()
 			*ffmpeg = nil
@@ -539,13 +541,13 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 			rl.ImageResize(*img, int32(float64((**img).Width)*scaleFactor), int32(float64((**img).Height)*scaleFactor))
 			size *= float32(scaleFactor)
 		}
-		text := fmt.Sprintf("Press Enter for gallery viewer (%d images)", len(buf.items[sel].GetGalleryInfo(true)))
+		text := fmt.Sprintf("Press Enter for gallery viewer (%d images)", len(current.GetGalleryInfo(true)))
 		vec := rl.MeasureTextEx(font, text, size, 0)
 		rl.ImageDrawRectangle(*img, 0, (**img).Height-int32(vec.Y)-10, (**img).Width, int32(vec.Y)+10, rl.RayWhite)
 		rl.ImageDrawTextEx(*img, rl.Vector2{X: (float32((**img).Width) - vec.X) / 2, Y: float32((**img).Height) - vec.Y - 5}, font, text, size, 0, rl.Black)
-		return buf.items[sel].GetName()
+		return current.GetName()
 	}
-	return buf.items[sel].GetName()
+	return current.GetName()
 }
 
 func (buf *BufferedImageProducer) GetInfo(sel int) string {

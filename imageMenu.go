@@ -415,14 +415,11 @@ func (menu *ImageMenu) Renderer() {
 		vec.Y = menu.target.Y
 		vec.X = menu.target.X/2 - vec2/2
 		vec3 := rl.MeasureTextEx(font, s, TEXT_SIZE, 0)
-		if vec.X < vec3.X+5 {
-			vec.X = vec3.X + 5
-		}
-		if vec2 > menu.target.X-75-vec.X {
+		if vec2 > menu.target.X-85-vec3.X {
 			c := float32(rl.MeasureText("...", TEXT_SIZE))
 			try := menu.fName
-			for vec2 > menu.target.X-75-c-vec.X {
-				per := int((menu.target.X - 75 - c - vec.X) / vec2 * float32(len(try)))
+			for vec2 > menu.target.X-85-c-vec3.X {
+				per := int((menu.target.X - 85 - c - vec3.X) / vec2 * float32(len(try)))
 				try = menu.fName[:per]
 				vec2 = float32(rl.MeasureText(try, TEXT_SIZE))
 			}
