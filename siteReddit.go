@@ -436,7 +436,7 @@ func splitAny(s string, seps string) []string {
 			out = append(out, s[:ind])
 		}
 		s = s[ind+1:]
-		ind = strings.IndexFunc(s, func(r rune) bool { return fast[r] })
+		ind = strings.IndexFunc(s, func(r rune) bool { return fast[r%256] })
 	}
 	if s != "" {
 		out = append(out, s)
@@ -453,7 +453,7 @@ func (red *RedditImageEntry) GetURL() string {
 			for _, s3 := range s2 {
 				u, _ := url.Parse(s3)
 				if u != nil && strings.HasPrefix(u.Scheme, "http") {
-					if len(s3) * 2 < len(s) {
+					if len(s3)*2 < len(s) {
 						s3 = strings.Clone(s3)
 					}
 					red.URL = s3
@@ -463,6 +463,9 @@ func (red *RedditImageEntry) GetURL() string {
 			}
 		}
 		return "https://reddit.com" + red.Permalink
+	}
+	if strings.HasPrefix(red.URL, "/r/") || strings.HasPrefix(red.URL, "/u/") {
+		return "https://reddit.com" + red.URL
 	}
 	return red.URL
 }
