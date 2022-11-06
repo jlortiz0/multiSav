@@ -6,13 +6,14 @@ require (
 	github.com/adrg/sysfont v0.1.2
 	github.com/g8rswimmer/go-twitter/v2 v2.1.2
 	github.com/gen2brain/raylib-go/raylib v0.0.0-20220702153720-2ba84634ed1e
-	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
-	github.com/sqweek/dialog v0.0.0-20220809060634-e981b270ebbf
-	golang.org/x/oauth2 v0.1.0
 	github.com/jlortiz0/multisav/pixivapi v0.0.0-00010101000000-000000000000
 	github.com/jlortiz0/multisav/raygui-go v0.0.0
 	github.com/jlortiz0/multisav/redditapi v0.0.0
 	github.com/jlortiz0/multisav/streamy v0.0.0
+	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
+	github.com/sqweek/dialog v0.0.0-20220809060634-e981b270ebbf
+	golang.org/x/oauth2 v0.1.0
+	golang.org/x/text v0.4.0
 )
 
 require (
