@@ -121,9 +121,9 @@ func (menu *ImageMenu) loadImage() {
 					menu.state = IMSTATE_ERRORMINOR
 					break
 				}
-				if i == nil {
+				if data != nil {
 					menu.ffmpegData <- data
-				} else {
+				} else if i != nil {
 					menu.imgLock.Lock()
 					if menu.img != nil {
 						rl.UnloadImage(menu.img)
@@ -220,6 +220,7 @@ func (menu *ImageMenu) HandleKey(keycode int32) LoopStatus {
 			if state&ARET_CLOSEFFMPEG != 0 && menu.ffmpeg != nil {
 				menu.ffmpeg.Destroy()
 				menu.ffmpeg = nil
+				<-menu.ffmpegData
 			}
 			if state&ARET_REMOVE != 0 {
 				menu.state = IMSTATE_SHOULDLOAD
@@ -511,8 +512,7 @@ func (menu *ImageMenu) Destroy() {
 	if menu.ffmpeg != nil {
 		menu.ffmpeg.Destroy()
 		menu.ffmpeg = nil
-		for range menu.ffmpegData {
-		}
+		<-menu.ffmpegData
 	}
 	if menu.img != nil {
 		rl.UnloadImage(menu.img)

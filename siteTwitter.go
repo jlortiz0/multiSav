@@ -18,7 +18,7 @@ type TwitterSite struct {
 	*twitter.Client
 }
 
-type twitterAuthorizer struct {}
+type twitterAuthorizer struct{}
 
 func (t twitterAuthorizer) Add(req *http.Request) {}
 
@@ -52,8 +52,7 @@ func (t TwitterSite) Destroy() {
 
 func (t TwitterSite) Logout() error {
 	return nil
-	// This endpoint seems to only be for app tokens
-	// How would this work for PKCE?
+	// I keep getting a 403 when trying this, I give up
 	s, ok := t.Client.Client.Transport.(*oauth2.Transport)
 	if !ok {
 		return nil
@@ -62,8 +61,9 @@ func (t TwitterSite) Logout() error {
 	if s2 == nil {
 		return err
 	}
-	rq, _ := http.NewRequest("POST", "https://api.twitter.com/oauth2/invalidate_token?access_token="+s2.RefreshToken, http.NoBody)
-	_, err = t.Client.Client.Do(rq)
+	rq, _ := http.NewRequest("POST", "https://api.twitter.com/oauth2/invalidate_token?token_type_hint=access_token&access_token="+s2.RefreshToken, http.NoBody)
+	rq.SetBasicAuth(TwitterID, TwitterSecret)
+	_, err = http.DefaultClient.Do(rq)
 	return err
 }
 
