@@ -430,7 +430,7 @@ func splitAny(s string, seps string) []string {
 		fast[x] = true
 	}
 	out := make([]string, 0, len(s)*len(seps)/20+1)
-	ind := strings.IndexFunc(s, func(r rune) bool { return fast[r] })
+	ind := strings.IndexFunc(s, func(r rune) bool { return fast[r%256] })
 	for ind != -1 {
 		if ind != 0 {
 			out = append(out, s[:ind])

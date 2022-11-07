@@ -76,6 +76,14 @@ func (img ImgurResolver) ResolveURL(URL string) (string, ImageEntry) {
 			suff := URL[strings.LastIndexByte(URL, '/')+1:]
 			return img.ResolveURL("https://imgur.com/" + suff[:len(suff)-5])
 		}
+		if strings.Contains(URL, "/a/") {
+			suff := URL[strings.LastIndexByte(URL, '/')+1:]
+			ind := strings.LastIndexByte(suff, '.')
+			if ind == -1 {
+				ind = len(suff)
+			}
+			return img.ResolveURL("https://imgur.com/a/" + suff[:ind])
+		}
 		return RESOLVE_FINAL, nil
 	}
 	return "", nil
