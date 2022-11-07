@@ -2,6 +2,7 @@ package main
 
 import (
 	"image/color"
+	"sync"
 	"time"
 	"unsafe"
 
@@ -20,6 +21,7 @@ type StreamyWrapperClass struct {
 	buf     []color.RGBA
 	slpTime *time.Ticker
 	stop    chan struct{}
+	lock    *sync.Mutex
 }
 
 func NewStreamy(f string) (*StreamyWrapperClass, error) {
@@ -30,7 +32,7 @@ func NewStreamy(f string) (*StreamyWrapperClass, error) {
 	x, y := s.GetDimensions()
 	buf := make([]color.RGBA, x*y)
 	fps := s.GetFPS()
-	return &StreamyWrapperClass{s, buf, time.NewTicker(time.Second / time.Duration(fps)), make(chan struct{}, 1)}, nil
+	return &StreamyWrapperClass{s, buf, time.NewTicker(time.Second / time.Duration(fps)), make(chan struct{}, 1), new(sync.Mutex)}, nil
 }
 
 func (s *StreamyWrapperClass) Read() ([]color.RGBA, *rl.Image, error) {
@@ -40,7 +42,11 @@ func (s *StreamyWrapperClass) Read() ([]color.RGBA, *rl.Image, error) {
 	case <-s.slpTime.C:
 	}
 	other := unsafe.Slice((*byte)(unsafe.Pointer(&s.buf[0])), len(s.buf)*4)
+	if !s.lock.TryLock() {
+		return s.buf, nil, nil
+	}
 	err := s.AvVideoReader.Read(other)
+	s.lock.Unlock()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -50,5 +56,6 @@ func (s *StreamyWrapperClass) Read() ([]color.RGBA, *rl.Image, error) {
 func (s *StreamyWrapperClass) Destroy() error {
 	s.stop <- struct{}{}
 	s.slpTime.Stop()
+	s.lock.Lock()
 	return s.AvVideoReader.Destroy()
 }
