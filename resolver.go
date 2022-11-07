@@ -86,11 +86,14 @@ func (PropOGVideoResolver) GetRequest(u string) (*http.Response, error) {
 type PropOGImageResolver struct{}
 
 func (PropOGImageResolver) GetResolvableDomains() []string {
-	return []string{"gelbooru.com", "www.gelbooru.com"}
+	return []string{"gelbooru.com", "www.gelbooru.com", "redgifs.com", "www.redgifs.com"}
 }
 
 func (PropOGImageResolver) ResolveURL(u string) (string, ImageEntry) {
 	s, _ := findByProps(u, "og:image")
+	if s == "" && strings.Contains(u, "redgifs.com") {
+		return "", &TextImageEntry{"No support for RedGifs videos\n" + u, ""}
+	}
 	return s, nil
 }
 
