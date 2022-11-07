@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/adrg/sysfont v0.1.2
-	github.com/g8rswimmer/go-twitter/v2 v2.1.2
+	github.com/g8rswimmer/go-twitter/v2 v2.1.4
 	github.com/gen2brain/raylib-go/raylib v0.0.0-20220702153720-2ba84634ed1e
 	github.com/jlortiz0/multisav/pixivapi v0.0.0-00010101000000-000000000000
 	github.com/jlortiz0/multisav/raygui-go v0.0.0
@@ -40,5 +40,3 @@ replace github.com/jlortiz0/multisav/raygui-go => ./raygui-go
 replace github.com/jlortiz0/multisav/pixivapi => ./pixivapi
 
 replace github.com/jlortiz0/multisav/streamy => ./streamy
-
-replace github.com/g8rswimmer/go-twitter/v2 => github.com/jlortiz0/go-twitter/v2 v2.1.3-0.20221018050935-6eff13d54906
