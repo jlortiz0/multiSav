@@ -328,6 +328,34 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 	if !ok {
 	Outer:
 		for {
+			domain, _ := url.Parse(URL)
+			res, ok := resolveMap[domain.Hostname()]
+			if !ok {
+				break
+			}
+			newURL, newIE := res.ResolveURL(URL)
+			if newURL == RESOLVE_FINAL {
+				buf.items[sel] = &WrapperImageEntry{current, URL}
+				current = buf.items[sel]
+				<-buf.selRecv
+				buf.bufLock.Lock()
+				buf.buffer[BIP_BUFBEFORE] = nil
+				buf.bufLock.Unlock()
+				go func() { buf.selRecv <- true }()
+				break
+			}
+			if newIE != nil {
+				URL = strings.ReplaceAll(newIE.GetURL(), "&amp;", "&")
+				tmp, _ := url.Parse(URL)
+				current.Combine(newIE)
+				if domain.Hostname() == tmp.Hostname() {
+					break
+				}
+				continue
+			} else if newURL == "" {
+				break
+			}
+			URL = strings.ReplaceAll(newURL, "&amp;", "&")
 			ind2 := strings.IndexByte(URL, '?')
 			if ind2 == -1 {
 				ind2 = len(URL)
@@ -366,28 +394,6 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 			case "bmp":
 				break Outer
 			}
-			domain, _ := url.Parse(URL)
-			res, ok := resolveMap[domain.Hostname()]
-			if !ok {
-				break
-			}
-			newURL, newIE := res.ResolveURL(URL)
-			if newURL == RESOLVE_FINAL {
-				current = &WrapperImageEntry{current, URL}
-				break
-			}
-			if newIE != nil {
-				URL = strings.ReplaceAll(newIE.GetURL(), "&amp;", "&")
-				tmp, _ := url.Parse(URL)
-				current.Combine(newIE)
-				if domain.Hostname() == tmp.Hostname() {
-					break
-				}
-				continue
-			} else if newURL == "" {
-				break
-			}
-			URL = strings.ReplaceAll(newURL, "&amp;", "&")
 		}
 	}
 	if current.GetType() == IETYPE_GALLERY {
