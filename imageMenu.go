@@ -5,7 +5,7 @@ import (
 	"image/color"
 	"sync"
 
-	"golang.org/x/text/unicode/norm"
+	"github.com/rainycape/unidecode"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 	rg "github.com/jlortiz0/multisav/raygui-go"
@@ -82,8 +82,7 @@ func (menu *ImageMenu) loadImage() {
 	go func() {
 		menu.imgLock.Lock()
 		menu.fName = menu.Producer.Get(menu.Selected, &menu.img, &menu.ffmpeg)
-		// TODO: This does not resolve smart quotes. Make a Transformer that does.
-		menu.fName = norm.NFKC.String(menu.fName)
+		menu.fName = unidecode.Unidecode(menu.fName)
 		menu.imgLock.Unlock()
 		if (menu.img == nil || menu.img.Height == 0) && menu.ffmpeg == nil {
 			if !menu.Producer.BoundsCheck(menu.Selected) {
@@ -431,11 +430,11 @@ func (menu *ImageMenu) Renderer() {
 			vec2 += c
 			vec.X = menu.target.X/2 - vec2/2
 		}
-		if vec.X < vec3.X {
-			vec.X = vec3.X
+		if vec.X < vec3.X+5 {
+			vec.X = vec3.X + 5
 		}
 		old := rg.GuiGetStyle(rg.LABEL, rg.TEXT_ALIGNMENT)
-		rg.GuiSetStyle(rg.LABEL, rg.TEXT_ALIGNMENT, rg.TEXT_ALIGN_CENTER)
+		rg.GuiSetStyle(rg.LABEL, rg.TEXT_ALIGNMENT, rg.TEXT_ALIGN_LEFT)
 		if rg.GuiLabelButton(rl.Rectangle{X: vec.X, Y: vec.Y, Height: TEXT_SIZE + 10, Width: vec2}, menu.fName) {
 			s := menu.Producer.GetInfo(menu.Selected)
 			if s != "" {

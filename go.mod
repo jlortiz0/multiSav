@@ -25,6 +25,7 @@ require (
 	github.com/adrg/xdg v0.3.0 // indirect
 	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/rainycape/unidecode v0.0.0-20150907023854-cb7f23ec59be // indirect
 	github.com/stretchr/testify v1.8.0 // indirect
 	golang.org/x/net v0.1.0 // indirect
 	golang.org/x/sys v0.1.0 // indirect
