@@ -363,6 +363,17 @@ func (r RedditSite) GetRequest(u string) (*http.Response, error) {
 	}
 	if URL.Host == "i.redd.it" {
 		return http.DefaultClient.Get(u)
+	} else if URL.Host == "preview.redd.it" {
+		resp, err := r.Reddit.GetRequest(u)
+		if err != nil {
+			return nil, err
+		}
+		if resp.StatusCode == 403 {
+			URL.Host = "i.redd.it"
+			URL.RawQuery = ""
+			return http.DefaultClient.Get(URL.String())
+		}
+		return resp, nil
 	}
 	return r.Reddit.GetRequest(u)
 }
@@ -561,18 +572,19 @@ func (red *RedditImageEntry) GetSaveName() string {
 	}
 	if len(red.Gallery_data.Items) != 0 {
 		x := red.Media_metadata[red.Gallery_data.Items[0].Media_id].S
-		if x.U == "" {
-			x.U = x.Mp4
+		s := x.U
+		if s == "" {
+			s = x.Mp4
 		}
-		ind := strings.LastIndexByte(x.U, '/')
+		ind := strings.LastIndexByte(s, '/')
 		if ind != -1 {
-			x.U = "https://i.redd.it" + x.U[ind:]
+			s = s[ind:]
 		}
-		ind = strings.IndexByte(x.U, '?')
+		ind = strings.IndexByte(s, '?')
 		if ind != -1 {
-			x.U = x.U[:ind]
+			s = s[:ind]
 		}
-		return x.U
+		return s
 	}
 	ind := strings.LastIndexByte(red.URL, '/')
 	if ind == -1 {
@@ -630,6 +642,13 @@ func (red RedditProducer) ActionHandler(key int32, sel int, call int) ActionRet 
 		useful = v.Submission
 	case *RedditGalleryEntry:
 		useful = v.Submission
+	case *WrapperImageEntry:
+		switch v2 := v.ImageEntry.(type) {
+		case *RedditImageEntry:
+			useful = v2.Submission
+		case *RedditGalleryEntry:
+			useful = v2.Submission
+		}
 	default:
 		return red.BufferedImageProducer.ActionHandler(key, sel, call)
 	}
