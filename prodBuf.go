@@ -222,13 +222,18 @@ func (buf *BufferedImageProducer) ActionHandler(key int32, sel int, call int) Ac
 			}
 			name = fmt.Sprintf("%s_%d.%s", name, i, ext)
 		}
-		// TODO: Verify download
 		if buf.buffer[BIP_BUFBEFORE].URL != buf.items[sel].GetURL() {
 			resp, err := buf.site.GetRequest(buf.items[sel].GetURL())
-			if err == nil || resp.StatusCode != 200 {
+			if err == nil && resp.StatusCode == 200 {
 				f, err := os.OpenFile(name, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0600)
 				if err == nil {
-					io.Copy(f, resp.Body)
+					_, err = io.Copy(f, resp.Body)
+					if err != nil {
+						f.Close()
+						return ARET_NOTHING
+					}
+				} else {
+					return ARET_NOTHING
 				}
 				f.Close()
 			} else {
