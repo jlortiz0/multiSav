@@ -540,7 +540,7 @@ func (t TwitterProducer) ActionHandler(key int32, sel int, call int) ActionRet {
 			t.listing.(*TwitterImageListing).persist = useful.ID
 			t.items = t.items[:sel+1]
 			for i := BIP_BUFBEFORE + 1; i < BIP_BUFBEFORE+1+BIP_BUFAFTER; i++ {
-				t.buffer[i] = nil
+				t.buffer[i] = BufferObject{}
 			}
 			return ARET_MOVEUP
 		}

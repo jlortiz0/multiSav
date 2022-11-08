@@ -28,8 +28,13 @@ type BufferedImageProducer struct {
 	selRecv   chan bool
 	lazy      bool
 	bufLock   *sync.Mutex
-	buffer    [][]byte
+	buffer    []BufferObject
 	extending *sync.Once
+}
+
+type BufferObject struct {
+	URL  string
+	data []byte
 }
 
 func minint(a, b int) int {
@@ -66,7 +71,7 @@ func NewBufferedImageProducer(site ImageSite, kind int, args []interface{}, pers
 		}
 		buf.lazy = len(buf.items) != 0
 	}
-	buf.buffer = make([][]byte, BIP_BUFAFTER+BIP_BUFBEFORE+1)
+	buf.buffer = make([]BufferObject, BIP_BUFAFTER+BIP_BUFBEFORE+1)
 	buf.bufLock = new(sync.Mutex)
 	buf.selSender = make(chan int, 2)
 	buf.selRecv = make(chan bool, 1)
@@ -85,7 +90,7 @@ func NewBufferedImageProducer(site ImageSite, kind int, args []interface{}, pers
 				buf.bufLock.Lock()
 				copy(buf.buffer[minint(x, len(buf.buffer)):], buf.buffer)
 				for i := 0; i < minint(x, len(buf.buffer)); i++ {
-					buf.buffer[i] = nil
+					buf.buffer[i] = BufferObject{}
 				}
 				buf.bufLock.Unlock()
 			} else {
@@ -93,16 +98,19 @@ func NewBufferedImageProducer(site ImageSite, kind int, args []interface{}, pers
 				buf.bufLock.Lock()
 				copy(buf.buffer, buf.buffer[minint(x, len(buf.buffer)):])
 				for i := maxint(len(buf.buffer)-x, 0); i < len(buf.buffer); i++ {
-					buf.buffer[i] = nil
+					buf.buffer[i] = BufferObject{}
 				}
 				buf.bufLock.Unlock()
 			}
 			buf.selRecv <- true
 			for i := range buf.buffer {
-				if sel+i-BIP_BUFBEFORE < 0 || buf.buffer[i] != nil || sel+i-BIP_BUFBEFORE+1 >= len(buf.items) {
+				if sel+i-BIP_BUFBEFORE < 0 || sel+i-BIP_BUFBEFORE+1 >= len(buf.items) {
 					continue
 				}
 				URL := buf.items[sel+i-BIP_BUFBEFORE].GetURL()
+				if buf.buffer[i].URL == URL {
+					continue
+				}
 				if buf.items[sel+i-BIP_BUFBEFORE].GetType() == IETYPE_GALLERY {
 					ret := buf.items[sel+i-BIP_BUFBEFORE].GetGalleryInfo(false)
 					if len(ret) == 0 {
@@ -152,8 +160,9 @@ func NewBufferedImageProducer(site ImageSite, kind int, args []interface{}, pers
 						data, err := io.ReadAll(resp.Body)
 						if err == nil {
 							buf.bufLock.Lock()
-							if buf.buffer[i] == nil {
-								buf.buffer[i] = data
+							if buf.buffer[i].URL != URL {
+								buf.buffer[i].URL = URL
+								buf.buffer[i].data = data
 							}
 							buf.bufLock.Unlock()
 						}
@@ -213,9 +222,10 @@ func (buf *BufferedImageProducer) ActionHandler(key int32, sel int, call int) Ac
 			}
 			name = fmt.Sprintf("%s_%d.%s", name, i, ext)
 		}
-		if buf.buffer[BIP_BUFBEFORE] == nil {
+		// TODO: Verify download
+		if buf.buffer[BIP_BUFBEFORE].URL != buf.items[sel].GetURL() {
 			resp, err := buf.site.GetRequest(buf.items[sel].GetURL())
-			if err == nil {
+			if err == nil || resp.StatusCode != 200 {
 				f, err := os.OpenFile(name, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0600)
 				if err == nil {
 					io.Copy(f, resp.Body)
@@ -227,7 +237,9 @@ func (buf *BufferedImageProducer) ActionHandler(key int32, sel int, call int) Ac
 		} else {
 			f, err := os.OpenFile(name, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0600)
 			if err == nil {
-				data := buf.buffer[BIP_BUFBEFORE]
+				buf.bufLock.Lock()
+				data := buf.buffer[BIP_BUFBEFORE].data
+				buf.bufLock.Unlock()
 				for len(data) > 0 {
 					data2 := data
 					if len(data) > 4096 {
@@ -269,7 +281,7 @@ func (buf *BufferedImageProducer) ActionHandler(key int32, sel int, call int) Ac
 func (buf *BufferedImageProducer) remove(sel int) {
 	buf.bufLock.Lock()
 	copy(buf.buffer[BIP_BUFBEFORE:], buf.buffer[BIP_BUFBEFORE+1:])
-	buf.buffer[BIP_BUFAFTER+BIP_BUFBEFORE] = nil
+	buf.buffer[BIP_BUFAFTER+BIP_BUFBEFORE] = BufferObject{}
 	copy(buf.items[sel:], buf.items[sel+1:])
 	buf.items = buf.items[:len(buf.items)-1]
 	buf.bufLock.Unlock()
@@ -338,9 +350,9 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 				buf.items[sel] = &WrapperImageEntry{current, URL}
 				current = buf.items[sel]
 				<-buf.selRecv
-				buf.bufLock.Lock()
-				buf.buffer[BIP_BUFBEFORE] = nil
-				buf.bufLock.Unlock()
+				// buf.bufLock.Lock()
+				// buf.buffer[BIP_BUFBEFORE] = BufferObject{}
+				// buf.bufLock.Unlock()
 				go func() { buf.selRecv <- true }()
 				break
 			}
@@ -480,8 +492,8 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 			return "\\/err" + current.GetName()
 		}
 		data := buf.buffer[BIP_BUFBEFORE]
-		if data != nil {
-			*img = rl.LoadImageFromMemory(ext, data, int32(len(data)))
+		if data.URL == URL {
+			*img = rl.LoadImageFromMemory(ext, data.data, int32(len(data.data)))
 			if (*img).Height == 0 {
 				*img = drawMessage("Failed to load image?")
 				return "\\/err" + current.GetName()
@@ -497,8 +509,9 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 	case "jpeg":
 		fallthrough
 	case "bmp":
-		data := buf.buffer[BIP_BUFBEFORE]
-		if data == nil {
+		obj := buf.buffer[BIP_BUFBEFORE]
+		data := obj.data
+		if obj.URL != URL {
 			obj, _ := url.Parse(URL)
 			resolve := resolveMap[obj.Host]
 			var resp *http.Response

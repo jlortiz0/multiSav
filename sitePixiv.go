@@ -313,7 +313,7 @@ func (p PixivProducer) ActionHandler(key int32, sel int, call int) ActionRet {
 			p.listing.(*PixivImageListing).persist = useful.ID
 			p.items = p.items[:sel+1]
 			for i := BIP_BUFBEFORE + 1; i < BIP_BUFBEFORE+1+BIP_BUFAFTER; i++ {
-				p.buffer[i] = nil
+				p.buffer[i] = BufferObject{}
 			}
 			p.listing.(*PixivImageListing).IllustrationListing = nil
 			return ARET_MOVEUP

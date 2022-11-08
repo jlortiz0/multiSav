@@ -678,7 +678,7 @@ func (red RedditProducer) ActionHandler(key int32, sel int, call int) ActionRet 
 			red.listing.(*RedditImageListing).seen = useful.Name
 			red.items = red.items[:sel+1]
 			for i := BIP_BUFBEFORE + 1; i < BIP_BUFBEFORE+1+BIP_BUFAFTER; i++ {
-				red.buffer[i] = nil
+				red.buffer[i] = BufferObject{}
 			}
 			red.listing.(*RedditImageListing).SubmissionIterator = nil
 			return ARET_MOVEUP
