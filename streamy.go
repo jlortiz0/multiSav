@@ -58,6 +58,7 @@ func (s *StreamyWrapperClass) Read() ([]color.RGBA, *rl.Image, error) {
 
 func (s *StreamyWrapperClass) Destroy() error {
 	s.stop <- struct{}{}
+	close(s.stop)
 	s.slpTime.Stop()
 	s.lock.Lock()
 	return s.AvVideoReader.Destroy()
