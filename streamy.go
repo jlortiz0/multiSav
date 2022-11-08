@@ -2,6 +2,7 @@ package main
 
 import (
 	"image/color"
+	"math"
 	"sync"
 	"time"
 	"unsafe"
@@ -25,14 +26,14 @@ type StreamyWrapperClass struct {
 }
 
 func NewStreamy(f string) (*StreamyWrapperClass, error) {
-	s, err := streamy.NewAvVideoReader(f)
+	s, err := streamy.NewAvVideoReader(f, UserAgent)
 	if err != nil {
 		return nil, err
 	}
 	x, y := s.GetDimensions()
 	buf := make([]color.RGBA, x*y)
 	fps := s.GetFPS()
-	if fps < 4 {
+	if fps < 4 || math.IsNaN(float64(fps)) {
 		fps = 4
 	}
 	return &StreamyWrapperClass{s, buf, time.NewTicker(time.Second / time.Duration(fps)), make(chan struct{}, 1), new(sync.Mutex)}, nil

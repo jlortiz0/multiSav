@@ -8,6 +8,8 @@ import (
 	"strings"
 )
 
+const UserAgent = "linux:org.jlortiz.multiSav:v0.7.0 (by /u/jlortiz)"
+
 type StripQueryResolver struct{}
 
 func (StripQueryResolver) GetResolvableDomains() []string {
@@ -49,7 +51,9 @@ func (BlockingResolver) GetRequest(u string) (*http.Response, error) {
 }
 
 func findByProps(u, p string) (string, error) {
-	resp, err := http.Get(u)
+	req, _ := http.NewRequest("GET", u, http.NoBody)
+	req.Header.Set("User-Agent", UserAgent)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -92,6 +96,8 @@ func (PropOGImageResolver) GetResolvableDomains() []string {
 func (PropOGImageResolver) ResolveURL(u string) (string, ImageEntry) {
 	s, _ := findByProps(u, "og:image")
 	if s == "" && strings.Contains(u, "redgifs.com") {
+		s, _ := findByProps(u, "og:video")
+		return s, nil
 		return "", &TextImageEntry{"No support for RedGifs videos\n" + u, ""}
 	}
 	return s, nil

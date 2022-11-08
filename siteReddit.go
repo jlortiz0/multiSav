@@ -16,7 +16,7 @@ type RedditSite struct {
 }
 
 func NewRedditSite(token string) RedditSite {
-	red := redditapi.NewReddit("linux:org.jlortiz.multiSav:v0.7.0 (by /u/jlortiz)", RedditID, RedditSecret)
+	red := redditapi.NewReddit(UserAgent, RedditID, RedditSecret)
 	if token != "" {
 		red.Login(token)
 	}
