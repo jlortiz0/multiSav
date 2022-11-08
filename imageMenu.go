@@ -419,33 +419,33 @@ func (menu *ImageMenu) Renderer() {
 		vec.Y = menu.target.Y
 		vec.X = menu.target.X/2 - vec2/2
 		vec3 := rl.MeasureTextEx(font, s, TEXT_SIZE, 0)
-		if vec2 > menu.target.X-81-vec3.X {
+		if vec2 > menu.target.X-86-vec3.X {
 			c := float32(rl.MeasureText("...", TEXT_SIZE))
 			try := menu.fName
-			for vec2 > menu.target.X-85-c-vec3.X {
-				per := int((menu.target.X - 85 - c - vec3.X) / vec2 * float32(len(try)))
+			v := 0
+			for vec2 > menu.target.X-90-c-vec3.X && v < 4 {
+				per := int((menu.target.X - 90 - c - vec3.X) / vec2 * float32(len(try)))
 				try = menu.fName[:per]
 				vec2 = float32(rl.MeasureText(try, TEXT_SIZE))
+				v++
 			}
 			menu.fName = try + "..."
 			vec2 += c
 			vec.X = menu.target.X/2 - vec2/2
 		}
-		if vec.X < vec3.X+5 {
-			vec.X = vec3.X + 5
+		if vec.X < vec3.X+10 {
+			vec.X = vec3.X + 10
 		}
-		old := rg.GuiGetStyle(rg.LABEL, rg.TEXT_ALIGNMENT)
 		rg.GuiSetStyle(rg.LABEL, rg.TEXT_ALIGNMENT, rg.TEXT_ALIGN_LEFT)
 		if rg.GuiLabelButton(rl.Rectangle{X: vec.X, Y: vec.Y, Height: TEXT_SIZE + 10, Width: vec2}, menu.fName) {
 			s := menu.Producer.GetInfo(menu.Selected)
 			if s != "" {
-				rg.GuiSetStyle(rg.LABEL, rg.TEXT_ALIGNMENT, old)
 				rl.EndDrawing()
 				messageOverlay(wordWrapper(s), menu)
 				rl.BeginDrawing()
 			}
 		}
-		rg.GuiSetStyle(rg.LABEL, rg.TEXT_ALIGNMENT, old)
+		rg.GuiSetStyle(rg.LABEL, rg.TEXT_ALIGNMENT, rg.TEXT_ALIGN_RIGHT)
 		if menu.state&IMSTATE_GOTO == 0 {
 			s := "..."
 			if menu.Producer != nil {
@@ -463,7 +463,7 @@ func (menu *ImageMenu) Renderer() {
 			if menu.Producer != nil {
 				max = menu.Producer.Len()
 			}
-			if rg.GuiValueBox(rl.Rectangle{X: menu.target.X - 75, Y: menu.target.Y, Width: 75, Height: TEXT_SIZE + 10}, "goto", &menu.tempSel, 1, max, true) {
+			if rg.GuiValueBox(rl.Rectangle{X: menu.target.X - 75, Y: menu.target.Y, Width: 75, Height: TEXT_SIZE + 10}, "", &menu.tempSel, 1, max, true) {
 				menu.state = IMSTATE_SHOULDLOAD
 				menu.Selected = menu.tempSel - 1
 				if menu.Selected < 0 {

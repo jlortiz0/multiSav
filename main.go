@@ -136,7 +136,7 @@ func main() {
 	rl.SetExitKey(0)
 	rg.GuiSetFont(font)
 	rg.GuiSetStyle(rg.LABEL, rg.TEXT_COLOR_NORMAL, 0xf5f5f5ff)
-	rg.GuiSetStyle(rg.LABEL, rg.TEXT_ALIGNMENT, rg.TEXT_ALIGN_RIGHT)
+	// rg.GuiSetStyle(rg.LABEL, rg.TEXT_ALIGNMENT, rg.TEXT_ALIGN_RIGHT)
 	if _, err := os.Stat("jlortiz_TEST"); err == nil {
 		os.Chdir("jlortiz_TEST")
 	}

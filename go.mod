@@ -1,6 +1,6 @@
 module github.com/jlortiz0/multisav
 
-go 1.17
+go 1.19
 
 require (
 	github.com/adrg/sysfont v0.1.2
