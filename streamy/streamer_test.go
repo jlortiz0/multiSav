@@ -14,7 +14,7 @@ const GET_FRAME_MAX = 5
 const FILE_NAME = "iwonb.webm"
 
 func TestNormalOps(t *testing.T) {
-	rd, err := streamy.NewAvVideoReader(FILE_NAME)
+	rd, err := streamy.NewAvVideoReader(FILE_NAME, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,15 +41,27 @@ func TestNormalOps(t *testing.T) {
 }
 
 func TestErrNotExist(t *testing.T) {
-	_, err := streamy.NewAvVideoReader("nonexist.ouch")
+	_, err := streamy.NewAvVideoReader("nonexist.ouch", "")
 	if err == nil {
 		t.FailNow()
 	}
 	t.Log(err)
 }
 
+func TestUserAgent(t *testing.T) {
+	rd, err := streamy.NewAvVideoReader("http://localhost:8000/"+FILE_NAME, "interesting string")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = rd.Read(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rd.Destroy()
+}
+
 func TestGetFrame(t *testing.T) {
-	rd, err := streamy.NewAvVideoReader(FILE_NAME)
+	rd, err := streamy.NewAvVideoReader(FILE_NAME, "")
 	if err != nil {
 		t.Fatal(err)
 	}

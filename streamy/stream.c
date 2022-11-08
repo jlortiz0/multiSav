@@ -7,6 +7,7 @@
 #include <libswscale/swscale.h>
 #include <stdlib.h>
 
+// TODO: Allow custom headers
 typedef struct LibavReader {
     AVFormatContext *context;
     AVCodecContext *codec;
@@ -17,10 +18,17 @@ typedef struct LibavReader {
     int idx;
 } LibavReader;
 
-int libavreader_new(const char *fName, LibavReader **ptr) {
+int libavreader_new(const char *fName, LibavReader **ptr, char *user_agent) {
     LibavReader *thing = malloc(sizeof(LibavReader));
     thing->context = avformat_alloc_context();
-    int code = avformat_open_input(&thing->context, fName, NULL, NULL);
+    AVDictionary *dict = NULL;
+    if (user_agent != NULL) {
+        av_dict_set(&dict, "user_agent", user_agent, 0);
+    }
+    int code = avformat_open_input(&thing->context, fName, NULL, &dict);
+    if (dict != NULL && av_dict_count(dict) != 0) {
+        abort();
+    }
     if (code) {
         avformat_free_context(thing->context);
         free(thing);

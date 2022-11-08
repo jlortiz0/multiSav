@@ -15,11 +15,16 @@ import (
 
 type AvVideoReader C.LibavReader
 
-func NewAvVideoReader(file string) (*AvVideoReader, error) {
+func NewAvVideoReader(file string, userAgent string) (*AvVideoReader, error) {
 	fName := C.CString(file)
 	defer C.free(unsafe.Pointer(fName))
+	var uAgent *C.char
+	if userAgent != "" {
+		uAgent = C.CString(userAgent)
+		defer C.free(unsafe.Pointer(uAgent))
+	}
 	var v *C.LibavReader
-	code := C.libavreader_new(fName, &v)
+	code := C.libavreader_new(fName, &v, uAgent)
 	if code != 0 {
 		return nil, errHelper(code)
 	}
@@ -70,7 +75,7 @@ func GetVideoFrame(file string, i int) (*image.RGBA, error) {
 	fName := C.CString(file)
 	defer C.free(unsafe.Pointer(fName))
 	var v *C.LibavReader
-	code := C.libavreader_new(fName, &v)
+	code := C.libavreader_new(fName, &v, nil)
 	if code != 0 {
 		return nil, errHelper(code)
 	}
