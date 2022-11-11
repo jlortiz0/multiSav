@@ -57,11 +57,12 @@ func findByProps(u, p string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
+	var data [4096]byte
+	_, err = io.ReadFull(resp.Body, data[:])
+	if err != nil && err != io.ErrUnexpectedEOF {
 		return "", err
 	}
-	s := string(data)
+	s := string(data[:])
 	ind := strings.Index(s, "property=\""+p+"\" content=\"")
 	if ind == -1 {
 		return "", errors.New("property not found")
@@ -90,7 +91,7 @@ func (PropOGVideoResolver) GetRequest(u string) (*http.Response, error) {
 type PropOGImageResolver struct{}
 
 func (PropOGImageResolver) GetResolvableDomains() []string {
-	return []string{"gelbooru.com", "www.gelbooru.com", "redgifs.com", "www.redgifs.com"}
+	return []string{"gelbooru.com", "www.gelbooru.com", "redgifs.com", "www.redgifs.com", "ibb.co"}
 }
 
 func (PropOGImageResolver) ResolveURL(u string) (string, ImageEntry) {
@@ -98,7 +99,6 @@ func (PropOGImageResolver) ResolveURL(u string) (string, ImageEntry) {
 	if s == "" && strings.Contains(u, "redgifs.com") {
 		s, _ := findByProps(u, "og:video")
 		return s, nil
-		return "", &TextImageEntry{"No support for RedGifs videos\n" + u, ""}
 	}
 	return s, nil
 }

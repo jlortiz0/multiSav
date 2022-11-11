@@ -363,6 +363,7 @@ func (r RedditSite) GetRequest(u string) (*http.Response, error) {
 	}
 	if URL.Host == "i.redd.it" {
 		return http.DefaultClient.Get(u)
+		// TODO: This doesn't work for external-preview.redd.it, is there a better way?
 	} else if URL.Host == "preview.redd.it" {
 		resp, err := r.Reddit.GetRequest(u)
 		if err != nil {
@@ -456,8 +457,8 @@ func splitAny(s string, seps string) []string {
 }
 
 func (red *RedditImageEntry) GetURL() string {
-	if red.Is_self || red.Is_gallery {
-		if red.Is_self && !red.scanned {
+	if !red.scanned {
+		if red.Is_self {
 			red.scanned = true
 			s := red.Selftext
 			s2 := splitAny(s, " \n\t()[]")
@@ -469,14 +470,16 @@ func (red *RedditImageEntry) GetURL() string {
 					}
 					red.URL = s3
 					red.Is_self = false
-					return red.URL
 				}
 			}
+		} else if red.Is_gallery {
+			red.URL = "https://reddit.com" + red.Permalink
+		} else if strings.HasPrefix(red.URL, "/r/") || strings.HasPrefix(red.URL, "/u/") {
+			red.URL = "https://reddit.com" + red.URL
+		} else if strings.HasPrefix(red.URL, "https://cdn.discordapp.com") && len(red.Preview.Images) != 0 {
+			red.URL = red.Preview.Images[0].Source.URL
 		}
-		return "https://reddit.com" + red.Permalink
-	}
-	if strings.HasPrefix(red.URL, "/r/") || strings.HasPrefix(red.URL, "/u/") {
-		return "https://reddit.com" + red.URL
+		red.scanned = true
 	}
 	return red.URL
 }

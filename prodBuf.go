@@ -15,6 +15,7 @@ import (
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 	"github.com/pkg/browser"
+	"gitlab.com/tslocum/preallocate"
 )
 
 const BIP_BUFBEFORE = 5
@@ -227,6 +228,7 @@ func (buf *BufferedImageProducer) ActionHandler(key int32, sel int, call int) Ac
 			if err == nil && resp.StatusCode == 200 {
 				f, err := os.OpenFile(name, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0600)
 				if err == nil {
+					preallocate.File(f, resp.ContentLength)
 					_, err = io.Copy(f, resp.Body)
 					if err != nil {
 						f.Close()
