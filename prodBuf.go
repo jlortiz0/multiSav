@@ -225,7 +225,7 @@ func (buf *BufferedImageProducer) ActionHandler(key int32, sel int, call int) Ac
 			name = fmt.Sprintf("%s_%d.%s", name, i, ext)
 		}
 		if buf.buffer[BIP_BUFBEFORE].URL != buf.items[sel].GetURL() {
-			resp, err := buf.site.GetRequest(buf.items[sel].GetURL())
+			resp, err := buf.site.GetRequest(strings.ReplaceAll(buf.items[sel].GetURL(), "&amp;", "&"))
 			if err == nil && resp.StatusCode == 200 {
 				f, err := os.OpenFile(name, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0600)
 				if err == nil {

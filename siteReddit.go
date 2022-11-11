@@ -363,7 +363,6 @@ func (r RedditSite) GetRequest(u string) (*http.Response, error) {
 	}
 	if link.Host == "i.redd.it" {
 		return http.DefaultClient.Get(u)
-		// TODO: This doesn't work for external-preview.redd.it, is there a better way?
 	} else if link.Host == "preview.redd.it" {
 		resp, err := r.Reddit.GetRequest(u)
 		if err != nil {
@@ -467,6 +466,7 @@ func (red *RedditImageEntry) GetURL() string {
 				if u != nil && strings.HasPrefix(u.Scheme, "http") {
 					if len(s3)*2 < len(s) {
 						s3 = strings.Clone(s3)
+						red.Selftext = ""
 					}
 					red.URL = s3
 					red.Is_self = false
