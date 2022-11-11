@@ -161,20 +161,18 @@ MainLoop:
 		}
 		sel := cm.Selected
 		cm.Destroy()
-		if sel >= len(saveData.Listings)+1 {
-			switch sel - len(saveData.Listings) - 1 {
-			case 0:
-				if EditListings() {
-					break MainLoop
-				}
-			case 1:
-				if SetUpSites() {
-					break MainLoop
-				}
-			case 2:
+		switch sel {
+		case len(saveData.Listings) + 1:
+			if EditListings() {
 				break MainLoop
 			}
-		} else if sel == 0 {
+		case len(saveData.Listings) + 2:
+			if SetUpSites() {
+				break MainLoop
+			}
+		case len(saveData.Listings) + 3:
+			break MainLoop
+		case 0:
 			menu := NewImageMenu(func() <-chan ImageProducer {
 				ch := make(chan ImageProducer)
 				go func() {
@@ -187,7 +185,7 @@ MainLoop:
 			}
 			menu.Destroy()
 			rl.SetWindowTitle("multiSav")
-		} else {
+		default:
 			data := saveData.Listings[sel-1]
 			menu := NewImageMenu(func() <-chan ImageProducer {
 				ch := make(chan ImageProducer)

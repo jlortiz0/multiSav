@@ -196,14 +196,15 @@ func (buf *BufferedImageProducer) GetTitle() string {
 }
 
 func (buf *BufferedImageProducer) ActionHandler(key int32, sel int, call int) ActionRet {
-	if key == rl.KeyV {
+	switch key {
+	case rl.KeyV:
 		browser.OpenURL(buf.items[sel].GetURL())
-	} else if key == rl.KeyH {
+	case rl.KeyH:
 		browser.OpenURL(buf.items[sel].GetPostURL())
-	} else if key == rl.KeyC {
+	case rl.KeyC:
 		buf.remove(sel)
 		return ARET_MOVEDOWN | ARET_REMOVE
-	} else if key == rl.KeyX {
+	case rl.KeyX:
 		name := buf.items[sel].GetSaveName()
 		if name == "" {
 			return ARET_NOTHING
@@ -263,7 +264,7 @@ func (buf *BufferedImageProducer) ActionHandler(key int32, sel int, call int) Ac
 		}
 		buf.remove(sel)
 		return ARET_MOVEUP | ARET_REMOVE
-	} else if key == rl.KeyEnter {
+	case rl.KeyEnter:
 		if buf.items[sel].GetType() == IETYPE_GALLERY {
 			if call == 0 {
 				return ARET_FADEOUT | ARET_AGAIN
@@ -415,19 +416,20 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 			}
 		}
 	}
-	if current.GetType() == IETYPE_GALLERY {
+	switch current.GetType() {
+	case IETYPE_GALLERY:
 		ret := current.GetGalleryInfo(false)
 		if len(ret) == 0 {
 			*img = drawMessage("This gallery is empty.")
 			return "\\/err" + current.GetName()
 		}
 		URL = ret[0].GetURL()
-	} else if current.GetType() == IETYPE_TEXT {
+	case IETYPE_TEXT:
 		*img = drawMessage(current.GetText())
 		// We still need to recieve to ensure the buffer is updated, but no need to do it synchronously
 		go func() { <-buf.selRecv }()
 		return current.GetName()
-	} else if current.GetType() == IETYPE_UGOIRA {
+	case IETYPE_UGOIRA:
 		// DANGER DANGER SPECIAL CASING
 		useful := current.(*PixivImageEntry)
 		metadata, err := useful.GetUgoiraMetadata()
@@ -558,19 +560,19 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 			(*ffmpeg).Destroy()
 			*ffmpeg = nil
 		}
-		size := float32((**img).Height) / 32
+		size := float32((*img).Height) / 32
 		if size < float32(font.BaseSize) {
 			// This works around a quirk with ImageTextEx where it will only ever upscale text, never downscale it
 			// I simply upscale the image first, correctness be damned
 			// I could have made it integer upscale but that could cause the text to end up very small depending on the image
 			scaleFactor := float64(font.BaseSize) / float64(size)
-			rl.ImageResize(*img, int32(float64((**img).Width)*scaleFactor), int32(float64((**img).Height)*scaleFactor))
+			rl.ImageResize(*img, int32(float64((*img).Width)*scaleFactor), int32(float64((*img).Height)*scaleFactor))
 			size *= float32(scaleFactor)
 		}
 		text := fmt.Sprintf("Press Enter for gallery viewer (%d images)", len(current.GetGalleryInfo(true)))
 		vec := rl.MeasureTextEx(font, text, size, 0)
-		rl.ImageDrawRectangle(*img, 0, (**img).Height-int32(vec.Y)-10, (**img).Width, int32(vec.Y)+10, rl.RayWhite)
-		rl.ImageDrawTextEx(*img, rl.Vector2{X: (float32((**img).Width) - vec.X) / 2, Y: float32((**img).Height) - vec.Y - 5}, font, text, size, 0, rl.Black)
+		rl.ImageDrawRectangle(*img, 0, (*img).Height-int32(vec.Y)-10, (*img).Width, int32(vec.Y)+10, rl.RayWhite)
+		rl.ImageDrawTextEx(*img, rl.Vector2{X: (float32((*img).Width) - vec.X) / 2, Y: float32((*img).Height) - vec.Y - 5}, font, text, size, 0, rl.Black)
 		return current.GetName()
 	}
 	return current.GetName()

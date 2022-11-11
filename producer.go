@@ -270,14 +270,18 @@ func (prod *OfflineImageProducer) ActionHandler(keycode int32, sel int, call int
 	if prod.empty != 0 {
 		return ARET_NOTHING
 	}
-	if keycode == rl.KeyC {
+	switch keycode {
+	case rl.KeyC:
 		if call != 0 {
 			os.Remove(path.Join(prod.fldr, prod.items[sel]))
 			return ARET_REMOVE
 		} else {
 			return ARET_MOVEDOWN | ARET_AGAIN | ARET_CLOSEFFMPEG
 		}
-	} else if keycode == rl.KeyX && prod.fldr != saveData.Downloads {
+	case rl.KeyX:
+		if prod.fldr == saveData.Downloads {
+			break
+		}
 		newName := prod.items[sel]
 		if _, err := os.Stat(path.Join(saveData.Downloads, newName)); err == nil {
 			x := -1
@@ -294,9 +298,9 @@ func (prod *OfflineImageProducer) ActionHandler(keycode int32, sel int, call int
 			newName = fmt.Sprintf("%s_%d.%s", before, x, after)
 		}
 		os.Rename(path.Join(prod.fldr, prod.items[sel]), path.Join(saveData.Downloads, newName))
-	} else if keycode == rl.KeyV {
+	case rl.KeyV:
 		openFile(path.Join(prod.fldr, prod.items[sel]))
-	} else if keycode == rl.KeyH {
+	case rl.KeyH:
 		highlightFile(path.Join(prod.fldr, prod.items[sel]))
 	}
 	return ARET_NOTHING

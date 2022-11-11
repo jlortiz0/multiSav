@@ -8,20 +8,20 @@ import (
 	"github.com/jlortiz0/multisav/redditapi"
 )
 
-func TestLogin(T *testing.T) {
-	loginHelper(T)
+func TestLogin(t *testing.T) {
+	loginHelper(t)
 }
 
-func loginHelper(T *testing.T) *redditapi.Reddit {
-	T.Helper()
+func loginHelper(t *testing.T) *redditapi.Reddit {
+	t.Helper()
 	data := make([]byte, 1024)
 	f, err := os.Open("login.json")
 	if err != nil {
-		T.Fatalf("Failed to open login data file: %s", err.Error())
+		t.Fatalf("Failed to open login data file: %s", err.Error())
 	}
 	n, err := f.Read(data)
 	if err != nil {
-		T.Fatalf("Failed to read login data: %s", err.Error())
+		t.Fatalf("Failed to read login data: %s", err.Error())
 	}
 	f.Close()
 	var fields struct {
@@ -31,38 +31,38 @@ func loginHelper(T *testing.T) *redditapi.Reddit {
 	}
 	err = json.Unmarshal(data[:n], &fields)
 	if err != nil {
-		T.Fatalf("Failed to decode login data: %s", err.Error())
+		t.Fatalf("Failed to decode login data: %s", err.Error())
 	}
 	red := redditapi.NewReddit("linux:org.jlortiz.test.GolangRedditAPI:v0.0.1 (by /u/jlortiz)", fields.Id, fields.Secret)
 	err = red.Login(fields.Refresh)
 	if err != nil {
-		T.Fatalf("Failed to log in: %s", err.Error())
+		t.Fatalf("Failed to log in: %s", err.Error())
 	}
 	return red
 }
 
-func TestListingNew(T *testing.T) {
-	red := loginHelper(T)
+func TestListingNew(t *testing.T) {
+	red := loginHelper(t)
 	ls, err := red.ListNew(0)
 	if err != nil {
-		T.Fatalf("Failed to get /new: %s", err.Error())
+		t.Fatalf("Failed to get /new: %s", err.Error())
 	}
 	if !ls.HasNext() {
-		T.Fatal("Listing should not be empty")
+		t.Fatal("Listing should not be empty")
 	}
 	for i := 0; i < 5; i++ {
 		x, err := ls.Next()
 		if err != nil {
-			T.Error(err.Error())
+			t.Error(err.Error())
 		} else if x == nil {
 			if ls.Count() != 4 {
-				T.Error("Ended before the end?")
+				t.Error("Ended before the end?")
 			}
 		} else {
-			T.Log(x.ID)
+			t.Log(x.ID)
 		}
 	}
 	if ls.Count() != 5 {
-		T.Error("Listing count should be the number of things processed")
+		t.Error("Listing count should be the number of things processed")
 	}
 }

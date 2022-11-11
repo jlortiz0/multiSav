@@ -24,8 +24,8 @@ func (ImgurResolver) GetResolvableDomains() []string {
 	return []string{"imgur.com", "i.imgur.com", "www.imgur.com"}
 }
 
-func (img ImgurResolver) ResolveURL(URL string) (string, ImageEntry) {
-	u, err := url.Parse(URL)
+func (img ImgurResolver) ResolveURL(link string) (string, ImageEntry) {
+	u, err := url.Parse(link)
 	if err != nil {
 		return "", nil
 	}
@@ -33,13 +33,13 @@ func (img ImgurResolver) ResolveURL(URL string) (string, ImageEntry) {
 	case "www.imgur.com":
 		fallthrough
 	case "imgur.com":
-		ind := strings.LastIndexByte(URL, '/')
-		if URL[ind-1] == 'a' {
-			URL = "https://api.imgur.com/3/album/" + URL[ind+1:]
+		ind := strings.LastIndexByte(link, '/')
+		if link[ind-1] == 'a' {
+			link = "https://api.imgur.com/3/album/" + link[ind+1:]
 		} else {
-			URL = "https://api.imgur.com/3/image/" + URL[ind+1:]
+			link = "https://api.imgur.com/3/image/" + link[ind+1:]
 		}
-		rq, err := http.NewRequest("GET", URL, http.NoBody)
+		rq, err := http.NewRequest("GET", link, http.NoBody)
 		if err != nil {
 			return "", nil
 		}
@@ -72,12 +72,12 @@ func (img ImgurResolver) ResolveURL(URL string) (string, ImageEntry) {
 			Link: payload.Data.Link, Images: payload.Data.Images,
 		}
 	case "i.imgur.com":
-		if strings.HasSuffix(URL, ".gifv") {
-			suff := URL[strings.LastIndexByte(URL, '/')+1:]
+		if strings.HasSuffix(link, ".gifv") {
+			suff := link[strings.LastIndexByte(link, '/')+1:]
 			return img.ResolveURL("https://imgur.com/" + suff[:len(suff)-5])
 		}
-		if strings.Contains(URL, "/a/") {
-			suff := URL[strings.LastIndexByte(URL, '/')+1:]
+		if strings.Contains(link, "/a/") {
+			suff := link[strings.LastIndexByte(link, '/')+1:]
 			ind := strings.LastIndexByte(suff, '.')
 			if ind == -1 {
 				ind = len(suff)
@@ -89,8 +89,8 @@ func (img ImgurResolver) ResolveURL(URL string) (string, ImageEntry) {
 	return "", nil
 }
 
-func (img ImgurResolver) GetRequest(URL string) (*http.Response, error) {
-	rq, err := http.NewRequest("GET", URL, http.NoBody)
+func (img ImgurResolver) GetRequest(link string) (*http.Response, error) {
+	rq, err := http.NewRequest("GET", link, http.NoBody)
 	if err != nil {
 		return nil, err
 	}

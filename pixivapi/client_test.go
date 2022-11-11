@@ -9,20 +9,20 @@ import (
 	"github.com/jlortiz0/multisav/pixivapi"
 )
 
-func TestLogin(T *testing.T) {
-	loginHelper(T)
+func TestLogin(t *testing.T) {
+	loginHelper(t)
 }
 
-func loginHelper(T *testing.T) *pixivapi.Client {
-	T.Helper()
+func loginHelper(t *testing.T) *pixivapi.Client {
+	t.Helper()
 	data := make([]byte, 1024)
 	f, err := os.Open("../redditapi/login.json")
 	if err != nil {
-		T.Fatalf("Failed to open login data file: %s", err.Error())
+		t.Fatalf("Failed to open login data file: %s", err.Error())
 	}
 	n, err := f.Read(data)
 	if err != nil {
-		T.Fatalf("Failed to read login data: %s", err.Error())
+		t.Fatalf("Failed to read login data: %s", err.Error())
 	}
 	f.Close()
 	var fields struct {
@@ -30,94 +30,94 @@ func loginHelper(T *testing.T) *pixivapi.Client {
 	}
 	err = json.Unmarshal(data[:n], &fields)
 	if err != nil {
-		T.Fatalf("Failed to decode login data: %s", err.Error())
+		t.Fatalf("Failed to decode login data: %s", err.Error())
 	}
 	red := pixivapi.NewClient()
 	err = red.Login(fields.PixivToken)
 	if err != nil {
-		T.Fatalf("Failed to log in: %s", err.Error())
+		t.Fatalf("Failed to log in: %s", err.Error())
 	}
 	return red
 }
 
-func TestIllust(T *testing.T) {
-	p := loginHelper(T)
+func TestIllust(t *testing.T) {
+	p := loginHelper(t)
 	ret, err := p.GetIllust(101469224)
 	if err != nil {
-		T.Fatal(err)
+		t.Fatal(err)
 	}
-	T.Log(ret)
+	t.Log(ret)
 }
 
-func TestUser(T *testing.T) {
-	p := loginHelper(T)
+func TestUser(t *testing.T) {
+	p := loginHelper(t)
 	ret, err := p.GetUser(16944635)
 	if err != nil {
-		T.Fatal(err)
+		t.Fatal(err)
 	}
-	T.Log(ret)
+	t.Log(ret)
 }
 
-func TestRecommended(T *testing.T) {
-	p := loginHelper(T)
+func TestRecommended(t *testing.T) {
+	p := loginHelper(t)
 	ls, err := p.RecommendedIllust(pixivapi.ILTYPE_ILUST)
 	if err != nil {
-		T.Fatal(err)
+		t.Fatal(err)
 	}
-	T.Log(ls.Buffered())
+	t.Log(ls.Buffered())
 	for !ls.NextRequiresFetch() {
 		n, err := ls.Next()
 		if err != nil {
-			T.Log(err)
+			t.Log(err)
 		}
-		T.Log(n.ID, n.Title)
+		t.Log(n.ID, n.Title)
 	}
 }
 
-func TestRanked(T *testing.T) {
-	p := loginHelper(T)
+func TestRanked(t *testing.T) {
+	p := loginHelper(t)
 	ls, err := p.RankedIllust(pixivapi.DAY, time.Time{})
 	if err != nil {
-		T.Fatal(err)
+		t.Fatal(err)
 	}
-	T.Log(ls.Buffered())
+	t.Log(ls.Buffered())
 	for !ls.NextRequiresFetch() {
 		n, err := ls.Next()
 		if err != nil {
-			T.Log(err)
+			t.Log(err)
 		}
-		T.Log(n.ID, n.Title)
+		t.Log(n.ID, n.Title)
 	}
 }
 
-func TestSearchIllustrations(T *testing.T) {
-	p := loginHelper(T)
+func TestSearchIllustrations(t *testing.T) {
+	p := loginHelper(t)
 	ls, err := p.SearchIllust("ugoira", pixivapi.TAGS_EXACT, pixivapi.DATE_DESC, pixivapi.WITHIN_NONE)
 	if err != nil {
-		T.Fatal(err)
+		t.Fatal(err)
 	}
-	T.Log(ls.Buffered())
+	t.Log(ls.Buffered())
 	for !ls.NextRequiresFetch() {
 		n, err := ls.Next()
 		if err != nil {
-			T.Log(err)
+			t.Log(err)
 		}
-		T.Log(n.ID, n.Title)
+		t.Log(n.ID, n.Title)
 	}
 }
 
-func TestSearchUser(T *testing.T) {
-	p := loginHelper(T)
+func TestSearchUser(t *testing.T) {
+	p := loginHelper(t)
 	ls, err := p.SearchUser("South_AC", pixivapi.DATE_DESC, pixivapi.WITHIN_NONE)
 	if err != nil {
-		T.Fatal(err)
+		t.Fatal(err)
 	}
-	T.Log(ls.Buffered())
+	t.Log(ls.Buffered())
 	for !ls.NextRequiresFetch() {
 		n, err := ls.Next()
 		if err != nil {
-			T.Log(err)
+			t.Log(err)
 		}
-		T.Log(n.ID, n.Name)
+		t.Log(n.ID, n.Name)
 	}
 }

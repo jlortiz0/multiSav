@@ -2,30 +2,30 @@ package redditapi_test
 
 import "testing"
 
-func TestMultiredditSlice(T *testing.T) {
-	red := loginHelper(T)
+func TestMultiredditSlice(t *testing.T) {
+	red := loginHelper(t)
 	multis, err := red.Self().Multireddits()
 	if err != nil {
-		T.Fatal(err)
+		t.Fatal(err)
 	}
 	for _, x := range multis {
-		T.Log(x.Name)
+		t.Log(x.Name)
 		if x.Name == "" {
-			T.Fail()
+			t.Fail()
 		}
 	}
 	user, err := red.Redditor("midnightrazorheart")
 	if err != nil {
-		T.Fatal(err)
+		t.Fatal(err)
 	}
 	multis, err = user.Multireddits()
 	if err != nil {
-		T.Fatal(err)
+		t.Fatal(err)
 	}
 	for _, x := range multis {
-		T.Log(x.Name)
+		t.Log(x.Name)
 		if x.Name == "" {
-			T.Fail()
+			t.Fail()
 		}
 	}
 }

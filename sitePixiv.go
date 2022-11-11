@@ -160,8 +160,8 @@ func (p PixivSite) ExtendListing(ls ImageListing) []ImageEntry {
 	return data
 }
 
-func (p PixivSite) ResolveURL(URL string) (string, ImageEntry) {
-	u, err := url.Parse(URL)
+func (p PixivSite) ResolveURL(link string) (string, ImageEntry) {
+	u, err := url.Parse(link)
 	if err != nil {
 		return "", nil
 	}
@@ -290,7 +290,8 @@ func (p PixivProducer) ActionHandler(key int32, sel int, call int) ActionRet {
 	default:
 		return p.BufferedImageProducer.ActionHandler(key, sel, call)
 	}
-	if key == rl.KeyX {
+	switch key {
+	case rl.KeyX:
 		if saveData.Settings.SaveOnX || p.listing.(*PixivImageListing).kind == 1 || rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift) {
 			ret := p.BufferedImageProducer.ActionHandler(key, sel, call)
 			if ret&ARET_REMOVE != 0 {
@@ -302,13 +303,13 @@ func (p PixivProducer) ActionHandler(key int32, sel int, call int) ActionRet {
 		}
 		p.remove(sel)
 		return ARET_MOVEUP | ARET_REMOVE
-	} else if key == rl.KeyC {
+	case rl.KeyC:
 		if p.listing.(*RedditImageListing).kind == 1 {
 			useful.Unbookmark()
 		}
 		p.remove(sel)
 		return ARET_MOVEDOWN | ARET_REMOVE
-	} else if key == rl.KeyL {
+	case rl.KeyL:
 		if p.listing.(*PixivImageListing).kind != 1 {
 			p.listing.(*PixivImageListing).persist = useful.ID
 			p.items = p.items[:sel+1]
@@ -318,7 +319,7 @@ func (p PixivProducer) ActionHandler(key int32, sel int, call int) ActionRet {
 			p.listing.(*PixivImageListing).IllustrationListing = nil
 			return ARET_MOVEUP
 		}
-	} else if key == rl.KeyEnter {
+	case rl.KeyEnter:
 		ret := p.BufferedImageProducer.ActionHandler(key, sel, call)
 		rl.SetWindowTitle(p.GetTitle())
 		return ret

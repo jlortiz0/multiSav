@@ -319,18 +319,18 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 	return nTweets
 }
 
-func (t TwitterSite) GetRequest(URL string) (*http.Response, error) {
-	URL = strings.ReplaceAll(URL, "&amp;", "&")
-	req, _ := http.NewRequest("GET", URL, http.NoBody)
-	if strings.Contains(URL, "pbs.twimg") {
+func (t TwitterSite) GetRequest(link string) (*http.Response, error) {
+	link = strings.ReplaceAll(link, "&amp;", "&")
+	req, _ := http.NewRequest("GET", link, http.NoBody)
+	if strings.Contains(link, "pbs.twimg") {
 		resp, err := http.DefaultClient.Do(req)
 		return resp, err
 	}
 	return t.Client.Client.Do(req)
 }
 
-func (t TwitterSite) ResolveURL(URL string) (string, ImageEntry) {
-	u, err := url.Parse(URL)
+func (t TwitterSite) ResolveURL(link string) (string, ImageEntry) {
+	u, err := url.Parse(link)
 	if err != nil {
 		return "", nil
 	}
@@ -404,14 +404,13 @@ func (t *TwitterImageEntry) GetInfo() string {
 }
 
 func (t *TwitterImageEntry) GetType() ImageEntryType {
-	if len(t.media) > 2 {
-		return IETYPE_GALLERY
-	} else if len(t.media) > 0 {
-		return IETYPE_REGULAR
-		// } else if len(t.url) > 0 {
-		// 	return IETYPE_REGULAR
-	} else {
+	switch len(t.media) {
+	case 0:
 		return IETYPE_TEXT
+	case 1:
+		return IETYPE_REGULAR
+	default:
+		return IETYPE_GALLERY
 	}
 }
 
@@ -517,7 +516,8 @@ func (t TwitterProducer) ActionHandler(key int32, sel int, call int) ActionRet {
 	default:
 		return t.BufferedImageProducer.ActionHandler(key, sel, call)
 	}
-	if key == rl.KeyX {
+	switch key {
+	case rl.KeyX:
 		if t.listing.(*TwitterImageListing).myId == "" || saveData.Settings.SaveOnX || t.listing.(*TwitterImageListing).kind == 5 || rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift) {
 			ret := t.BufferedImageProducer.ActionHandler(key, sel, call)
 			if ret&ARET_REMOVE != 0 {
@@ -529,13 +529,13 @@ func (t TwitterProducer) ActionHandler(key int32, sel int, call int) ActionRet {
 		}
 		t.remove(sel)
 		return ARET_MOVEUP | ARET_REMOVE
-	} else if key == rl.KeyC {
+	case rl.KeyC:
 		if t.listing.(*TwitterImageListing).kind == 5 {
 			t.site.RemoveTweetBookmark(context.Background(), t.listing.(*TwitterImageListing).myId, useful.ID)
 		}
 		t.remove(sel)
 		return ARET_MOVEDOWN | ARET_REMOVE
-	} else if key == rl.KeyL {
+	case rl.KeyL:
 		if t.listing.(*RedditImageListing).kind != 5 {
 			t.listing.(*TwitterImageListing).persist = useful.ID
 			t.items = t.items[:sel+1]
@@ -544,7 +544,7 @@ func (t TwitterProducer) ActionHandler(key int32, sel int, call int) ActionRet {
 			}
 			return ARET_MOVEUP
 		}
-	} else if key == rl.KeyEnter {
+	case rl.KeyEnter:
 		ret := t.BufferedImageProducer.ActionHandler(key, sel, call)
 		rl.SetWindowTitle(t.GetTitle())
 		return ret

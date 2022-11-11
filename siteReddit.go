@@ -301,8 +301,8 @@ func (red RedditSite) ExtendListing(cont ImageListing) []ImageEntry {
 	return data
 }
 
-func (red RedditSite) ResolveURL(URL string) (string, ImageEntry) {
-	u, err := url.Parse(URL)
+func (red RedditSite) ResolveURL(link string) (string, ImageEntry) {
+	u, err := url.Parse(link)
 	if err != nil {
 		return "", nil
 	}
@@ -357,22 +357,22 @@ func (RedditSite) GetResolvableDomains() []string {
 }
 
 func (r RedditSite) GetRequest(u string) (*http.Response, error) {
-	URL, err := url.Parse(u)
+	link, err := url.Parse(u)
 	if err != nil {
 		return nil, err
 	}
-	if URL.Host == "i.redd.it" {
+	if link.Host == "i.redd.it" {
 		return http.DefaultClient.Get(u)
 		// TODO: This doesn't work for external-preview.redd.it, is there a better way?
-	} else if URL.Host == "preview.redd.it" {
+	} else if link.Host == "preview.redd.it" {
 		resp, err := r.Reddit.GetRequest(u)
 		if err != nil {
 			return nil, err
 		}
 		if resp.StatusCode == 403 {
-			URL.Host = "i.redd.it"
-			URL.RawQuery = ""
-			return http.DefaultClient.Get(URL.String())
+			link.Host = "i.redd.it"
+			link.RawQuery = ""
+			return http.DefaultClient.Get(link.String())
 		}
 		return resp, nil
 	}
@@ -655,7 +655,8 @@ func (red RedditProducer) ActionHandler(key int32, sel int, call int) ActionRet 
 	default:
 		return red.BufferedImageProducer.ActionHandler(key, sel, call)
 	}
-	if key == rl.KeyX {
+	switch key {
+	case rl.KeyX:
 		if !red.site.IsLoggedIn() || saveData.Settings.SaveOnX || red.listing.(*RedditImageListing).kind == 5 || rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift) {
 			ret := red.BufferedImageProducer.ActionHandler(key, sel, call)
 			if ret&ARET_REMOVE != 0 {
@@ -667,17 +668,18 @@ func (red RedditProducer) ActionHandler(key int32, sel int, call int) ActionRet 
 		}
 		red.remove(sel)
 		return ARET_MOVEUP | ARET_REMOVE
-	} else if key == rl.KeyC {
-		if red.listing.(*RedditImageListing).kind == 5 {
+	case rl.KeyC:
+		switch red.listing.(*RedditImageListing).kind {
+		case 5:
 			useful.Unsave()
-		} else if red.listing.(*RedditImageListing).kind == 11 {
+		case 11:
 			useful.Unhide()
-		} else {
+		default:
 			useful.Hide()
 		}
 		red.remove(sel)
 		return ARET_MOVEDOWN | ARET_REMOVE
-	} else if key == rl.KeyL {
+	case rl.KeyL:
 		if red.listing.(*RedditImageListing).kind == 11 {
 			iter := red.items[sel:]
 			for len(iter) != 0 {
@@ -705,7 +707,7 @@ func (red RedditProducer) ActionHandler(key int32, sel int, call int) ActionRet 
 			red.listing.(*RedditImageListing).SubmissionIterator = nil
 			return ARET_MOVEUP
 		}
-	} else if key == rl.KeyEnter {
+	case rl.KeyEnter:
 		ret := red.BufferedImageProducer.ActionHandler(key, sel, call)
 		rl.SetWindowTitle(red.GetTitle())
 		return ret

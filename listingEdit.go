@@ -66,11 +66,9 @@ func (cm *ListingEditMenu) Renderer() {
 					cm.status = LOOP_EXIT
 					cm.Rem = LEM_REMOVE
 				}
-			} else {
-				if (rg.GuiButton(rl.Rectangle{X: cm.target.X + 5 + cm.scroll.X, Y: cm.target.Y + calc, Width: cm.target.Width - 10, Height: TEXT_SIZE + 2}, x) && cm.status == LOOP_CONT) {
-					cm.Selected = i
-					cm.status = LOOP_EXIT
-				}
+			} else if (rg.GuiButton(rl.Rectangle{X: cm.target.X + 5 + cm.scroll.X, Y: cm.target.Y + calc, Width: cm.target.Width - 10, Height: TEXT_SIZE + 2}, x) && cm.status == LOOP_CONT) {
+				cm.Selected = i
+				cm.status = LOOP_EXIT
 			}
 		}
 		calc += CHOICEMENU_SPACE_BETWEEN_ITEM + TEXT_SIZE

@@ -6,87 +6,87 @@ import (
 	"github.com/jlortiz0/multisav/pixivapi"
 )
 
-func TestIllustFetch(T *testing.T) {
-	p := loginHelper(T)
+func TestIllustFetch(t *testing.T) {
+	p := loginHelper(t)
 	ret := p.IllustFromID(101471765)
 	err := ret.Fetch()
 	if err != nil {
-		T.Fatal(err)
+		t.Fatal(err)
 	}
-	T.Log(ret)
+	t.Log(ret)
 	ret2, err := p.GetIllust(101471765)
 	if err != nil {
-		T.Fatal(err)
+		t.Fatal(err)
 	}
 	if ret.Title != ret2.Title {
-		T.Fail()
+		t.Fail()
 	}
-	T.Log(ret2)
+	t.Log(ret2)
 }
 
-func TestIllustBookmark(T *testing.T) {
-	p := loginHelper(T)
+func TestIllustBookmark(t *testing.T) {
+	p := loginHelper(t)
 	ret := p.IllustFromID(101471765)
 	err := ret.Bookmark(pixivapi.VISI_PUBLIC)
 	if err != nil {
-		T.Fatal(err)
+		t.Fatal(err)
 	}
 	// How do we get ourselves again?
 	// b, err := p.UserFromID(-1).Bookmarks("", pixivapi.VISI_PRIVATE)
 	err = ret.Fetch()
 	if err != nil {
-		T.Fatal(err)
+		t.Fatal(err)
 	}
-	T.Log(ret)
+	t.Log(ret)
 	if !ret.Is_bookmarked {
-		T.Fatal("image does not seem to be bookmarked")
+		t.Fatal("image does not seem to be bookmarked")
 	}
 	err = ret.Unbookmark()
 	if err != nil {
-		T.Fatal(err)
+		t.Fatal(err)
 	}
 }
 
-func TestUgoiraMeta(T *testing.T) {
-	p := loginHelper(T)
+func TestUgoiraMeta(t *testing.T) {
+	p := loginHelper(t)
 	ret := p.IllustFromID(87063503)
 	meta, err := ret.GetUgoiraMetadata()
 	if err != nil {
-		T.Fatal(err)
+		t.Fatal(err)
 	}
-	T.Log(meta.Zip_urls)
-	T.Log(len(meta.Frames))
+	t.Log(meta.Zip_urls)
+	t.Log(len(meta.Frames))
 }
 
-func TestIllustComments(T *testing.T) {
-	p := loginHelper(T)
+func TestIllustComments(t *testing.T) {
+	p := loginHelper(t)
 	ret := p.IllustFromID(101490348)
 	com, err := ret.GetComments(0)
 	if err != nil {
-		T.Fatal(err)
+		t.Fatal(err)
 	}
 	if len(com.Comments) == 0 {
-		T.Error("No comments?")
+		t.Error("No comments?")
 	}
-	T.Log(com.Offset, com.Total_comments, len(com.Comments))
+	t.Log(com.Offset, com.Total_comments, len(com.Comments))
 	for _, x := range com.Comments {
-		T.Log(x.Date, x.Comment, x.User.Name)
+		t.Log(x.Date, x.Comment, x.User.Name)
 	}
 }
 
-func TestIllustRelated(T *testing.T) {
-	p := loginHelper(T)
+func TestIllustRelated(t *testing.T) {
+	p := loginHelper(t)
 	ret := p.IllustFromID(101471765)
 	ls, err := ret.GetRelated()
 	if err != nil {
-		T.Fatal(err)
+		t.Fatal(err)
 	}
-	T.Log(ls.Buffered())
+	t.Log(ls.Buffered())
 	for !ls.NextRequiresFetch() {
 		n, err := ls.Next()
 		if err != nil {
-			T.Error(err)
+			t.Error(err)
 		}
-		T.Log(n.ID, n.Title)
+		t.Log(n.ID, n.Title)
 	}
 }
