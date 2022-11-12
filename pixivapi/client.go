@@ -281,3 +281,7 @@ func (p *Client) SearchUser(term string, sorting SearchSort, duration SearchDura
 func (p *Client) GetMyId() int {
 	return p.myId
 }
+
+func (p *Client) Followed(visi Visibility) (*IllustrationListing, error) {
+	return p.newIllustrationListing("2/illust/follow?restrict=" + string(visi))
+}

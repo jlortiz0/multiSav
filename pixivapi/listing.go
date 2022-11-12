@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"strings"
 )
 
 type IllustrationListing struct {
@@ -17,7 +18,10 @@ type IllustrationListing struct {
 }
 
 func (p *Client) newIllustrationListing(URL string) (*IllustrationListing, error) {
-	resp, err := p.doGetRequest(URL)
+	if !strings.HasPrefix(URL, base_url) {
+		URL = base_url + URL
+	}
+	resp, err := p.GetRequest(URL)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +100,10 @@ type UserListing struct {
 }
 
 func (p *Client) newUserListing(URL string) (*UserListing, error) {
-	resp, err := p.doGetRequest(URL)
+	if !strings.HasPrefix(URL, base_url) {
+		URL = base_url + URL
+	}
+	resp, err := p.GetRequest(URL)
 	if err != nil {
 		return nil, err
 	}
