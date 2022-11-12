@@ -45,6 +45,7 @@ func (p PixivSite) GetListingInfo() []ListingInfo {
 		{"Best of", []ListingArgument{{name: "Of", options: []interface{}{
 			string(pixivapi.DAY), string(pixivapi.WEEK), string(pixivapi.MONTH), string(pixivapi.DAY_MALE), string(pixivapi.DAY_FEMALE),
 		}}}},
+		{"Following", nil},
 	}
 }
 
@@ -116,6 +117,9 @@ func (p PixivSite) GetListing(kind int, args []interface{}, persist interface{})
 	case 4:
 		// Best of
 		ls, err = p.RankedIllust(pixivapi.RankingMode(args[0].(string)), time.Time{})
+	case 5:
+		// Following
+		ls, err = p.Followed(pixivapi.VISI_PUBLIC)
 	default:
 		err = errors.New("unknown kind")
 	}
@@ -183,7 +187,7 @@ func (p PixivSite) ResolveURL(link string) (string, ImageEntry) {
 		if err != nil {
 			return "", nil
 		}
-		return "", &PixivImageEntry{Illustration: x2}
+		return "", PixivImageEntry{Illustration: x2}
 	case "i.pximg.net":
 		fallthrough
 	case "pximg.net":
@@ -196,11 +200,11 @@ type PixivImageEntry struct {
 	*pixivapi.Illustration
 }
 
-func (p *PixivImageEntry) GetName() string {
+func (p PixivImageEntry) GetName() string {
 	return p.Title
 }
 
-func (p *PixivImageEntry) GetURL() string {
+func (p PixivImageEntry) GetURL() string {
 	if p.Meta_single_page.Original_image_url != "" {
 		return p.Meta_single_page.Original_image_url
 	}
@@ -213,7 +217,7 @@ func (p *PixivImageEntry) GetURL() string {
 	return p.Image_urls.Medium
 }
 
-func (p *PixivImageEntry) GetGalleryInfo(b bool) []ImageEntry {
+func (p PixivImageEntry) GetGalleryInfo(b bool) []ImageEntry {
 	if p.Page_count == 1 {
 		return nil
 	}
@@ -222,12 +226,12 @@ func (p *PixivImageEntry) GetGalleryInfo(b bool) []ImageEntry {
 		return arr
 	}
 	for i := range p.Meta_pages {
-		arr[i] = &PixivGalleryEntry{*p, i}
+		arr[i] = PixivGalleryEntry{p, i}
 	}
 	return arr
 }
 
-func (p *PixivImageEntry) GetType() ImageEntryType {
+func (p PixivImageEntry) GetType() ImageEntryType {
 	if p.Page_count > 1 {
 		return IETYPE_GALLERY
 	}
@@ -238,23 +242,23 @@ func (p *PixivImageEntry) GetType() ImageEntryType {
 	return IETYPE_REGULAR
 }
 
-func (p *PixivImageEntry) GetPostURL() string {
+func (p PixivImageEntry) GetPostURL() string {
 	return "https://pixiv.net/en/artworks/" + strconv.Itoa(p.ID)
 }
 
-func (p *PixivImageEntry) GetInfo() string {
+func (p PixivImageEntry) GetInfo() string {
 	return fmt.Sprintf("%s by %s\n%s\nView: %d  Bookmark: %d  Comments: %d", p.Title, p.User.Name, p.Caption, p.Total_view, p.Total_bookmarks, p.Total_comments)
 }
 
-func (p *PixivImageEntry) GetSaveName() string {
+func (p PixivImageEntry) GetSaveName() string {
 	s := p.GetURL()
 	ind := strings.LastIndexByte(s, '/')
 	return s[ind+1:]
 }
 
-func (*PixivImageEntry) GetText() string { return "" }
+func (PixivImageEntry) GetText() string { return "" }
 
-func (p *PixivImageEntry) Combine(ImageEntry) {
+func (p PixivImageEntry) Combine(ImageEntry) {
 	panic("this should never occur")
 }
 
@@ -263,11 +267,11 @@ type PixivGalleryEntry struct {
 	ind int
 }
 
-func (p *PixivGalleryEntry) GetURL() string {
+func (p PixivGalleryEntry) GetURL() string {
 	return p.Meta_pages[p.ind].Image_urls.Best()
 }
 
-func (p *PixivGalleryEntry) GetSaveName() string {
+func (p PixivGalleryEntry) GetSaveName() string {
 	return p.GetURL()
 }
 
@@ -287,6 +291,13 @@ func (p PixivProducer) ActionHandler(key int32, sel int, call int) ActionRet {
 		useful = v.Illustration
 	case *PixivImageEntry:
 		useful = v.Illustration
+	case *WrapperImageEntry:
+		switch u := v.ImageEntry.(type) {
+		case *PixivGalleryEntry:
+			useful = u.Illustration
+		case *PixivImageEntry:
+			useful = u.Illustration
+		}
 	default:
 		return p.BufferedImageProducer.ActionHandler(key, sel, call)
 	}
@@ -351,6 +362,8 @@ func (p PixivProducer) GetTitle() string {
 		return "multiSav - Pixiv - Recommended"
 	case 4:
 		return "multiSav - Pixiv - Best: " + args[0].(string)
+	case 5:
+		return "multiSav - Pixiv - Following"
 	default:
 		return "multiSav - Pixiv - Unknown"
 	}

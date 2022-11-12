@@ -513,6 +513,13 @@ func (t TwitterProducer) ActionHandler(key int32, sel int, call int) ActionRet {
 		useful = v
 	case *TwitterGalleryEntry:
 		useful = &v.TwitterImageEntry
+	case *WrapperImageEntry:
+		switch u := v.ImageEntry.(type) {
+		case *TwitterImageEntry:
+			useful = u
+		case *TwitterGalleryEntry:
+			useful = &u.TwitterImageEntry
+		}
 	default:
 		return t.BufferedImageProducer.ActionHandler(key, sel, call)
 	}

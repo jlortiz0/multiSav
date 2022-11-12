@@ -15,6 +15,7 @@ import (
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 	"github.com/pkg/browser"
+	"github.com/rainycape/unidecode"
 	"gitlab.com/tslocum/preallocate"
 )
 
@@ -339,7 +340,7 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 		if s == "" {
 			s = "Missing URL\n" + current.GetPostURL()
 		}
-		*img = drawMessage(s)
+		*img = drawMessage(unidecode.Unidecode(s))
 		// We still need to recieve to ensure the buffer is updated, but no need to do it synchronously
 		go func() { <-buf.selRecv }()
 		return current.GetName()
@@ -425,13 +426,16 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 		}
 		URL = ret[0].GetURL()
 	case IETYPE_TEXT:
-		*img = drawMessage(current.GetText())
+		*img = drawMessage(unidecode.Unidecode(current.GetText()))
 		// We still need to recieve to ensure the buffer is updated, but no need to do it synchronously
 		go func() { <-buf.selRecv }()
 		return current.GetName()
 	case IETYPE_UGOIRA:
 		// DANGER DANGER SPECIAL CASING
-		useful := current.(*PixivImageEntry)
+		useful, ok := current.(*PixivImageEntry)
+		if !ok {
+			useful = current.(*WrapperImageEntry).ImageEntry.(*PixivImageEntry)
+		}
 		metadata, err := useful.GetUgoiraMetadata()
 		if err != nil {
 			*img = drawMessage(err.Error())
