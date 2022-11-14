@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"image"
 	"image/png"
+	"net/http"
 	"os"
 	"testing"
 
@@ -48,8 +49,34 @@ func TestErrNotExist(t *testing.T) {
 	t.Log(err)
 }
 
+type SpecificFileHandler string
+
+const USER_AGENT = "interesting string"
+
+func (s SpecificFileHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	if len(req.URL.Path) == 0 {
+		http.NotFound(w, req)
+		return
+	}
+	if req.URL.Path[0] == '/' {
+		req.URL.Path = req.URL.Path[1:]
+	}
+	if req.URL.Path != string(s) {
+		http.NotFound(w, req)
+		return
+	}
+	if req.Header.Get("User-Agent") != USER_AGENT {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte(http.StatusText(http.StatusForbidden)))
+		return
+	}
+	http.ServeFile(w, req, string(s))
+}
+
 func TestUserAgent(t *testing.T) {
-	rd, err := streamy.NewAvVideoReader("http://localhost:8000/"+FILE_NAME, "interesting string")
+	srv := &http.Server{Handler: SpecificFileHandler(FILE_NAME), Addr: ":8000"}
+	go srv.ListenAndServe()
+	rd, err := streamy.NewAvVideoReader("http://localhost:8000/"+FILE_NAME, USER_AGENT)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,6 +85,7 @@ func TestUserAgent(t *testing.T) {
 		t.Fatal(err)
 	}
 	rd.Destroy()
+	srv.Close()
 }
 
 func TestGetFrame(t *testing.T) {
