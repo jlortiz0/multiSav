@@ -84,7 +84,6 @@ func NewBufferedImageProducer(site ImageSite, kind int, args []interface{}, pers
 			sel, ok := <-buf.selSender
 			if !ok {
 				close(buf.selRecv)
-				buf.buffer = nil
 				break
 			}
 			if sel < prevSel {
@@ -260,6 +259,8 @@ func (buf *BufferedImageProducer) ActionHandler(key int32, sel int, call int) Ac
 					}
 					data = data[n:]
 				}
+			} else {
+				return ARET_NOTHING
 			}
 			f.Close()
 		}
@@ -358,11 +359,11 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 			if newURL == RESOLVE_FINAL {
 				buf.items[sel] = &WrapperImageEntry{current, URL}
 				current = buf.items[sel]
-				<-buf.selRecv
+				// <-buf.selRecv
 				// buf.bufLock.Lock()
 				// buf.buffer[BIP_BUFBEFORE] = BufferObject{}
 				// buf.bufLock.Unlock()
-				go func() { buf.selRecv <- true }()
+				// go func() { buf.selRecv <- true }()
 				break
 			}
 			if newIE != nil {
@@ -548,6 +549,10 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 				*img = drawMessage(wordWrapper(err.Error()))
 				return "\\/err" + current.GetName()
 			}
+			if buf.bufLock.TryLock() {
+				buf.buffer[BIP_BUFBEFORE] = BufferObject{URL, data}
+				buf.bufLock.Unlock()
+			}
 		}
 		*img = rl.LoadImageFromMemory(ext, data, int32(len(data)))
 		if (*img).Height == 0 {
@@ -583,7 +588,7 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 }
 
 func (buf *BufferedImageProducer) GetInfo(sel int) string {
-	return buf.items[sel].GetInfo()
+	return unidecode.Unidecode(buf.items[sel].GetInfo())
 }
 
 func (buf *BufferedImageProducer) GetListing() ImageListing {
