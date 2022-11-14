@@ -41,8 +41,9 @@ var saveData struct {
 	Pixiv     string
 	Downloads string
 	Settings  struct {
-		SaveOnX bool
-		HideOnZ bool
+		SaveOnX       bool
+		HideOnZ       bool
+		PixivBookPriv bool
 	}
 	Listings []SavedListing
 }

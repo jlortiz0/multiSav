@@ -37,7 +37,9 @@ func (p PixivSite) Destroy() {
 func (p PixivSite) GetListingInfo() []ListingInfo {
 	return []ListingInfo{
 		{"User", []ListingArgument{{name: "ID or URL"}}},
-		{"Bookmarks", []ListingArgument{{name: "User ID or URL (0 for self)"}}},
+		{"Bookmarks", []ListingArgument{{name: "User ID or URL (0 for self)"}, {name: "Visibility", options: []interface{}{
+			string(pixivapi.VISI_PUBLIC), string(pixivapi.VISI_PRIVATE),
+		}}}},
 		{"Search", []ListingArgument{{name: "Query"}, {name: "Search kind", options: []interface{}{
 			string(pixivapi.TAGS_EXACT), string(pixivapi.TAGS_PARTIAL), string(pixivapi.TITLE_AND_CAPTION),
 		}}}},
@@ -81,23 +83,19 @@ func (p PixivSite) GetListing(kind int, args []interface{}, persist interface{})
 	case 1:
 		// Bookmarks
 		var i int
-		s, ok := args[0].(string)
-		if ok {
-			ind := strings.Index(s, "users/")
+		s := args[0].(string)
+		ind := strings.Index(s, "users/")
+		if ind != -1 {
+			s = s[ind+6:]
+			ind = strings.IndexByte(s, '?')
 			if ind != -1 {
-				s = s[ind+6:]
-				ind = strings.IndexByte(s, '?')
-				if ind != -1 {
-					s = s[:ind]
-				}
+				s = s[:ind]
+				args[0] = s
 			}
-			i, err = strconv.Atoi(s)
-			if err != nil {
-				break
-			}
-			args[0] = i
-		} else {
-			i = args[0].(int)
+		}
+		i, err = strconv.Atoi(s)
+		if err != nil {
+			break
 		}
 		if i == 0 {
 			i = p.GetMyId()
@@ -106,7 +104,7 @@ func (p PixivSite) GetListing(kind int, args []interface{}, persist interface{})
 		if kind == 0 {
 			ls, err = u.Illustrations(pixivapi.ILTYPE_ILUST)
 		} else {
-			ls, err = u.Bookmarks("", pixivapi.VISI_PRIVATE)
+			ls, err = u.Bookmarks("", pixivapi.Visibility(args[1].(string)))
 		}
 	case 2:
 		// Search
@@ -147,14 +145,14 @@ func (p PixivSite) ExtendListing(ls ImageListing) []ImageEntry {
 		return nil
 	}
 	data := make([]ImageEntry, 1, iter.Buffered()+1)
-	data[0] = &PixivImageEntry{Illustration: x}
+	data[0] = PixivImageEntry{Illustration: x}
 	for !iter.NextRequiresFetch() {
 		x, err = iter.Next()
 		if err == nil {
 			if x == nil {
 				break
 			}
-			data = append(data, &PixivImageEntry{Illustration: x})
+			data = append(data, PixivImageEntry{Illustration: x})
 			if x.ID == iter2.persist {
 				iter2.IllustrationListing = nil
 				break
@@ -208,13 +206,10 @@ func (p PixivImageEntry) GetURL() string {
 	if p.Meta_single_page.Original_image_url != "" {
 		return p.Meta_single_page.Original_image_url
 	}
-	if p.Image_urls.Original != "" {
-		return p.Image_urls.Original
+	if len(p.Meta_pages) > 0 {
+		return p.Meta_pages[0].Image_urls.Best()
 	}
-	if p.Image_urls.Large != "" {
-		return p.Image_urls.Large
-	}
-	return p.Image_urls.Medium
+	return p.Image_urls.Best()
 }
 
 func (p PixivImageEntry) GetGalleryInfo(b bool) []ImageEntry {
@@ -272,8 +267,12 @@ func (p PixivGalleryEntry) GetURL() string {
 }
 
 func (p PixivGalleryEntry) GetSaveName() string {
-	return p.GetURL()
+	s := p.GetURL()
+	ind := strings.LastIndexByte(s, '/')
+	return s[ind+1:]
 }
+
+func (PixivGalleryEntry) GetType() ImageEntryType { return IETYPE_REGULAR }
 
 type PixivProducer struct {
 	*BufferedImageProducer
@@ -287,9 +286,9 @@ func NewPixivProducer(site PixivSite, kind int, args []interface{}, persistent i
 func (p PixivProducer) ActionHandler(key int32, sel int, call int) ActionRet {
 	var useful *pixivapi.Illustration
 	switch v := p.items[sel].(type) {
-	case *PixivGalleryEntry:
+	case PixivGalleryEntry:
 		useful = v.Illustration
-	case *PixivImageEntry:
+	case PixivImageEntry:
 		useful = v.Illustration
 	case *WrapperImageEntry:
 		switch u := v.ImageEntry.(type) {
@@ -310,12 +309,16 @@ func (p PixivProducer) ActionHandler(key int32, sel int, call int) ActionRet {
 			}
 			return ret
 		} else {
-			useful.Bookmark(pixivapi.VISI_PRIVATE)
+			visi := pixivapi.VISI_PUBLIC
+			if saveData.Settings.PixivBookPriv {
+				visi = pixivapi.VISI_PRIVATE
+			}
+			useful.Bookmark(visi)
 		}
 		p.remove(sel)
 		return ARET_MOVEUP | ARET_REMOVE
 	case rl.KeyC:
-		if p.listing.(*RedditImageListing).kind == 1 {
+		if p.listing.(*PixivImageListing).kind == 1 {
 			useful.Unbookmark()
 		}
 		p.remove(sel)
@@ -333,6 +336,9 @@ func (p PixivProducer) ActionHandler(key int32, sel int, call int) ActionRet {
 	case rl.KeyEnter:
 		ret := p.BufferedImageProducer.ActionHandler(key, sel, call)
 		rl.SetWindowTitle(p.GetTitle())
+		if ret&ARET_REMOVE != 0 && p.listing.(*PixivImageListing).kind == 1 {
+			useful.Unbookmark()
+		}
 		return ret
 	}
 	return p.BufferedImageProducer.ActionHandler(key, sel, call)
@@ -345,13 +351,15 @@ func (p PixivProducer) GetTitle() string {
 	k, args := p.listing.GetInfo()
 	switch k {
 	case 0:
-		u, err := p.site.GetUser(args[0].(int))
+		i, _ := strconv.Atoi(args[0].(string))
+		u, err := p.site.GetUser(i)
 		if err != nil {
 			return err.Error()
 		}
 		return "multiSav - Pixiv - User: " + u.Name
 	case 1:
-		u, err := p.site.GetUser(args[0].(int))
+		i, _ := strconv.Atoi(args[0].(string))
+		u, err := p.site.GetUser(i)
 		if err != nil {
 			return err.Error()
 		}

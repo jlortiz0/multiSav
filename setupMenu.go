@@ -201,6 +201,10 @@ func SetUpSites() bool {
 				name: "Hide background on Z",
 				kind: LARGTYPE_BOOL,
 			},
+			{
+				name: "Pixiv: Private bookmarks",
+				kind: LARGTYPE_BOOL,
+			},
 		}
 		for !rl.WindowShouldClose() {
 			rl.BeginDrawing()
@@ -212,6 +216,7 @@ func SetUpSites() bool {
 			} else if len(out) != 0 {
 				saveData.Settings.SaveOnX = args[0].(bool)
 				saveData.Settings.HideOnZ = args[1].(bool)
+				saveData.Settings.PixivBookPriv = args[2].(bool)
 				break
 			}
 		}

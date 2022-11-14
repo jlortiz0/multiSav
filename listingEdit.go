@@ -154,7 +154,7 @@ func EditListings() bool {
 		case SITE_PIXIV:
 			info := sitePixiv.GetListingInfo()[data.Kind]
 			args = make([]ListingArgument, 3, len(info.args)+3)
-			args[0] = ListingArgument{"Site", LARGTYPE_LABEL, []interface{}{"Twitter"}}
+			args[0] = ListingArgument{"Site", LARGTYPE_LABEL, []interface{}{"Pixiv"}}
 			args[1] = ListingArgument{"Kind", LARGTYPE_LABEL, []interface{}{info.name}}
 			args[2] = ListingArgument{"Name", LARGTYPE_STRING, nil}
 			args = append(args, info.args...)
