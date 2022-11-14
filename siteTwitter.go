@@ -554,6 +554,9 @@ func (t TwitterProducer) ActionHandler(key int32, sel int, call int) ActionRet {
 	case rl.KeyEnter:
 		ret := t.BufferedImageProducer.ActionHandler(key, sel, call)
 		rl.SetWindowTitle(t.GetTitle())
+		if ret&ARET_REMOVE != 0 && t.listing.(*TwitterImageListing).kind == 5 {
+			t.site.RemoveTweetBookmark(context.Background(), t.listing.(*TwitterImageListing).myId, useful.ID)
+		}
 		return ret
 	}
 	return t.BufferedImageProducer.ActionHandler(key, sel, call)

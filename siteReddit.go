@@ -710,6 +710,16 @@ func (red RedditProducer) ActionHandler(key int32, sel int, call int) ActionRet 
 	case rl.KeyEnter:
 		ret := red.BufferedImageProducer.ActionHandler(key, sel, call)
 		rl.SetWindowTitle(red.GetTitle())
+		if ret&ARET_REMOVE != 0 {
+			switch red.listing.(*RedditImageListing).kind {
+			case 5:
+				useful.Unsave()
+			case 11:
+				useful.Unhide()
+			default:
+				useful.Hide()
+			}
+		}
 		return ret
 	}
 	return red.BufferedImageProducer.ActionHandler(key, sel, call)
