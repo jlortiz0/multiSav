@@ -139,6 +139,9 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 	var err error
 	stopAt := thing.persist
 	token := thing.token
+	if token == "-" {
+		return nil
+	}
 	switch thing.kind {
 	case 0:
 		// User timeline
@@ -190,14 +193,14 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 		}
 	case 1:
 		// Search
-		var search *twitter.TweetSearchResponse
-		search, err = t.TweetSearch(context.Background(), args[0].(string), twitter.TweetSearchOpts{
+		var search *twitter.TweetRecentSearchResponse
+		search, err = t.TweetRecentSearch(context.Background(), args[0].(string), twitter.TweetRecentSearchOpts{
 			Expansions:  []twitter.Expansion{twitter.ExpansionAttachmentsMediaKeys, twitter.ExpansionAuthorID},
 			MediaFields: []twitter.MediaField{twitter.MediaFieldHeight, twitter.MediaFieldMediaKey, twitter.MediaFieldURL, twitter.MediaFieldWidth, twitter.MediaFieldType, twitter.MediaFieldVariants},
 			TweetFields: []twitter.TweetField{twitter.TweetFieldAuthorID, twitter.TweetFieldAttachments, twitter.TweetFieldEntities, twitter.TweetFieldID, twitter.TweetFieldText},
 			MaxResults:  100,
 			SinceID:     stopAt,
-			SortOrder:   args[1].(twitter.TweetSearchSortOrder),
+			SortOrder:   twitter.TweetSearchSortOrder(args[1].(string)),
 			NextToken:   token,
 		})
 		if err != nil {
@@ -315,6 +318,9 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 			urls = x.Entities.URLs
 		}
 		nTweets = append(nTweets, &TwitterImageEntry{x.ID, x.Text, media, urls, userMap[x.AuthorID].UserName, "", nil})
+	}
+	if token == "" {
+		thing.token = "-"
 	}
 	return nTweets
 }

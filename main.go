@@ -106,6 +106,10 @@ func loginToSites() {
 	for _, x := range RetryWOQueryResolver(temp).GetResolvableDomains() {
 		resolveMap[x] = RetryWOQueryResolver(temp)
 	}
+
+	// Save Twitter token in case of an abnormal termination
+	siteTwitter.Destroy()
+	saveSaveData()
 }
 
 func saveSaveData() error {
