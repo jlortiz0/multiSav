@@ -43,7 +43,6 @@ While the source code of this program is licensed under the zlib License, this p
 
 - Write better instructions
 - Gracefully handle refresh token errors
-- The various things I put in the comments
 - Find a bunch of weird edge cases
 - Ability for a resolver to pass an error
 - Get to a point that I can call this "released"

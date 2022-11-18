@@ -292,10 +292,12 @@ func (p PixivProducer) ActionHandler(key int32, sel int, call int) ActionRet {
 		useful = v.Illustration
 	case *WrapperImageEntry:
 		switch u := v.ImageEntry.(type) {
-		case *PixivGalleryEntry:
+		case PixivGalleryEntry:
 			useful = u.Illustration
-		case *PixivImageEntry:
+		case PixivImageEntry:
 			useful = u.Illustration
+		default:
+			return p.BufferedImageProducer.ActionHandler(key, sel, call)
 		}
 	default:
 		return p.BufferedImageProducer.ActionHandler(key, sel, call)

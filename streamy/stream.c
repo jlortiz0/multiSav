@@ -7,7 +7,6 @@
 #include <libswscale/swscale.h>
 #include <stdlib.h>
 
-// TODO: Allow custom headers
 typedef struct LibavReader {
     AVFormatContext *context;
     AVCodecContext *codec;

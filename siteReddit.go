@@ -651,6 +651,8 @@ func (red RedditProducer) ActionHandler(key int32, sel int, call int) ActionRet 
 			useful = v2.Submission
 		case *RedditGalleryEntry:
 			useful = v2.Submission
+		default:
+			return red.BufferedImageProducer.ActionHandler(key, sel, call)
 		}
 	default:
 		return red.BufferedImageProducer.ActionHandler(key, sel, call)

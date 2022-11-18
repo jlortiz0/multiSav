@@ -519,6 +519,8 @@ func (t TwitterProducer) ActionHandler(key int32, sel int, call int) ActionRet {
 			useful = u
 		case *TwitterGalleryEntry:
 			useful = &u.TwitterImageEntry
+		default:
+			return t.BufferedImageProducer.ActionHandler(key, sel, call)
 		}
 	default:
 		return t.BufferedImageProducer.ActionHandler(key, sel, call)
