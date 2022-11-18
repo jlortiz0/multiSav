@@ -495,9 +495,6 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 	case "m3u8":
 		fallthrough
 	case "mov":
-		// Would it be better to pass some kind of fd to libav?
-		// In case we need to make the request with headers or something
-		// It would store received packets in a buffer, allowing for seeking
 		var err error
 		*ffmpeg, err = NewStreamy(URL)
 		if err != nil {

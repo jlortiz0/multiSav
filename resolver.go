@@ -57,7 +57,7 @@ func findByProps(u, p string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	var data [4096]byte
+	var data [8192]byte
 	_, err = io.ReadFull(resp.Body, data[:])
 	if err != nil && err != io.ErrUnexpectedEOF {
 		return "", err
@@ -65,7 +65,11 @@ func findByProps(u, p string) (string, error) {
 	s := string(data[:])
 	ind := strings.Index(s, "property=\""+p+"\" content=\"")
 	if ind == -1 {
-		return "", errors.New("property not found")
+		p += ":url"
+		ind = strings.Index(s, "property=\""+p+"\" content=\"")
+		if ind == -1 {
+			return "", errors.New("property not found")
+		}
 	}
 	s = s[ind+len("property=\"\" content=\"")+len(p):]
 	ind = strings.IndexByte(s, '"')
@@ -91,7 +95,7 @@ func (PropOGVideoResolver) GetRequest(u string) (*http.Response, error) {
 type PropOGImageResolver struct{}
 
 func (PropOGImageResolver) GetResolvableDomains() []string {
-	return []string{"gelbooru.com", "www.gelbooru.com", "redgifs.com", "www.redgifs.com", "ibb.co"}
+	return []string{"gelbooru.com", "www.gelbooru.com", "redgifs.com", "www.redgifs.com", "thumbs4.redgifs.com", "ibb.co"}
 }
 
 func (PropOGImageResolver) ResolveURL(u string) (string, ImageEntry) {
@@ -104,7 +108,9 @@ func (PropOGImageResolver) ResolveURL(u string) (string, ImageEntry) {
 }
 
 func (PropOGImageResolver) GetRequest(u string) (*http.Response, error) {
-	return http.DefaultClient.Get(u)
+	req, _ := http.NewRequest("GET", u, http.NoBody)
+	req.Header.Set("User-Agent", UserAgent)
+	return http.DefaultClient.Do(req)
 }
 
 type RetryWOQueryResolver struct{}
