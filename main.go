@@ -249,7 +249,7 @@ func messageOverlay(text string, menu Menu) {
 	x := (int32(rl.GetScreenWidth()) - msg.Width) / 2
 	y := (int32(rl.GetScreenHeight()) - msg.Height) / 2
 	for !rl.WindowShouldClose() {
-		if rl.GetKeyPressed() != 0 {
+		if rl.GetKeyPressed() != 0 || rl.IsMouseButtonPressed(rl.MouseLeftButton) {
 			break
 		}
 		if rl.IsWindowResized() {

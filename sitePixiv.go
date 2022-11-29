@@ -146,6 +146,10 @@ func (p PixivSite) ExtendListing(ls ImageListing) []ImageEntry {
 	}
 	data := make([]ImageEntry, 1, iter.Buffered()+1)
 	data[0] = PixivImageEntry{Illustration: x}
+	if x.ID <= iter2.persist {
+		iter2.IllustrationListing = nil
+		return data
+	}
 	for !iter.NextRequiresFetch() {
 		x, err = iter.Next()
 		if err == nil {
@@ -153,7 +157,7 @@ func (p PixivSite) ExtendListing(ls ImageListing) []ImageEntry {
 				break
 			}
 			data = append(data, PixivImageEntry{Illustration: x})
-			if x.ID == iter2.persist {
+			if x.ID <= iter2.persist {
 				iter2.IllustrationListing = nil
 				break
 			}

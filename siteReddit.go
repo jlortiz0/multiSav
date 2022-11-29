@@ -251,8 +251,32 @@ func (red RedditSite) ExtendListing(cont ImageListing) []ImageEntry {
 	if err != nil || x == nil {
 		return nil
 	}
-	data := make([]ImageEntry, 1, iter.Buffered()+1)
-	data[0] = &RedditImageEntry{Submission: x}
+	data := make([]ImageEntry, 0, iter.Buffered()+1)
+	if !(x.Hidden || (x.Saved && iter2.kind != 5) || x.Author_is_blocked) {
+		if len(x.Crosspost_parent_list) != 0 {
+			// Hack to allow requests to work with crossposts while still loading important fields
+			// For instance, fgallery data is only populated for the original post, but just replacing the object can lead to issues saving
+			x2 := x.Crosspost_parent_list[len(x.Crosspost_parent_list)-1]
+			x.Gallery_data = x2.Gallery_data
+			x.Media_metadata = x2.Media_metadata
+			x.Preview = x2.Preview
+			x.Author = x2.Author
+			x.Hidden = x.Hidden || x2.Hidden
+			x.Crosspost_parent_list = nil
+			x.Is_gallery = x.Is_gallery || x2.Is_gallery
+			x.Subreddit = x2.Subreddit
+			x.Selftext = x2.Selftext
+			if !(x.Hidden || (x.Saved && iter2.kind != 5) || x.Author_is_blocked) {
+				data = append(data, &RedditImageEntry{Submission: x})
+			}
+		} else {
+			data = append(data, &RedditImageEntry{Submission: x})
+		}
+	}
+	if x.Name == iter2.seen {
+		iter2.SubmissionIterator = nil
+		return data
+	}
 	for !iter.NextRequiresFetch() {
 		x, err = iter.Next()
 		if err == nil {
