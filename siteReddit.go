@@ -361,8 +361,21 @@ func (red RedditSite) ResolveURL(link string) (string, ImageEntry) {
 			return "", &RedditImageEntry{Submission: sub}
 		}
 		if s[0] == 'g' {
-			// Probably a blocked post
-			return RESOLVE_FINAL, nil
+			// Gallery link, but no gallery data. Try looking up the original post
+			ind := strings.LastIndexByte(s, '/')
+			if ind == -1 {
+				return "", nil
+			}
+			s = s[ind+1:]
+			sub, err := red.Submission(s)
+			if err != nil {
+				return "", nil
+			}
+			// If there's still no gallery data, bail to prevent a loop
+			if len(sub.Gallery_data.Items) == 0 {
+				return RESOLVE_FINAL, nil
+			}
+			return "", &RedditImageEntry{Submission: sub}
 		}
 	case "preview.redd.it":
 		s := u.Path
@@ -496,7 +509,7 @@ func (red *RedditImageEntry) GetURL() string {
 					red.Is_self = false
 				}
 			}
-		} else if red.Is_gallery {
+		} else if red.Is_gallery && len(red.Gallery_data.Items) > 0 {
 			red.URL = "https://reddit.com" + red.Permalink
 		} else if strings.HasPrefix(red.URL, "/r/") || strings.HasPrefix(red.URL, "/u/") {
 			red.URL = "https://reddit.com" + red.URL
@@ -605,7 +618,7 @@ func (red *RedditImageEntry) GetSaveName() string {
 		}
 		ind := strings.LastIndexByte(s, '/')
 		if ind != -1 {
-			s = s[ind:]
+			s = s[ind+1:]
 		}
 		ind = strings.IndexByte(s, '?')
 		if ind != -1 {
