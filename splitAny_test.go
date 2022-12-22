@@ -94,14 +94,14 @@ func BenchmarkSplitFunc(b *testing.B) {
 }
 
 func BenchmarkSplitFunc2(b *testing.B) {
-        fast := make(map[rune]struct{}, 7)
-        fast[' '] = struct{}{}
-        fast['('] = struct{}{}
-        fast[')'] = struct{}{}
-        fast['['] = struct{}{}
-        fast[']'] = struct{}{}
-        fast['\n'] = struct{}{}
-        fast['\t'] = struct{}{}
+	fast := make(map[rune]struct{}, 7)
+	fast[' '] = struct{}{}
+	fast['('] = struct{}{}
+	fast[')'] = struct{}{}
+	fast['['] = struct{}{}
+	fast[']'] = struct{}{}
+	fast['\n'] = struct{}{}
+	fast['\t'] = struct{}{}
 	s := setupHelper(b)
 	b.SetBytes(int64(len(s)))
 	for i := 0; i < b.N; i++ {
@@ -110,14 +110,14 @@ func BenchmarkSplitFunc2(b *testing.B) {
 }
 
 func BenchmarkSplitFunc3(b *testing.B) {
-        fast := make([]bool, 256)
-        fast[' '] = true
-        fast['('] = true
-        fast[')'] = true
-        fast['['] = true
-        fast[']'] = true
-        fast['\n'] = true
-        fast['\t'] = true
+	fast := make([]bool, 256)
+	fast[' '] = true
+	fast['('] = true
+	fast[')'] = true
+	fast['['] = true
+	fast[']'] = true
+	fast['\n'] = true
+	fast['\t'] = true
 	s := setupHelper(b)
 	b.SetBytes(int64(len(s)))
 	for i := 0; i < b.N; i++ {

@@ -117,7 +117,9 @@ func (cm *ChoiceMenu) HandleKey(keycode int32) LoopStatus {
 		cm.Selected = len(cm.itemList) - 1
 		cm.scroll.Y = cm.target.Height - cm.height
 	case rl.KeyEnter:
-		return LOOP_EXIT
+		if cm.Selected >= 0 {
+			return LOOP_EXIT
+		}
 	case rl.KeyPageDown:
 		if cm.Selected == len(cm.itemList)-1 {
 			return cm.HandleKey(rl.KeyDown)
