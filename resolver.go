@@ -57,21 +57,25 @@ func findByProps(u, p string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	var data [8192]byte
-	_, err = io.ReadFull(resp.Body, data[:])
+	data, err := io.ReadAll(resp.Body)
 	if err != nil && err != io.ErrUnexpectedEOF {
 		return "", err
 	}
-	s := string(data[:])
-	ind := strings.Index(s, "property=\""+p+"\" content=\"")
+	s := string(data)
+	ind := strings.Index(s, "property=\""+p+"\" ")
 	if ind == -1 {
 		p += ":url"
-		ind = strings.Index(s, "property=\""+p+"\" content=\"")
+		ind = strings.Index(s, "property=\""+p+"\" ")
 		if ind == -1 {
 			return "", errors.New("property not found")
 		}
 	}
-	s = s[ind+len("property=\"\" content=\"")+len(p):]
+	s = s[ind:]
+	ind = strings.Index(s, "content=\"")
+	if ind == -1 {
+		return "", errors.New("property has no associated content")
+	}
+	s = s[ind+len("content=\""):]
 	ind = strings.IndexByte(s, '"')
 	s = s[:ind]
 	return strings.Clone(s), nil
