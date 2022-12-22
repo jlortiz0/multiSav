@@ -34,7 +34,7 @@ func (img ImgurResolver) ResolveURL(link string) (string, ImageEntry) {
 		fallthrough
 	case "imgur.com":
 		ind := strings.LastIndexByte(link, '/')
-		if link[ind-1] == 'a' {
+		if link[ind-1] == 'a' || link[ind-1] == 'y' {
 			link = "https://api.imgur.com/3/album/" + link[ind+1:]
 		} else {
 			link = "https://api.imgur.com/3/image/" + link[ind+1:]
@@ -66,6 +66,7 @@ func (img ImgurResolver) ResolveURL(link string) (string, ImageEntry) {
 		}
 		for i := range payload.Data.Images {
 			payload.Data.Images[i].index = i + 1
+			payload.Data.Images[i].parent = payload.Data.ID
 		}
 		return "", &ImgurGalleryEntry{
 			ID: payload.Data.ID, Title: payload.Data.Title, Description: payload.Data.Description,
@@ -150,6 +151,7 @@ type ImgurImageEntry struct {
 	Link        string
 	Mp4         string
 	index       int
+	parent      string
 }
 
 func (*ImgurImageEntry) GetType() ImageEntryType { return IETYPE_REGULAR }
@@ -181,13 +183,13 @@ func (img *ImgurImageEntry) GetURL() string {
 }
 
 func (img *ImgurImageEntry) GetSaveName() string {
-	ind := strings.LastIndexByte(img.Link, '/')
-	s := img.Link[ind+1:]
-	if img.index == 0 {
+	s := img.GetURL()
+	if img.parent == "" {
+		ind := strings.LastIndexByte(s, '/')
+		s = s[ind+1:]
 		return s
 	}
-	ind = strings.LastIndexByte(s, '.')
+	ind := strings.LastIndexByte(s, '.')
 	ext := s[ind+1:]
-	s = s[:ind]
-	return fmt.Sprintf("%s_%d.%s", s, img.index, ext)
+	return fmt.Sprintf("%s_%d.%s", img.parent, img.index, ext)
 }
