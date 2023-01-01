@@ -99,7 +99,7 @@ func (PropOGVideoResolver) GetRequest(u string) (*http.Response, error) {
 type PropOGImageResolver struct{}
 
 func (PropOGImageResolver) GetResolvableDomains() []string {
-	return []string{"gelbooru.com", "www.gelbooru.com", "redgifs.com", "www.redgifs.com", "thumbs4.redgifs.com", "ibb.co"}
+	return []string{"gelbooru.com", "www.gelbooru.com", "danbooru.donmai.us", "redgifs.com", "www.redgifs.com", "thumbs4.redgifs.com", "ibb.co"}
 }
 
 func (PropOGImageResolver) ResolveURL(u string) (string, ImageEntry) {

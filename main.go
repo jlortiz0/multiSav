@@ -137,7 +137,7 @@ func main() {
 	rl.SetConfigFlags(rl.FlagWindowResizable)
 	rl.InitWindow(1024, 768, "multiSav")
 	finder := sysfont.NewFinder(nil)
-	font = rl.LoadFontEx(finder.Match("Ubuntu").Filename, TEXT_SIZE, nil, 0)
+	font = rl.LoadFontEx(finder.Match("Ubuntu Medium").Filename, TEXT_SIZE, nil, 0)
 	rl.SetExitKey(0)
 	rg.GuiSetFont(font)
 	rg.GuiSetStyle(rg.LABEL, rg.TEXT_COLOR_NORMAL, 0xf5f5f5ff)
