@@ -408,9 +408,9 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 		return current.GetName()
 	case IETYPE_UGOIRA:
 		// DANGER DANGER SPECIAL CASING
-		useful, ok := current.(*PixivImageEntry)
+		useful, ok := current.(PixivImageEntry)
 		if !ok {
-			useful = current.(*WrapperImageEntry).ImageEntry.(*PixivImageEntry)
+			useful = current.(*WrapperImageEntry).ImageEntry.(PixivImageEntry)
 		}
 		metadata, err := useful.GetUgoiraMetadata()
 		if err != nil {

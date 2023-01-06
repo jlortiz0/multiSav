@@ -463,7 +463,7 @@ func (menu *ImageMenu) Renderer() {
 			if menu.Producer != nil {
 				max = menu.Producer.Len()
 			}
-			if rg.GuiValueBox(rl.Rectangle{X: menu.target.X - 75, Y: menu.target.Y, Width: 75, Height: TEXT_SIZE + 10}, "", &menu.tempSel, 1, max, true) {
+			if rg.GuiValueBox(rl.Rectangle{X: menu.target.X - 75, Y: menu.target.Y, Width: 75, Height: TEXT_SIZE + 10}, "", &menu.tempSel, 0, max, true) {
 				menu.state = IMSTATE_SHOULDLOAD
 				menu.Selected = menu.tempSel - 1
 				if menu.Selected < 0 {
