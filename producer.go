@@ -154,6 +154,22 @@ func (w *WrapperImageEntry) GetURL() string {
 	return w.url
 }
 
+func (w *WrapperImageEntry) GetSaveName() string {
+	ind := strings.LastIndexByte(w.url, '/')
+	if ind == -1 {
+		return w.ImageEntry.GetSaveName()
+	}
+	s := w.url[ind+1:]
+	if s == "" {
+		return w.ImageEntry.GetSaveName()
+	}
+	ind = strings.IndexByte(s, '?')
+	if ind != -1 {
+		s = s[:ind]
+	}
+	return s
+}
+
 type TextImageEntry struct {
 	msg  string
 	name string

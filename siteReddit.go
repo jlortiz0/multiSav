@@ -607,9 +607,6 @@ func (red *RedditImageEntry) Combine(ie ImageEntry) {
 }
 
 func (red *RedditImageEntry) GetSaveName() string {
-	if red.URL == "" {
-		return ""
-	}
 	if len(red.Gallery_data.Items) != 0 {
 		x := red.Media_metadata[red.Gallery_data.Items[0].Media_id].S
 		s := x.U
@@ -625,6 +622,9 @@ func (red *RedditImageEntry) GetSaveName() string {
 			s = s[:ind]
 		}
 		return s
+	}
+	if red.URL == "" {
+		return ""
 	}
 	ind := strings.LastIndexByte(red.URL, '/')
 	if ind == -1 {

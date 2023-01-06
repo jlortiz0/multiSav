@@ -414,6 +414,7 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 			case "jpeg":
 				fallthrough
 			case "bmp":
+				buf.items[sel] = &WrapperImageEntry{current, URL}
 				break Outer
 			}
 		}
