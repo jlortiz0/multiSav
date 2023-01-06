@@ -10,6 +10,40 @@ import (
 
 const UserAgent = "linux:org.jlortiz.multiSav:v0.7.0 (by /u/jlortiz)"
 
+type extType int
+
+const (
+	EXT_NONE extType = iota
+	EXT_PICTURE
+	EXT_VIDEO
+)
+
+func getExtType(ext string) extType {
+	switch ext {
+	case "fmp4":
+		fallthrough
+	case "mp4":
+		fallthrough
+	case "webm":
+		fallthrough
+	case "gif":
+		fallthrough
+	case "m3u8":
+		fallthrough
+	case "mov":
+		return EXT_VIDEO
+	case "png":
+		fallthrough
+	case "jpg":
+		fallthrough
+	case "jpeg":
+		fallthrough
+	case "bmp":
+		return EXT_PICTURE
+	}
+	return EXT_NONE
+}
+
 type StripQueryResolver struct{}
 
 func (StripQueryResolver) GetResolvableDomains() []string {

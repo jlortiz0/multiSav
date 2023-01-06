@@ -126,14 +126,7 @@ func NewBufferedImageProducer(site ImageSite, kind int, args []interface{}, pers
 					continue
 				}
 				ext := strings.ToLower(URL[ind:])
-				switch ext[1:] {
-				case "png":
-					fallthrough
-				case "jpg":
-					fallthrough
-				case "jpeg":
-					fallthrough
-				case "bmp":
+				if getExtType(ext[1:]) == EXT_PICTURE {
 					obj, _ := url.Parse(URL)
 					if obj == nil {
 						continue
@@ -394,26 +387,7 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 			if ind != -1 {
 				ext = ext[:ind]
 			}
-			switch ext[1:] {
-			case "fmp4":
-				fallthrough
-			case "mp4":
-				fallthrough
-			case "webm":
-				fallthrough
-			case "gif":
-				fallthrough
-			case "m3u8":
-				fallthrough
-			case "mov":
-				fallthrough
-			case "png":
-				fallthrough
-			case "jpg":
-				fallthrough
-			case "jpeg":
-				fallthrough
-			case "bmp":
+			if getExtType(ext[1:]) != EXT_NONE {
 				buf.items[sel] = &WrapperImageEntry{current, URL}
 				break Outer
 			}
@@ -484,18 +458,8 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 		ext = "." + ext[1:]
 	}
 	<-buf.selRecv
-	switch ext[1:] {
-	case "fmp4":
-		fallthrough
-	case "mp4":
-		fallthrough
-	case "webm":
-		fallthrough
-	case "gif":
-		fallthrough
-	case "m3u8":
-		fallthrough
-	case "mov":
+	switch getExtType(ext[1:]) {
+	case EXT_VIDEO:
 		var err error
 		*ffmpeg, err = NewStreamy(URL)
 		if err != nil {
@@ -514,13 +478,7 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 			w, h := (*ffmpeg).GetDimensions()
 			*img = rl.GenImageColor(int(w), int(h), rl.Black)
 		}
-	case "png":
-		fallthrough
-	case "jpg":
-		fallthrough
-	case "jpeg":
-		fallthrough
-	case "bmp":
+	case EXT_PICTURE:
 		obj := buf.buffer[BIP_BUFBEFORE]
 		data := obj.data
 		if obj.URL != URL {
@@ -558,7 +516,7 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 			*img = drawMessage("Failed to load image?\n" + URL)
 			return "\\/err" + current.GetName()
 		}
-	default:
+	case EXT_NONE:
 		*img = drawMessage("Image format not supported\n" + URL)
 		return "\\/err" + current.GetName()
 	}

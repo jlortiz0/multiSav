@@ -231,22 +231,7 @@ func NewOfflineImageProducer(fldr string) *OfflineImageProducer {
 			if ind == -1 {
 				continue
 			}
-			switch strings.ToLower(v.Name()[ind+1:]) {
-			case "mp4":
-				fallthrough
-			case "webm":
-				fallthrough
-			case "gif":
-				fallthrough
-			case "mov":
-				fallthrough
-			case "bmp":
-				fallthrough
-			case "jpg":
-				fallthrough
-			case "png":
-				fallthrough
-			case "jpeg":
+			if getExtType(strings.ToLower(v.Name()[ind+1:])) != EXT_NONE {
 				ls = append(ls, v.Name())
 			}
 		}
@@ -361,14 +346,7 @@ func (prod *OfflineImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 		_, err = os.Stat(path.Join(prod.fldr, prod.items[sel]))
 	}
 	ind := strings.LastIndexByte(prod.items[sel], '.')
-	switch strings.ToLower(prod.items[sel][ind+1:]) {
-	case "mp4":
-		fallthrough
-	case "webm":
-		fallthrough
-	case "gif":
-		fallthrough
-	case "mov":
+	if getExtType(strings.ToLower(prod.items[sel][ind+1:])) == EXT_VIDEO {
 		var err error
 		*ffmpeg, err = NewStreamy(path.Join(prod.fldr, prod.items[sel]))
 		if err != nil {
@@ -376,7 +354,7 @@ func (prod *OfflineImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 		}
 		w, h := (*ffmpeg).GetDimensions()
 		*img = rl.GenImageColor(int(w), int(h), rl.Blank)
-	default:
+	} else {
 		*img = rl.LoadImage(path.Join(prod.fldr, prod.items[sel]))
 		if (*img).Height == 0 {
 			*img = drawMessage("Failed to load image?")
