@@ -355,7 +355,7 @@ func (red RedditSite) ResolveURL(link string) (string, ImageEntry) {
 			}
 			s = s[ind+9 : ind+9+6]
 			sub, err := red.Submission(s)
-			if err != nil {
+			if err != nil || sub == nil {
 				return "", nil
 			}
 			return "", &RedditImageEntry{Submission: sub}

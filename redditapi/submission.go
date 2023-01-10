@@ -79,7 +79,7 @@ func (red *Reddit) Submission(id string) (*Submission, error) {
 	data, _ := io.ReadAll(resp.Body)
 	req.Body.Close()
 	err := json.Unmarshal(data, &helper)
-	if err != nil {
+	if err != nil || len(helper.Data.Children) == 0 {
 		return nil, err
 	}
 	helper.Data.Children[0].Data.reddit = red
