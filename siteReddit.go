@@ -353,7 +353,11 @@ func (red RedditSite) ResolveURL(link string) (string, ImageEntry) {
 			if ind == -1 {
 				return "", nil
 			}
-			s = s[ind+9 : ind+9+6]
+			s = s[ind+9:]
+			ind = strings.IndexByte(s, '/')
+			if ind != -1 {
+				s = s[:ind]
+			}
 			sub, err := red.Submission(s)
 			if err != nil || sub == nil {
 				return "", nil
@@ -542,7 +546,7 @@ func wordWrapper(s string) string {
 				s = s[1:]
 			}
 		} else {
-			ind = strings.IndexAny(s[RIE_LINE_BREAK_CHARS:RIE_LINE_BREAK_CHARS+RIE_LINE_BREAK_TOLERANCE], " \t-\r")
+			ind = strings.IndexAny(s[RIE_LINE_BREAK_CHARS:RIE_LINE_BREAK_CHARS+RIE_LINE_BREAK_TOLERANCE], " \t-\r\n")
 			if ind != -1 {
 				s2.WriteString(s[:RIE_LINE_BREAK_CHARS+ind])
 				s2.WriteByte('\n')
