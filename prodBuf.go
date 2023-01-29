@@ -324,7 +324,7 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 	current := buf.items[sel]
 	URL := strings.ReplaceAll(current.GetURL(), "&amp;", "&")
 	if current.GetType() == IETYPE_TEXT {
-		*img = drawMessage(wordWrapper(current.GetText()))
+		*img = drawMessage(wordWrapper(unidecode.Unidecode(current.GetText())))
 		// We still need to recieve to ensure the buffer is updated, but no need to do it synchronously
 		go func() { <-buf.selRecv }()
 		return current.GetName()

@@ -121,7 +121,7 @@ func BenchmarkSplitFunc3(b *testing.B) {
 	s := setupHelper(b)
 	b.SetBytes(int64(len(s)))
 	for i := 0; i < b.N; i++ {
-		strings.FieldsFunc(s, func(c rune) bool { return fast[c] })
+		strings.FieldsFunc(s, func(c rune) bool { return fast[c % 256] })
 	}
 }
 
