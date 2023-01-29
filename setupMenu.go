@@ -5,7 +5,7 @@ import (
 	"image/color"
 	"net/url"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -181,16 +181,26 @@ func SetUpSites() bool {
 	case 0:
 		db := dialog.Directory()
 		dir := saveData.Downloads
-		if !path.IsAbs(dir) {
+		if !filepath.IsAbs(dir) {
 			tmp, _ := os.Getwd()
-			dir = path.Join(tmp, dir)
+			dir = filepath.Join(tmp, dir)
 		}
 		s, err := db.SetStartDir(dir).Title("Select downloads folder").Browse()
 		if err == nil {
+			wd, _ := os.Getwd()
+			if os.PathSeparator == '\\' {
+				wd = strings.ToUpper(wd[:1]) + wd[1:]
+			}
+			if strings.HasPrefix(s, wd) {
+				s = s[len(wd):]
+				if s[0] == os.PathSeparator {
+					s = s[1:]
+				}
+			}
 			saveData.Downloads = s
 		}
 	case 1:
-		args := []interface{}{saveData.Settings.SaveOnX, saveData.Settings.HideOnZ}
+		args := []interface{}{saveData.Settings.SaveOnX, saveData.Settings.HideOnZ, saveData.Settings.PixivBookPriv}
 		flags := make([]bool, 2)
 		cArgs := []ListingArgument{
 			{

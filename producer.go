@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"path"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -274,7 +274,7 @@ func (prod *OfflineImageProducer) ActionHandler(keycode int32, sel int, call int
 	switch keycode {
 	case rl.KeyC:
 		if call != 0 {
-			os.Remove(path.Join(prod.fldr, prod.items[sel]))
+			os.Remove(filepath.Join(prod.fldr, prod.items[sel]))
 			return ARET_REMOVE
 		} else {
 			return ARET_MOVEDOWN | ARET_AGAIN | ARET_CLOSEFFMPEG
@@ -284,7 +284,7 @@ func (prod *OfflineImageProducer) ActionHandler(keycode int32, sel int, call int
 			break
 		}
 		newName := prod.items[sel]
-		if _, err := os.Stat(path.Join(saveData.Downloads, newName)); err == nil {
+		if _, err := os.Stat(filepath.Join(saveData.Downloads, newName)); err == nil {
 			x := -1
 			dLoc := strings.IndexByte(newName, '.')
 			before := newName
@@ -298,11 +298,11 @@ func (prod *OfflineImageProducer) ActionHandler(keycode int32, sel int, call int
 			}
 			newName = fmt.Sprintf("%s_%d.%s", before, x, after)
 		}
-		os.Rename(path.Join(prod.fldr, prod.items[sel]), path.Join(saveData.Downloads, newName))
+		os.Rename(filepath.Join(prod.fldr, prod.items[sel]), filepath.Join(saveData.Downloads, newName))
 	case rl.KeyV:
-		openFile(path.Join(prod.fldr, prod.items[sel]))
+		openFile(filepath.Join(prod.fldr, prod.items[sel]))
 	case rl.KeyH:
-		highlightFile(path.Join(prod.fldr, prod.items[sel]))
+		highlightFile(filepath.Join(prod.fldr, prod.items[sel]))
 	}
 	return ARET_NOTHING
 }
@@ -327,7 +327,7 @@ func (prod *OfflineImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 		}
 		return ""
 	}
-	_, err := os.Stat(path.Join(prod.fldr, prod.items[sel]))
+	_, err := os.Stat(filepath.Join(prod.fldr, prod.items[sel]))
 	for err != nil {
 		if len(prod.items) == 1 {
 			prod.items = nil
@@ -343,19 +343,19 @@ func (prod *OfflineImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 		if sel == prod.Len() {
 			return ""
 		}
-		_, err = os.Stat(path.Join(prod.fldr, prod.items[sel]))
+		_, err = os.Stat(filepath.Join(prod.fldr, prod.items[sel]))
 	}
 	ind := strings.LastIndexByte(prod.items[sel], '.')
 	if getExtType(strings.ToLower(prod.items[sel][ind+1:])) == EXT_VIDEO {
 		var err error
-		*ffmpeg, err = NewStreamy(path.Join(prod.fldr, prod.items[sel]))
+		*ffmpeg, err = NewStreamy(filepath.Join(prod.fldr, prod.items[sel]))
 		if err != nil {
 			panic(err)
 		}
 		w, h := (*ffmpeg).GetDimensions()
 		*img = rl.GenImageColor(int(w), int(h), rl.Blank)
 	} else {
-		*img = rl.LoadImage(path.Join(prod.fldr, prod.items[sel]))
+		*img = rl.LoadImage(filepath.Join(prod.fldr, prod.items[sel]))
 		if (*img).Height == 0 {
 			*img = drawMessage("Failed to load image?")
 			return "\\/err" + prod.items[sel]
@@ -368,7 +368,7 @@ func (prod *OfflineImageProducer) GetInfo(sel int) string {
 	if !prod.BoundsCheck(sel) {
 		return ""
 	}
-	stat, err := os.Stat(path.Join(prod.fldr, prod.items[sel]))
+	stat, err := os.Stat(filepath.Join(prod.fldr, prod.items[sel]))
 	if err == nil {
 		size := stat.Size()
 		if size > 1024*1024 {

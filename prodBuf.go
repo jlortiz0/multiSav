@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -202,7 +202,7 @@ func (buf *BufferedImageProducer) ActionHandler(key int32, sel int, call int) Ac
 		if name == "" {
 			return ARET_NOTHING
 		}
-		name = path.Join(saveData.Downloads, name)
+		name = filepath.Join(saveData.Downloads, name)
 		if _, err := os.Stat(name); err == nil {
 			i := 0
 			ind := strings.LastIndexByte(name, '.')

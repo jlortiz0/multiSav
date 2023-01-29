@@ -4,12 +4,12 @@
 package main
 
 import "os/exec"
-import "path"
+import "path/filepath"
 
 func openFile(f string) {
 	exec.Command("xdg-open", f).Run()
 }
 
 func highlightFile(f string) {
-	exec.Command("xdg-open", path.Dir(f)).Run()
+	exec.Command("xdg-open", filepath.Dir(f)).Run()
 }

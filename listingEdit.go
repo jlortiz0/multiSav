@@ -3,7 +3,7 @@ package main
 import (
 	"image/color"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/sqweek/dialog"
@@ -111,7 +111,7 @@ func EditListings() bool {
 					s = s[:len(s)-1]
 				}
 				ind := strings.LastIndexByte(s, os.PathSeparator)
-				saveData.Listings = append(saveData.Listings, SavedListing{Site: SITE_LOCAL, Args: []interface{}{s}, Name: path.Base(s[ind+1:])})
+				saveData.Listings = append(saveData.Listings, SavedListing{Site: SITE_LOCAL, Args: []interface{}{s}, Name: filepath.Base(s[ind+1:])})
 			}
 			return false
 		case 1:
@@ -207,14 +207,21 @@ func EditListings() bool {
 					if cArgs[1].(bool) {
 						db := dialog.Directory()
 						dir := data.Args[0].(string)
-						if !path.IsAbs(dir) {
+						if !filepath.IsAbs(dir) {
 							tmp, _ := os.Getwd()
-							dir = path.Join(tmp, dir)
+							dir = filepath.Join(tmp, dir)
 						}
 						s, err := db.SetStartDir(dir).Title("Select image folder").Browse()
 						if err == nil {
-							if s[len(s)-1] == os.PathSeparator {
-								s = s[:len(s)-1]
+							wd, _ := os.Getwd()
+							if os.PathSeparator == '\\' {
+								wd = strings.ToUpper(wd[:1]) + wd[1:]
+							}
+							if strings.HasPrefix(s, wd) {
+								s = s[len(wd):]
+								if s[0] == os.PathSeparator {
+									s = s[1:]
+								}
 							}
 							saveData.Listings[sel].Args[0] = s
 						}

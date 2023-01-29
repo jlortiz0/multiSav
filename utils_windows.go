@@ -6,7 +6,7 @@ package main
 import (
 	"os"
 	"os/exec"
-	"path"
+	"path/filepath"
 	"syscall"
 )
 
@@ -16,7 +16,7 @@ func openFile(f string) {
 
 func highlightFile(f string) {
 	cwd, _ := os.Getwd()
-	cmd := exec.Command("explorer", "/select,", path.Join(cwd, f))
+	cmd := exec.Command("explorer", "/select,", filepath.Join(cwd, f))
 	cwd = "explorer /select, " + cmd.Args[2]
 	cmd.SysProcAttr = &syscall.SysProcAttr{CmdLine: cwd}
 	cmd.Run()
