@@ -245,15 +245,16 @@ func drawMessage(text string) *rl.Image {
 	return img
 }
 
-func messageOverlay(text string, menu Menu) {
+func messageOverlay(text string, menu Menu) LoopStatus {
 	msgI := drawMessage(text)
 	msg := rl.LoadTextureFromImage(msgI)
 	rl.UnloadImage(msgI)
+	defer rl.UnloadTexture(msg)
 	x := (int32(rl.GetScreenWidth()) - msg.Width) / 2
 	y := (int32(rl.GetScreenHeight()) - msg.Height) / 2
 	for !rl.WindowShouldClose() {
 		if rl.GetKeyPressed() != 0 || rl.IsMouseButtonPressed(rl.MouseLeftButton) {
-			break
+			return LOOP_BACK
 		}
 		if rl.IsWindowResized() {
 			x = (int32(rl.GetScreenWidth()) - msg.Width) / 2
@@ -272,7 +273,7 @@ func messageOverlay(text string, menu Menu) {
 		rl.DrawTexture(msg, x, y, rl.White)
 		rl.EndDrawing()
 	}
-	rl.UnloadTexture(msg)
+	return LOOP_QUIT
 }
 
 func stdEventLoop(menu Menu) LoopStatus {
@@ -282,7 +283,9 @@ func stdEventLoop(menu Menu) LoopStatus {
 		for key != 0 {
 			ret := menu.HandleKey(key)
 			if ret != LOOP_CONT {
-				fadeOut(menu.Renderer)
+				if ret != LOOP_QUIT {
+					fadeOut(menu.Renderer)
+				}
 				return ret
 			}
 			key = rl.GetKeyPressed()
@@ -292,7 +295,9 @@ func stdEventLoop(menu Menu) LoopStatus {
 		}
 		ret := menu.Prerender()
 		if ret != LOOP_CONT {
-			fadeOut(menu.Renderer)
+			if ret != LOOP_QUIT {
+				fadeOut(menu.Renderer)
+			}
 			return ret
 		}
 		rl.BeginDrawing()
@@ -300,5 +305,6 @@ func stdEventLoop(menu Menu) LoopStatus {
 		menu.Renderer()
 		rl.EndDrawing()
 	}
+	fadeOut(menu.Renderer)
 	return LOOP_QUIT
 }

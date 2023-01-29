@@ -176,7 +176,9 @@ func (menu *ImageMenu) HandleKey(keycode int32) LoopStatus {
 	case rl.KeyZ:
 		s := menu.Producer.GetInfo(menu.Selected)
 		if s != "" {
-			messageOverlay(wordWrapper(s), menu)
+			if messageOverlay(wordWrapper(s), menu) == LOOP_QUIT {
+				return LOOP_QUIT
+			}
 		}
 	case rl.KeyG:
 		menu.state |= IMSTATE_GOTO
@@ -441,6 +443,7 @@ func (menu *ImageMenu) Renderer() {
 			s := menu.Producer.GetInfo(menu.Selected)
 			if s != "" {
 				rl.EndDrawing()
+				// TODO: exit here too
 				messageOverlay(wordWrapper(s), menu)
 				rl.BeginDrawing()
 			}
