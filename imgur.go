@@ -21,7 +21,7 @@ func NewImgurResolver(key string) ImgurResolver {
 }
 
 func (ImgurResolver) GetResolvableDomains() []string {
-	return []string{"imgur.com", "i.imgur.com", "www.imgur.com"}
+	return []string{"imgur.com", "i.imgur.com", "www.imgur.com", "imgur.io"}
 }
 
 func (img ImgurResolver) ResolveURL(link string) (string, ImageEntry) {
@@ -31,6 +31,8 @@ func (img ImgurResolver) ResolveURL(link string) (string, ImageEntry) {
 	}
 	switch u.Hostname() {
 	case "www.imgur.com":
+		fallthrough
+	case "imgur.io":
 		fallthrough
 	case "imgur.com":
 		ind := strings.LastIndexByte(link, '/')

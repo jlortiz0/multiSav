@@ -100,6 +100,9 @@ func loginToSites() {
 	for _, x := range PropOGImageResolver(temp).GetResolvableDomains() {
 		resolveMap[x] = PropOGImageResolver(temp)
 	}
+	for _, x := range RedgifsResolver(temp).GetResolvableDomains() {
+		resolveMap[x] = RedgifsResolver(temp)
+	}
 	for _, x := range PropOGVideoResolver(temp).GetResolvableDomains() {
 		resolveMap[x] = PropOGVideoResolver(temp)
 	}

@@ -133,19 +133,40 @@ func (PropOGVideoResolver) GetRequest(u string) (*http.Response, error) {
 type PropOGImageResolver struct{}
 
 func (PropOGImageResolver) GetResolvableDomains() []string {
-	return []string{"gelbooru.com", "www.gelbooru.com", "danbooru.donmai.us", "redgifs.com", "www.redgifs.com", "thumbs4.redgifs.com", "ibb.co"}
+	return []string{"gelbooru.com", "www.gelbooru.com", "danbooru.donmai.us", "ibb.co"}
 }
 
 func (PropOGImageResolver) ResolveURL(u string) (string, ImageEntry) {
 	s, _ := findByProps(u, "og:image")
-	if s == "" && strings.Contains(u, "redgifs.com") {
-		s, _ := findByProps(u, "og:video")
-		return s, nil
-	}
 	return s, nil
 }
 
 func (PropOGImageResolver) GetRequest(u string) (*http.Response, error) {
+	req, _ := http.NewRequest("GET", u, http.NoBody)
+	req.Header.Set("User-Agent", UserAgent)
+	return http.DefaultClient.Do(req)
+}
+
+type RedgifsResolver struct{}
+
+func (RedgifsResolver) GetResolvableDomains() []string {
+	return []string{"redgifs.com", "www.redgifs.com", "v3.redgifs.com", "thumbs4.redgifs.com"}
+}
+
+func (RedgifsResolver) ResolveURL(u string) (string, ImageEntry) {
+	if strings.Contains(u, "thumbs4.") {
+		return RESOLVE_FINAL, nil
+	}
+	s, _ := findByProps(u, "og:image")
+	if s != "" {
+		return s, nil
+	}
+	ind := strings.LastIndexByte(u, '/')
+	s, _ = findByProps("https://www.redgifs.com/ifr"+u[ind:], "og:video")
+	return s, nil
+}
+
+func (RedgifsResolver) GetRequest(u string) (*http.Response, error) {
 	req, _ := http.NewRequest("GET", u, http.NoBody)
 	req.Header.Set("User-Agent", UserAgent)
 	return http.DefaultClient.Do(req)
