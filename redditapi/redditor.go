@@ -117,9 +117,8 @@ func (usr *Redditor) ListGilded(limit int) (*SubmissionIterator, error) {
 func (usr *Redditor) Multireddits() ([]*Multireddit, error) {
 	if usr.self {
 		return multiredditSlice("api/multi/mine", usr.reddit)
-	} else {
-		return multiredditSlice("api/multi/user/"+usr.Name, usr.reddit)
 	}
+	return multiredditSlice("api/multi/user/"+usr.Name, usr.reddit)
 }
 
 func (usr *Redditor) UserSubredditListNew(limit int) (*SubmissionIterator, error) {

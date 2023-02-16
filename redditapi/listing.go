@@ -128,9 +128,8 @@ func (iter *SubmissionIterator) Next() (*Submission, error) {
 func (iter *SubmissionIterator) HasNext() bool {
 	if iter.limit == 0 {
 		return len(iter.data) != 0
-	} else {
-		return iter.count < iter.limit
 	}
+	return iter.count < iter.limit
 }
 
 func (iter *SubmissionIterator) NextRequiresFetch() bool {
@@ -240,9 +239,8 @@ func (iter *CommentIterator) Next() (*Comment, error) {
 func (iter *CommentIterator) HasNext() bool {
 	if iter.limit == 0 {
 		return len(iter.data) != 0
-	} else {
-		return iter.count < iter.limit
 	}
+	return iter.count < iter.limit
 }
 
 func (iter *CommentIterator) NextRequiresFetch() bool {

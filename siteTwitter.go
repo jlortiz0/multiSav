@@ -575,9 +575,8 @@ func (t TwitterProducer) ActionHandler(key int32, sel int, call int) ActionRet {
 				t.site.RemoveTweetBookmark(context.Background(), t.listing.(*TwitterImageListing).myId, useful.ID)
 			}
 			return ret
-		} else {
-			t.site.AddTweetBookmark(context.Background(), t.listing.(*TwitterImageListing).myId, useful.ID)
 		}
+		t.site.AddTweetBookmark(context.Background(), t.listing.(*TwitterImageListing).myId, useful.ID)
 		t.remove(sel)
 		return ARET_MOVEUP | ARET_REMOVE
 	case rl.KeyC:

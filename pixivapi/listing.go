@@ -73,15 +73,15 @@ func (ls *IllustrationListing) Next() (*Illustration, error) {
 		return nil, nil
 	}
 	if ls.NextRequiresFetch() {
-		new, err := ls.client.newIllustrationListing(ls.nextURL)
-		if err != nil || new == nil || len(new.data) == 0 {
+		newLs, err := ls.client.newIllustrationListing(ls.nextURL)
+		if err != nil || newLs == nil || len(newLs.data) == 0 {
 			ls.lazy = false
 			return nil, err
 		}
 		// ls.count += new.count
-		ls.nextURL = new.nextURL
+		ls.nextURL = newLs.nextURL
 		ls.index = 0
-		ls.data = new.data
+		ls.data = newLs.data
 	}
 	ls.index++
 	ls.count++
@@ -157,15 +157,15 @@ func (ls *UserListing) Next() (*User, error) {
 		return nil, nil
 	}
 	if ls.NextRequiresFetch() {
-		new, err := ls.client.newUserListing(ls.nextURL)
-		if err != nil || new == nil || len(new.data) == 0 {
+		newLs, err := ls.client.newUserListing(ls.nextURL)
+		if err != nil || newLs == nil || len(newLs.data) == 0 {
 			ls.lazy = false
 			return nil, err
 		}
 		// ls.count += new.count
-		ls.nextURL = new.nextURL
+		ls.nextURL = newLs.nextURL
 		ls.index = 0
-		ls.data = new.data
+		ls.data = newLs.data
 	}
 	ls.index++
 	ls.count++

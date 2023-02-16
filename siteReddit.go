@@ -706,9 +706,8 @@ func (red RedditProducer) ActionHandler(key int32, sel int, call int) ActionRet 
 				useful.Unsave()
 			}
 			return ret
-		} else {
-			useful.Save()
 		}
+		useful.Save()
 		red.remove(sel)
 		return ARET_MOVEUP | ARET_REMOVE
 	case rl.KeyC:

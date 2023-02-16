@@ -314,13 +314,12 @@ func (p PixivProducer) ActionHandler(key int32, sel int, call int) ActionRet {
 				useful.Unbookmark()
 			}
 			return ret
-		} else {
-			visi := pixivapi.VISI_PUBLIC
-			if saveData.Settings.PixivBookPriv {
-				visi = pixivapi.VISI_PRIVATE
-			}
-			useful.Bookmark(visi)
 		}
+		visi := pixivapi.VISI_PUBLIC
+		if saveData.Settings.PixivBookPriv {
+			visi = pixivapi.VISI_PRIVATE
+		}
+		useful.Bookmark(visi)
 		p.remove(sel)
 		return ARET_MOVEUP | ARET_REMOVE
 	case rl.KeyC:
