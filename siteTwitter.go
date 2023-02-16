@@ -173,7 +173,7 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 		resp, err = t.UserTweetTimeline(context.Background(), id, twitter.UserTweetTimelineOpts{
 			Expansions:      []twitter.Expansion{twitter.ExpansionAttachmentsMediaKeys, twitter.ExpansionAuthorID},
 			MediaFields:     []twitter.MediaField{twitter.MediaFieldHeight, twitter.MediaFieldMediaKey, twitter.MediaFieldURL, twitter.MediaFieldWidth, twitter.MediaFieldType, twitter.MediaFieldVariants},
-			TweetFields:     []twitter.TweetField{twitter.TweetFieldAuthorID, twitter.TweetFieldAttachments, twitter.TweetFieldEntities, twitter.TweetFieldID, twitter.TweetFieldText},
+			TweetFields:     []twitter.TweetField{twitter.TweetFieldAuthorID, twitter.TweetFieldAttachments, twitter.TweetFieldEntities, twitter.TweetFieldID, twitter.TweetFieldText, twitter.TweetFieldReferencedTweets},
 			MaxResults:      100,
 			Excludes:        excludes,
 			SinceID:         stopAt,
@@ -197,7 +197,7 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 		search, err = t.TweetRecentSearch(context.Background(), args[0].(string), twitter.TweetRecentSearchOpts{
 			Expansions:  []twitter.Expansion{twitter.ExpansionAttachmentsMediaKeys, twitter.ExpansionAuthorID},
 			MediaFields: []twitter.MediaField{twitter.MediaFieldHeight, twitter.MediaFieldMediaKey, twitter.MediaFieldURL, twitter.MediaFieldWidth, twitter.MediaFieldType, twitter.MediaFieldVariants},
-			TweetFields: []twitter.TweetField{twitter.TweetFieldAuthorID, twitter.TweetFieldAttachments, twitter.TweetFieldEntities, twitter.TweetFieldID, twitter.TweetFieldText},
+			TweetFields: []twitter.TweetField{twitter.TweetFieldAuthorID, twitter.TweetFieldAttachments, twitter.TweetFieldEntities, twitter.TweetFieldID, twitter.TweetFieldText, twitter.TweetFieldReferencedTweets},
 			MaxResults:  100,
 			SinceID:     stopAt,
 			SortOrder:   twitter.TweetSearchSortOrder(args[1].(string)),
@@ -224,7 +224,7 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 		resp, err = t.ListTweetLookup(context.Background(), s, twitter.ListTweetLookupOpts{
 			Expansions:      []twitter.Expansion{twitter.ExpansionAttachmentsMediaKeys, twitter.ExpansionAuthorID},
 			MediaFields:     []twitter.MediaField{twitter.MediaFieldHeight, twitter.MediaFieldMediaKey, twitter.MediaFieldURL, twitter.MediaFieldWidth, twitter.MediaFieldType, twitter.MediaFieldVariants},
-			TweetFields:     []twitter.TweetField{twitter.TweetFieldAuthorID, twitter.TweetFieldAttachments, twitter.TweetFieldEntities, twitter.TweetFieldID, twitter.TweetFieldText},
+			TweetFields:     []twitter.TweetField{twitter.TweetFieldAuthorID, twitter.TweetFieldAttachments, twitter.TweetFieldEntities, twitter.TweetFieldID, twitter.TweetFieldText, twitter.TweetFieldReferencedTweets},
 			MaxResults:      100,
 			PaginationToken: token,
 		})
@@ -257,7 +257,7 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 		resp, err = t.UserTweetReverseChronologicalTimeline(context.Background(), thing.myId, twitter.UserTweetReverseChronologicalTimelineOpts{
 			Expansions:      []twitter.Expansion{twitter.ExpansionAttachmentsMediaKeys, twitter.ExpansionAuthorID},
 			MediaFields:     []twitter.MediaField{twitter.MediaFieldHeight, twitter.MediaFieldMediaKey, twitter.MediaFieldURL, twitter.MediaFieldWidth, twitter.MediaFieldType, twitter.MediaFieldVariants},
-			TweetFields:     []twitter.TweetField{twitter.TweetFieldAuthorID, twitter.TweetFieldAttachments, twitter.TweetFieldEntities, twitter.TweetFieldID, twitter.TweetFieldText},
+			TweetFields:     []twitter.TweetField{twitter.TweetFieldAuthorID, twitter.TweetFieldAttachments, twitter.TweetFieldEntities, twitter.TweetFieldID, twitter.TweetFieldText, twitter.TweetFieldReferencedTweets},
 			MaxResults:      100,
 			Excludes:        excludes,
 			SinceID:         stopAt,
@@ -278,7 +278,7 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 		resp, err = t.TweetBookmarksLookup(context.Background(), thing.myId, twitter.TweetBookmarksLookupOpts{
 			Expansions:      []twitter.Expansion{twitter.ExpansionAttachmentsMediaKeys, twitter.ExpansionAuthorID},
 			MediaFields:     []twitter.MediaField{twitter.MediaFieldHeight, twitter.MediaFieldMediaKey, twitter.MediaFieldURL, twitter.MediaFieldWidth, twitter.MediaFieldType, twitter.MediaFieldVariants},
-			TweetFields:     []twitter.TweetField{twitter.TweetFieldAuthorID, twitter.TweetFieldAttachments, twitter.TweetFieldEntities, twitter.TweetFieldID, twitter.TweetFieldText},
+			TweetFields:     []twitter.TweetField{twitter.TweetFieldAuthorID, twitter.TweetFieldAttachments, twitter.TweetFieldEntities, twitter.TweetFieldID, twitter.TweetFieldText, twitter.TweetFieldReferencedTweets},
 			MaxResults:      100,
 			PaginationToken: token,
 		})
@@ -302,6 +302,36 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 	nTweets := make([]ImageEntry, 0, len(tweets.Tweets))
 	mediaMap := tweets.Includes.MediaByKeys()
 	userMap := tweets.Includes.UsersByID()
+
+	rtwSlice := make([]string, 0, len(tweets.Tweets))
+	for _, tw := range tweets.Tweets {
+		for _, k := range tw.ReferencedTweets {
+			if k.Type != "replied_to" {
+				rtwSlice = append(rtwSlice, k.ID)
+			}
+		}
+	}
+	var rtwMap map[string][]*twitter.MediaObj
+	if len(rtwSlice) != 0 {
+		resp, _ := t.TweetLookup(context.Background(), rtwSlice, twitter.TweetLookupOpts{
+			Expansions:  []twitter.Expansion{twitter.ExpansionAttachmentsMediaKeys},
+			MediaFields: []twitter.MediaField{twitter.MediaFieldHeight, twitter.MediaFieldMediaKey, twitter.MediaFieldURL, twitter.MediaFieldWidth, twitter.MediaFieldType, twitter.MediaFieldVariants},
+			TweetFields: []twitter.TweetField{twitter.TweetFieldAttachments},
+		})
+		rtwMap = make(map[string][]*twitter.MediaObj)
+		rtwMediaMap := resp.Raw.Includes.MediaByKeys()
+		for _, k := range resp.Raw.Tweets {
+			if k.Attachments == nil {
+				continue
+			}
+			ls := make([]*twitter.MediaObj, len(k.Attachments.MediaKeys))
+			for i, k2 := range k.Attachments.MediaKeys {
+				ls[i] = rtwMediaMap[k2]
+			}
+			rtwMap[k.ID] = ls
+		}
+	}
+
 	for _, x := range tweets.Tweets {
 		if x == nil {
 			continue
@@ -312,6 +342,12 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 			for i2, v := range x.Attachments.MediaKeys {
 				media[i2] = mediaMap[v]
 			}
+		}
+		for _, otid := range x.ReferencedTweets {
+			if otid.Type == "replied_to" {
+				continue
+			}
+			media = append(media, rtwMap[otid.ID]...)
 		}
 		var urls []twitter.EntityURLObj
 		if x.Entities != nil {
