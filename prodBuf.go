@@ -454,7 +454,11 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 		ind2 += ind
 	}
 	ext := strings.ToLower(URL[ind:ind2])
-	if ext[0] == '=' {
+	if ext == "=png8" {
+		ext = ".png"
+	} else if ext == "=pjpg" {
+		ext = ".jpg"
+	} else if ext[0] == '=' {
 		ext = "." + ext[1:]
 	}
 	<-buf.selRecv

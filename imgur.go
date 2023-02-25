@@ -36,7 +36,7 @@ func (img ImgurResolver) ResolveURL(link string) (string, ImageEntry) {
 		fallthrough
 	case "imgur.com":
 		ind := strings.LastIndexByte(link, '/')
-		if link[ind-1] == 'a' || link[ind-1] == 'y' {
+		if strings.Count(link, "/") < 4 || link[ind-1] == 'a' || link[ind-1] == 'y' {
 			link = "https://api.imgur.com/3/album/" + link[ind+1:]
 		} else {
 			link = "https://api.imgur.com/3/image/" + link[ind+1:]

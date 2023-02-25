@@ -517,8 +517,17 @@ func (red *RedditImageEntry) GetURL() string {
 			red.URL = "https://reddit.com" + red.Permalink
 		} else if strings.HasPrefix(red.URL, "/r/") || strings.HasPrefix(red.URL, "/u/") {
 			red.URL = "https://reddit.com" + red.URL
-		} else if strings.HasPrefix(red.URL, "https://cdn.discordapp.com") && len(red.Preview.Images) != 0 {
-			red.URL = red.Preview.Images[0].Source.URL
+		} else if len(red.Preview.Images) != 0 {
+			if red.Domain == "v.redd.it" {
+				red.URL = red.Preview.Images[0].Source.URL
+			} else if strings.HasPrefix(red.URL, "https://cdn.discordapp.com") {
+				red.URL = red.Preview.Images[0].Source.URL
+			} else {
+				h, _ := http.Head(red.URL)
+				if h == nil || h.StatusCode != 200 || h.Request.URL.Path == "/removed.png" {
+					red.URL = red.Preview.Images[0].Source.URL
+				}
+			}
 		}
 		red.scanned = true
 	}

@@ -14,3 +14,4 @@ streamy/*.mp4
 streamy/*.gif
 *.code-workspace
 tokens_test.go
+__debug_bin

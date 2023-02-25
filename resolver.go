@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -118,7 +119,7 @@ func findByProps(u, p string) (string, error) {
 type PropOGVideoResolver struct{}
 
 func (PropOGVideoResolver) GetResolvableDomains() []string {
-	return []string{"gfycat.com", "www.gfycat.com"}
+	return []string{}
 }
 
 func (PropOGVideoResolver) ResolveURL(u string) (string, ImageEntry) {
@@ -150,20 +151,43 @@ func (PropOGImageResolver) GetRequest(u string) (*http.Response, error) {
 type RedgifsResolver struct{}
 
 func (RedgifsResolver) GetResolvableDomains() []string {
-	return []string{"redgifs.com", "www.redgifs.com", "v3.redgifs.com", "thumbs4.redgifs.com"}
+	return []string{"redgifs.com", "www.redgifs.com", "v3.redgifs.com", "thumbs4.redgifs.com", "i.redgifs.com", "thumbs44.redgifs.com", "gfycat.com", "www.gfycat.com"}
 }
 
+const redgifs_auth = "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJodHRwczovL3d3dy5yZWRnaWZzLmNvbS8iLCJpYXQiOjE2NzczMDI0NjQsImV4cCI6MTY3NzM4ODg2NCwic3ViIjoiY2xpZW50LzE4MjNjMzFmN2QzLTc0NWEtNjU4OS0wMDA1LWQ4ZThmZTBhNDRjMiIsInNjb3BlcyI6InJlYWQiLCJ2YWxpZF9hZGRyIjoiMTI4LjExNC4yNTUuMjQ5IiwidmFsaWRfYWdlbnQiOiJNb3ppbGxhLzUuMCAoWDExOyBVYnVudHU7IExpbnV4IHg4Nl82NDsgcnY6MTA5LjApIEdlY2tvLzIwMTAwMTAxIEZpcmVmb3gvMTEwLjAiLCJyYXRlIjotMX0.ueRQcmHhOnb3azqvBj0j5rUonjuaW2D4iBl2SnC0a0gArGCPxEyi8Ia2EuYYDE0lZf214P7BBEy6NnQXinGj_BvEcvLR3s8-pWKu3KMrT-mA6Nod5UE07XTPP5HE-g36oD8kJw5djgDhxW4KKDIhHAwUdoimC6DWDbxERtJf04hDb1q-YKbPwEUiRbIVMsrtuDTceAnZV3cA2_Ij0vbcKEpNeqnEcmF2BmbS5DE_ATppykdUw7nN31N1dke7j2ybUGQ9zZKBaOGof_dJR7xABGgOVeDD0vONgX2OAA1HZIIirVEs0TZz4in-3bHWMhdXoKZaxH60-7AeFCdqd8em_w"
+
 func (RedgifsResolver) ResolveURL(u string) (string, ImageEntry) {
-	if strings.Contains(u, "thumbs4.") {
+	if strings.Contains(u, "thumbs4") {
 		return RESOLVE_FINAL, nil
 	}
-	s, _ := findByProps(u, "og:image")
-	if s != "" {
-		return s, nil
+	if strings.Contains(u, "i.redgifs") {
+		r, _ := http.Head(u)
+		if r == nil || r.StatusCode != 200 {
+			return "", nil
+		}
+		u = r.Request.URL.String()
 	}
 	ind := strings.LastIndexByte(u, '/')
-	s, _ = findByProps("https://www.redgifs.com/ifr"+u[ind:], "og:video")
-	return s, nil
+	req, _ := http.NewRequest("GET", "https://api.redgifs.com/v2/gifs/"+u[ind+1:], http.NoBody)
+	req.Header.Set("Authorization", redgifs_auth)
+	req.Header.Set("User-Agent", UserAgent)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil || resp.StatusCode/100 != 2 {
+		return "", nil
+	}
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", nil
+	}
+	var output struct {
+		Gif struct {
+			Urls struct {
+				HD string
+			}
+		}
+	}
+	json.Unmarshal(data, &output)
+	return output.Gif.Urls.HD, nil
 }
 
 func (RedgifsResolver) GetRequest(u string) (*http.Response, error) {
