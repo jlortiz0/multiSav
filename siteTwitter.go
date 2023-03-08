@@ -305,6 +305,9 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 
 	rtwSlice := make([]string, 0, len(tweets.Tweets))
 	for _, tw := range tweets.Tweets {
+		if tw == nil {
+			continue
+		}
 		for _, k := range tw.ReferencedTweets {
 			if k.Type != "replied_to" {
 				rtwSlice = append(rtwSlice, k.ID)
