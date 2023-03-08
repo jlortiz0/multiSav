@@ -154,7 +154,7 @@ func (RedgifsResolver) GetResolvableDomains() []string {
 	return []string{"redgifs.com", "www.redgifs.com", "v3.redgifs.com", "thumbs4.redgifs.com", "i.redgifs.com", "thumbs44.redgifs.com", "gfycat.com", "www.gfycat.com"}
 }
 
-const redgifs_auth = "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJodHRwczovL3d3dy5yZWRnaWZzLmNvbS8iLCJpYXQiOjE2NzczMDI0NjQsImV4cCI6MTY3NzM4ODg2NCwic3ViIjoiY2xpZW50LzE4MjNjMzFmN2QzLTc0NWEtNjU4OS0wMDA1LWQ4ZThmZTBhNDRjMiIsInNjb3BlcyI6InJlYWQiLCJ2YWxpZF9hZGRyIjoiMTI4LjExNC4yNTUuMjQ5IiwidmFsaWRfYWdlbnQiOiJNb3ppbGxhLzUuMCAoWDExOyBVYnVudHU7IExpbnV4IHg4Nl82NDsgcnY6MTA5LjApIEdlY2tvLzIwMTAwMTAxIEZpcmVmb3gvMTEwLjAiLCJyYXRlIjotMX0.ueRQcmHhOnb3azqvBj0j5rUonjuaW2D4iBl2SnC0a0gArGCPxEyi8Ia2EuYYDE0lZf214P7BBEy6NnQXinGj_BvEcvLR3s8-pWKu3KMrT-mA6Nod5UE07XTPP5HE-g36oD8kJw5djgDhxW4KKDIhHAwUdoimC6DWDbxERtJf04hDb1q-YKbPwEUiRbIVMsrtuDTceAnZV3cA2_Ij0vbcKEpNeqnEcmF2BmbS5DE_ATppykdUw7nN31N1dke7j2ybUGQ9zZKBaOGof_dJR7xABGgOVeDD0vONgX2OAA1HZIIirVEs0TZz4in-3bHWMhdXoKZaxH60-7AeFCdqd8em_w"
+var redgifs_auth = ""
 
 func (RedgifsResolver) ResolveURL(u string) (string, ImageEntry) {
 	if strings.Contains(u, "thumbs4") {
@@ -167,17 +167,39 @@ func (RedgifsResolver) ResolveURL(u string) (string, ImageEntry) {
 		}
 		u = r.Request.URL.String()
 	}
+	var auth struct {
+		Token string
+	}
+	if redgifs_auth == "" {
+		req, _ := http.NewRequest("GET", "https://api.redgifs.com/v2/auth/temporary", http.NoBody)
+		req.Header.Set("User-Agent", UserAgent)
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil || resp.StatusCode/100 != 2 {
+			return "", nil
+		}
+		d := json.NewDecoder(resp.Body)
+		err = d.Decode(&auth)
+		if err != nil {
+			return "", nil
+		}
+		auth.Token = "Bearer " + auth.Token
+	} else {
+		auth.Token = redgifs_auth
+	}
 	ind := strings.LastIndexByte(u, '/')
 	req, _ := http.NewRequest("GET", "https://api.redgifs.com/v2/gifs/"+u[ind+1:], http.NoBody)
-	req.Header.Set("Authorization", redgifs_auth)
+	req.Header.Set("Authorization", auth.Token)
 	req.Header.Set("User-Agent", UserAgent)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil || resp.StatusCode/100 != 2 {
+		if resp.StatusCode == 401 && redgifs_auth != "" {
+			redgifs_auth = ""
+			return RedgifsResolver{}.ResolveURL(u)
+		}
 		return "", nil
 	}
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", nil
+	if redgifs_auth == "" {
+		redgifs_auth = auth.Token
 	}
 	var output struct {
 		Gif struct {
@@ -186,7 +208,8 @@ func (RedgifsResolver) ResolveURL(u string) (string, ImageEntry) {
 			}
 		}
 	}
-	json.Unmarshal(data, &output)
+	d := json.NewDecoder(resp.Body)
+	d.Decode(&output)
 	return output.Gif.Urls.HD, nil
 }
 
