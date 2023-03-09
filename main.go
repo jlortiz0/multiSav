@@ -82,11 +82,7 @@ func loginToSites() {
 	for _, x := range siteTwitter.GetResolvableDomains() {
 		resolveMap[x] = siteTwitter
 	}
-	var err error
-	sitePixiv, err = NewPixivSite(saveData.Pixiv)
-	if err != nil {
-		panic(err)
-	}
+	sitePixiv = NewPixivSite(saveData.Pixiv)
 	for _, x := range sitePixiv.GetResolvableDomains() {
 		resolveMap[x] = sitePixiv
 	}

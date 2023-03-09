@@ -17,14 +17,15 @@ import (
 
 type PixivSite struct {
 	*pixivapi.Client
+	err error
 }
 
-func NewPixivSite(refresh string) (PixivSite, error) {
+func NewPixivSite(refresh string) PixivSite {
 	ret := pixivapi.NewClient()
 	if refresh == "" {
-		return PixivSite{ret}, nil
+		return PixivSite{ret, nil}
 	}
-	return PixivSite{ret}, ret.Login(refresh)
+	return PixivSite{ret, ret.Login(refresh)}
 }
 
 func (p PixivSite) Destroy() {
@@ -71,6 +72,9 @@ func (p *PixivImageListing) GetPersistent() interface{} {
 }
 
 func (p PixivSite) GetListing(kind int, args []interface{}, persist interface{}) (ImageListing, []ImageEntry) {
+	if p.err != nil {
+		return ErrorListing{p.err}, nil
+	}
 	if !p.IsLoggedIn() {
 		return ErrorListing{errors.New("must log in to use Pixiv")}, nil
 	}
@@ -128,27 +132,31 @@ func (p PixivSite) GetListing(kind int, args []interface{}, persist interface{})
 	if persist != nil {
 		out.persist = int(persist.(float64))
 	}
-	return out, p.ExtendListing(out)
+	ext, err := p.ExtendListing(out)
+	if err != nil {
+		return ErrorListing{err}, nil
+	}
+	return out, ext
 }
 
-func (p PixivSite) ExtendListing(ls ImageListing) []ImageEntry {
+func (p PixivSite) ExtendListing(ls ImageListing) ([]ImageEntry, error) {
 	iter2, ok := ls.(*PixivImageListing)
 	if !ok {
-		return nil
+		return nil, errors.New("unable to cast listing")
 	}
 	iter := iter2.IllustrationListing
 	if iter == nil {
-		return nil
+		return nil, nil
 	}
 	x, err := iter.Next()
 	if err != nil || x == nil {
-		return nil
+		return nil, err
 	}
 	data := make([]ImageEntry, 1, iter.Buffered()+1)
 	data[0] = PixivImageEntry{Illustration: x}
 	if x.ID <= iter2.persist {
 		iter2.IllustrationListing = nil
-		return data
+		return data, nil
 	}
 	for !iter.NextRequiresFetch() {
 		x, err = iter.Next()
@@ -163,7 +171,7 @@ func (p PixivSite) ExtendListing(ls ImageListing) []ImageEntry {
 			}
 		}
 	}
-	return data
+	return data, nil
 }
 
 func (p PixivSite) ResolveURL(link string) (string, ImageEntry) {

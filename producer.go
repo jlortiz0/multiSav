@@ -102,7 +102,7 @@ type ImageSite interface {
 	GetListing(int, []interface{}, interface{}) (ImageListing, []ImageEntry)
 	// Return further objects from a listing using a continuance object
 	// If the returned slice is empty or nil, the listing has concluded
-	ExtendListing(ImageListing) []ImageEntry
+	ExtendListing(ImageListing) ([]ImageEntry, error)
 }
 
 type Resolver interface {

@@ -13,14 +13,15 @@ import (
 
 type RedditSite struct {
 	*redditapi.Reddit
+	err error
 }
 
 func NewRedditSite(token string) RedditSite {
 	red := redditapi.NewReddit(UserAgent, RedditID, RedditSecret)
 	if token != "" {
-		red.Login(token)
+		return RedditSite{red, red.Login(token)}
 	}
-	return RedditSite{red}
+	return RedditSite{red, nil}
 }
 
 func (red RedditSite) Destroy() {}
@@ -162,6 +163,9 @@ func (red *RedditImageListing) GetPersistent() interface{} {
 }
 
 func (red RedditSite) GetListing(kind int, args []interface{}, persistent interface{}) (ImageListing, []ImageEntry) {
+	if red.err != nil {
+		return ErrorListing{red.err}, nil
+	}
 	var iter *redditapi.SubmissionIterator
 	var err error
 	switch kind {
@@ -196,7 +200,12 @@ func (red RedditSite) GetListing(kind int, args []interface{}, persistent interf
 			iter, err = sub.ListTop(0, args[1].(string))
 		}
 	case 5:
-		iter, err = red.Self().ListSaved(0)
+		self := red.Self()
+		if self == nil {
+			err = errors.New("not logged in")
+			break
+		}
+		iter, err = self.ListSaved(0)
 	case 6:
 		var sub *redditapi.Subreddit
 		sub, err = red.Subreddit(args[0].(string))
@@ -224,9 +233,14 @@ func (red RedditSite) GetListing(kind int, args []interface{}, persistent interf
 			iter, err = multi.ListNew(0)
 		}
 	case 11:
-		iter, err = red.Self().ListHidden(0)
+		self := red.Self()
+		if self == nil {
+			err = errors.New("not logged in")
+			break
+		}
+		iter, err = self.ListHidden(0)
 	default:
-		err = errors.New("unknown listing")
+		err = errors.New("unknown kind")
 	}
 	if err != nil {
 		return ErrorListing{err}, nil
@@ -235,21 +249,25 @@ func (red RedditSite) GetListing(kind int, args []interface{}, persistent interf
 		persistent = ""
 	}
 	iter2 := &RedditImageListing{iter, kind, args, persistent.(string)}
-	return iter2, red.ExtendListing(iter2)
+	ext, err := red.ExtendListing(iter2)
+	if err != nil {
+		return ErrorListing{err}, nil
+	}
+	return iter2, ext
 }
 
-func (red RedditSite) ExtendListing(cont ImageListing) []ImageEntry {
+func (red RedditSite) ExtendListing(cont ImageListing) ([]ImageEntry, error) {
 	iter2, ok := cont.(*RedditImageListing)
 	if !ok {
-		return nil
+		return nil, errors.New("unable to cast listing")
 	}
 	iter := iter2.SubmissionIterator
 	if iter == nil {
-		return nil
+		return nil, nil
 	}
 	x, err := iter.Next()
 	if err != nil || x == nil {
-		return nil
+		return nil, err
 	}
 	data := make([]ImageEntry, 0, iter.Buffered()+1)
 	if !(x.Hidden || (x.Saved && iter2.kind != 5) || x.Author_is_blocked) {
@@ -275,7 +293,7 @@ func (red RedditSite) ExtendListing(cont ImageListing) []ImageEntry {
 	}
 	if x.Name == iter2.seen {
 		iter2.SubmissionIterator = nil
-		return data
+		return data, nil
 	}
 	for !iter.NextRequiresFetch() {
 		x, err = iter.Next()
@@ -322,7 +340,7 @@ func (red RedditSite) ExtendListing(cont ImageListing) []ImageEntry {
 			}
 		}
 	}
-	return data
+	return data, nil
 }
 
 func (red RedditSite) ResolveURL(link string) (string, ImageEntry) {
@@ -744,7 +762,7 @@ func (red RedditProducer) ActionHandler(key int32, sel int, call int) ActionRet 
 					useful.Unsave()
 				}
 				if len(red.items) == 1 {
-					iter = red.site.ExtendListing(red.listing)
+					iter, _ = red.site.ExtendListing(red.listing)
 				} else {
 					iter = iter[1:]
 				}

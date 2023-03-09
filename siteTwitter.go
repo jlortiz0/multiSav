@@ -51,8 +51,6 @@ func (t TwitterSite) Destroy() {
 }
 
 func (t TwitterSite) Logout() error {
-	return nil
-	// I keep getting a 403 when trying this, I give up
 	s, ok := t.Client.Client.Transport.(*oauth2.Transport)
 	if !ok {
 		return nil
@@ -61,7 +59,8 @@ func (t TwitterSite) Logout() error {
 	if s2 == nil {
 		return err
 	}
-	rq, _ := http.NewRequest("POST", "https://api.twitter.com/oauth2/invalidate_token?token_type_hint=access_token&access_token="+s2.RefreshToken, http.NoBody)
+	body := strings.NewReader("token=" + s2.RefreshToken)
+	rq, _ := http.NewRequest("POST", "https://api.twitter.com/2/oauth2/revoke", body)
 	rq.SetBasicAuth(TwitterID, TwitterSecret)
 	_, err = http.DefaultClient.Do(rq)
 	return err
@@ -126,13 +125,17 @@ func (t TwitterSite) GetListing(kind int, args []interface{}, persist interface{
 	if err == nil {
 		thing.myId = me.Raw.Users[0].ID
 	}
-	return thing, t.ExtendListing(thing)
+	ext, err := t.ExtendListing(thing)
+	if err != nil {
+		return ErrorListing{err}, nil
+	}
+	return thing, ext
 }
 
-func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
+func (t TwitterSite) ExtendListing(ls ImageListing) ([]ImageEntry, error) {
 	thing, ok := ls.(*TwitterImageListing)
 	if !ok {
-		return nil
+		return nil, errors.New("unable to cast listing")
 	}
 	args := thing.args
 	var tweets *twitter.TweetRaw
@@ -140,7 +143,7 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 	stopAt := thing.persist
 	token := thing.token
 	if token == "-" {
-		return nil
+		return nil, nil
 	}
 	switch thing.kind {
 	case 0:
@@ -180,6 +183,19 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 			PaginationToken: token,
 		})
 		if resp == nil {
+			err2 := errors.Unwrap(err)
+			if err2 != nil {
+				err3 := errors.Unwrap(err2)
+				if err3 != nil {
+					err = err3
+				} else {
+					err = err2
+				}
+			}
+			break
+		}
+		if len(resp.Raw.Errors) != 0 {
+			err = errors.New(resp.Raw.Errors[0].Title)
 			break
 		}
 		tweets = resp.Raw
@@ -204,6 +220,15 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 			NextToken:   token,
 		})
 		if err != nil {
+			err2 := errors.Unwrap(err)
+			if err2 != nil {
+				err3 := errors.Unwrap(err2)
+				if err3 != nil {
+					err = err3
+				} else {
+					err = err2
+				}
+			}
 			break
 		}
 		if len(search.Raw.Errors) != 0 {
@@ -229,6 +254,15 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 			PaginationToken: token,
 		})
 		if err != nil {
+			err2 := errors.Unwrap(err)
+			if err2 != nil {
+				err3 := errors.Unwrap(err2)
+				if err3 != nil {
+					err = err3
+				} else {
+					err = err2
+				}
+			}
 			break
 		}
 		if len(resp.Raw.Errors) != 0 {
@@ -264,6 +298,15 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 			PaginationToken: token,
 		})
 		if err != nil {
+			err2 := errors.Unwrap(err)
+			if err2 != nil {
+				err3 := errors.Unwrap(err2)
+				if err3 != nil {
+					err = err3
+				} else {
+					err = err2
+				}
+			}
 			break
 		}
 		if len(resp.Raw.Errors) != 0 {
@@ -282,6 +325,22 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 			MaxResults:      100,
 			PaginationToken: token,
 		})
+		if err != nil {
+			err2 := errors.Unwrap(err)
+			if err2 != nil {
+				err3 := errors.Unwrap(err2)
+				if err3 != nil {
+					err = err3
+				} else {
+					err = err2
+				}
+			}
+			break
+		}
+		if len(resp.Raw.Errors) != 0 {
+			err = errors.New(resp.Raw.Errors[0].Title)
+			break
+		}
 		tweets = resp.Raw
 		if stopAt != "" {
 			for i, x := range tweets.Tweets {
@@ -293,10 +352,10 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 		}
 		token = resp.Meta.NextToken
 	default:
-		err = errors.New("unknown type")
+		err = errors.New("unknown kind")
 	}
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	thing.token = token
 	nTweets := make([]ImageEntry, 0, len(tweets.Tweets))
@@ -361,7 +420,7 @@ func (t TwitterSite) ExtendListing(ls ImageListing) []ImageEntry {
 	if token == "" {
 		thing.token = "-"
 	}
-	return nTweets
+	return nTweets, nil
 }
 
 func (t TwitterSite) GetRequest(link string) (*http.Response, error) {

@@ -293,11 +293,14 @@ func (buf *BufferedImageProducer) remove(sel int) {
 func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoReader) string {
 	if sel+BIP_BUFAFTER >= len(buf.items) && buf.extending != nil && buf.lazy {
 		go buf.extending.Do(func() {
-			extend := buf.site.ExtendListing(buf.listing)
+			extend, err := buf.site.ExtendListing(buf.listing)
 			if len(extend) == 0 {
 				buf.lazy = false
 			} else {
 				buf.items = append(buf.items, extend...)
+			}
+			if err != nil {
+				buf.items = append(buf.items, &TextImageEntry{err.Error(), "Error for you"})
 			}
 			buf.extending = new(sync.Once)
 		})
