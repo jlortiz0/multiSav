@@ -60,7 +60,7 @@ func (cm *ChoiceMenu) Renderer() {
 	for i, x := range cm.itemList {
 		if !flag || (calc > -TEXT_SIZE-2 && calc < cm.target.Height) {
 			if i == cm.Selected {
-				rg.GuiSetState(rg.GUI_STATE_PRESSED)
+				rg.GuiSetState(rg.GUI_STATE_FOCUSED)
 			}
 			if (rg.GuiButton(rl.Rectangle{X: cm.target.X + 5 + cm.scroll.X, Y: cm.target.Y + calc, Width: cm.target.Width - 10, Height: TEXT_SIZE + 2}, x) && cm.status == LOOP_CONT) {
 				cm.Selected = i
@@ -143,6 +143,12 @@ func (cm *ChoiceMenu) HandleKey(keycode int32) LoopStatus {
 		calc := cm.scroll.Y + CHOICEMENU_SPACE_BETWEEN_ITEM/2 + (CHOICEMENU_SPACE_BETWEEN_ITEM+TEXT_SIZE)*float32(cm.Selected)
 		if calc < 0 {
 			cm.scroll.Y = -CHOICEMENU_SPACE_BETWEEN_ITEM/2 - (CHOICEMENU_SPACE_BETWEEN_ITEM+TEXT_SIZE)*float32(cm.Selected) + TEXT_SIZE/2
+		}
+	case rl.KeyTab:
+		if rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift) {
+			return cm.HandleKey(rl.KeyUp)
+		} else {
+			return cm.HandleKey(rl.KeyDown)
 		}
 	}
 	return LOOP_CONT

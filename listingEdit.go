@@ -33,7 +33,7 @@ func NewListingEditMenu(ls []SavedListing) *ListingEditMenu {
 	items[len(ls)] = "New..."
 	items[len(ls)+1] = "Back"
 	cm := NewChoiceMenu(items)
-	return &ListingEditMenu{*cm, 0}
+	return &ListingEditMenu{*cm, LEM_EDIT}
 }
 
 func (cm *ListingEditMenu) Renderer() {
@@ -50,11 +50,17 @@ func (cm *ListingEditMenu) Renderer() {
 	calc := cm.scroll.Y + CHOICEMENU_SPACE_BETWEEN_ITEM/2
 	for i, x := range cm.itemList {
 		if !flag || (calc > -TEXT_SIZE-2 && calc < cm.target.Height) {
+			if i == cm.Selected {
+				rg.GuiSetState(rg.GUI_STATE_FOCUSED)
+			}
 			if i < len(cm.itemList)-2 {
 				if (rg.GuiButton(rl.Rectangle{X: cm.target.X + 5 + cm.scroll.X, Y: cm.target.Y + calc, Width: cm.target.Width - 10 - LEM_BUTTON_SIZE*2 - LEM_SPACE_BETWEEN_BUTTONS*2, Height: TEXT_SIZE + 2}, x) && cm.status == LOOP_CONT) {
 					cm.Selected = i
 					cm.status = LOOP_EXIT
 					cm.Rem = LEM_EDIT
+				}
+				if i == cm.Selected {
+					rg.GuiSetState(rg.GUI_STATE_NORMAL)
 				}
 				if (rg.GuiButton(rl.Rectangle{X: cm.target.X + 5 + cm.scroll.X + cm.target.Width - 10 - LEM_BUTTON_SIZE*2 - LEM_SPACE_BETWEEN_BUTTONS, Y: cm.target.Y + calc, Width: LEM_BUTTON_SIZE, Height: LEM_BUTTON_SIZE}, "#28#") && cm.status == LOOP_CONT) {
 					cm.Selected = i
@@ -70,6 +76,7 @@ func (cm *ListingEditMenu) Renderer() {
 				cm.Selected = i
 				cm.status = LOOP_EXIT
 			}
+			rg.GuiSetState(rg.GUI_STATE_NORMAL)
 		}
 		calc += CHOICEMENU_SPACE_BETWEEN_ITEM + TEXT_SIZE
 	}
@@ -169,16 +176,14 @@ func EditListings() bool {
 			panic("unknown site")
 		}
 		var cArgs []interface{}
-		var flags []bool
+		sel2 := -1
 		if data.Site == SITE_LOCAL {
 			cArgs = []interface{}{data.Name, false}
-			flags = []bool{false, false}
 		} else {
 			cArgs = make([]interface{}, 3, len(data.Args)+3)
 			cArgs[0] = 0
 			cArgs[2] = data.Name
 			cArgs = append(cArgs, data.Args...)
-			flags = make([]bool, len(data.Args)+3)
 			for i, x := range args[3:] {
 				if len(x.options) != 0 && x.kind == LARGTYPE_STRING {
 					thing := cArgs[i+3].(string)
@@ -191,17 +196,17 @@ func EditListings() bool {
 				}
 			}
 		}
-		fadeIn(func() { DrawArgumentsUI(data.Name, args, cArgs, flags) })
+		fadeIn(func() { DrawArgumentsUI(data.Name, args, cArgs, &sel2) })
 		for !rl.WindowShouldClose() {
 			rl.BeginDrawing()
 			rl.ClearBackground(color.RGBA{R: 64, G: 64, B: 64})
-			out := DrawArgumentsUI(data.Name, args, cArgs, flags)
+			out := DrawArgumentsUI(data.Name, args, cArgs, &sel2)
 			rl.EndDrawing()
 			if out != nil && len(out) == 0 {
-				fadeOut(func() { DrawArgumentsUI(data.Name, args, cArgs, flags) })
+				fadeOut(func() { DrawArgumentsUI(data.Name, args, cArgs, &sel2) })
 				return EditListings()
 			} else if len(out) != 0 {
-				fadeOut(func() { DrawArgumentsUI(data.Name, args, cArgs, flags) })
+				fadeOut(func() { DrawArgumentsUI(data.Name, args, cArgs, &sel2) })
 				if data.Site == SITE_LOCAL {
 					saveData.Listings[sel].Name = cArgs[0].(string)
 					if cArgs[1].(bool) {

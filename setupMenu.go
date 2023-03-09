@@ -15,7 +15,7 @@ import (
 
 const ARGUI_SPACING = CHOICEMENU_SPACE_BETWEEN_ITEM * 1.5
 
-func DrawArgumentsUI(name string, args []ListingArgument, out []interface{}, flags []bool) []interface{} {
+func DrawArgumentsUI(name string, args []ListingArgument, out []interface{}, sel *int) []interface{} {
 	if out[0] == nil {
 		for i, v := range args {
 			if len(v.options) != 0 {
@@ -35,6 +35,7 @@ func DrawArgumentsUI(name string, args []ListingArgument, out []interface{}, fla
 				}
 			}
 		}
+		*sel = -1
 	}
 	target := rl.Vector2{X: float32(rl.GetScreenWidth()), Y: float32(rl.GetScreenHeight())}
 	vec := rl.MeasureTextEx(font, name, TEXT_SIZE, 0)
@@ -48,6 +49,11 @@ func DrawArgumentsUI(name string, args []ListingArgument, out []interface{}, fla
 		vec = rl.MeasureTextEx(font, name, TEXT_SIZE, 0)
 		vec2.X = target.X/2 - vec.X - 5
 		rl.DrawTextEx(font, name, vec2, TEXT_SIZE, 0, rl.Black)
+		if *sel == i {
+			rg.GuiSetState(rg.GUI_STATE_FOCUSED)
+		} else {
+			rg.GuiSetState(rg.GUI_STATE_NORMAL)
+		}
 		if len(v.options) != 0 {
 			if v.kind == LARGTYPE_LABEL {
 				rl.DrawTextEx(font, args[i].options[0].(string), rl.Vector2{X: target.X/2 + 5, Y: vec2.Y}, TEXT_SIZE, 0, rl.Black)
@@ -64,34 +70,74 @@ func DrawArgumentsUI(name string, args []ListingArgument, out []interface{}, fla
 				name.WriteByte(';')
 				name.WriteString(fmt.Sprint(n))
 			}
+			if *sel == i && rl.IsKeyPressed(rl.KeyEnter) {
+				out[i] = out[i].(int) + 1
+				if out[i].(int) >= len(v.options) {
+					out[i] = 0
+				}
+			}
 			out[i] = rg.GuiComboBox(rl.Rectangle{X: target.X/2 + 5, Y: vec2.Y - 5, Width: target.X/4 - 10, Height: TEXT_SIZE + 10}, name.String(), out[i].(int))
 		} else {
 			switch v.kind {
 			case LARGTYPE_BOOL:
-				out[i] = rg.GuiCheckBox(rl.Rectangle{X: target.X/2 + 5, Y: vec2.Y - 3, Width: TEXT_SIZE + 5, Height: TEXT_SIZE + 5}, "", out[i].(bool))
+				if *sel == i && rl.IsKeyPressed(rl.KeyEnter) {
+					out[i] = !(out[i].(bool))
+				}
+				temp := rg.GuiCheckBox(rl.Rectangle{X: target.X/2 + 5, Y: vec2.Y - 3, Width: TEXT_SIZE + 5, Height: TEXT_SIZE + 5}, "", out[i].(bool))
+				if temp != out[i] {
+					out[i] = temp
+					*sel = i
+				}
 			case LARGTYPE_URL:
 				// TODO: write a scrolling text box
 				fallthrough
 			case LARGTYPE_STRING:
 				var ret bool
-				ret, out[i] = rg.GuiTextBox(rl.Rectangle{X: target.X/2 + 5, Y: vec2.Y - 5, Width: target.X/4 - 10, Height: TEXT_SIZE + 10}, out[i].(string), flags[i])
+				ret, out[i] = rg.GuiTextBox(rl.Rectangle{X: target.X/2 + 5, Y: vec2.Y - 5, Width: target.X/4 - 10, Height: TEXT_SIZE + 10}, out[i].(string), *sel == i)
 				if ret {
-					flags[i] = !flags[i]
+					if *sel == i {
+						*sel = -1
+					} else {
+						*sel = i
+					}
 				}
 			case LARGTYPE_INT:
 				temp := out[i].(int)
-				if rg.GuiValueBox(rl.Rectangle{X: target.X/2 + 5, Y: vec2.Y - 5, Width: target.X/8 - 10, Height: TEXT_SIZE + 10}, "", &temp, -999, 999, flags[i]) {
-					flags[i] = !flags[i]
+				if rg.GuiValueBox(rl.Rectangle{X: target.X/2 + 5, Y: vec2.Y - 5, Width: target.X/8 - 10, Height: TEXT_SIZE + 10}, "", &temp, -999, 999, *sel == i) {
+					if *sel == i {
+						*sel = -1
+					} else {
+						*sel = i
+					}
 				}
 				out[i] = temp
 			}
 		}
 	}
+	if rl.IsKeyPressed(rl.KeyTab) {
+		if rl.IsKeyDown(rl.KeyLeftShift) || rl.IsKeyDown(rl.KeyRightShift) {
+			*sel -= 1
+			if *sel < 0 {
+				*sel = len(args)
+			}
+		} else {
+			*sel += 1
+			if *sel > len(args) {
+				*sel = 0
+			}
+		}
+	}
+	fini := rl.IsKeyPressed(rl.KeyEnter) && *sel == len(args)
 	vec2.Y += (ARGUI_SPACING + TEXT_SIZE)
-	if rg.GuiButton(rl.Rectangle{X: target.X/4 + 10, Y: vec2.Y, Height: TEXT_SIZE + 5, Width: target.X/4 - 20}, "Cancel") {
+	rg.GuiSetState(rg.GUI_STATE_NORMAL)
+	if rg.GuiButton(rl.Rectangle{X: target.X/4 + 10, Y: vec2.Y, Height: TEXT_SIZE + 5, Width: target.X/4 - 20}, "Cancel") || rl.IsKeyPressed(rl.KeyEscape) {
 		return []interface{}{}
 	}
-	if rg.GuiButton(rl.Rectangle{X: target.X/2 + 10, Y: vec2.Y, Height: TEXT_SIZE + 5, Width: target.X/4 - 20}, "Confirm") {
+	if *sel >= len(args) {
+		rg.GuiSetState(rg.GUI_STATE_FOCUSED)
+		defer rg.GuiSetState(rg.GUI_STATE_NORMAL)
+	}
+	if rg.GuiButton(rl.Rectangle{X: target.X/2 + 10, Y: vec2.Y, Height: TEXT_SIZE + 5, Width: target.X/4 - 20}, "Confirm") || fini {
 		for i := range out {
 			if len(args[i].options) != 0 {
 				continue
@@ -145,22 +191,22 @@ cm:
 	// 	return kind, nil
 	// }
 	args := make([]interface{}, len(choices[kind].args)+1)
-	flags := make([]bool, len(choices[kind].args)+1)
+	var sel int
 	cArgs := make([]ListingArgument, 1, len(choices[kind].args)+1)
 	cArgs[0].name = "Name"
 	cArgs[0].kind = LARGTYPE_STRING
 	cArgs = append(cArgs, choices[kind].args...)
-	fadeIn(func() { DrawArgumentsUI(choices[kind].name, cArgs, args, flags) })
+	fadeIn(func() { DrawArgumentsUI(choices[kind].name, cArgs, args, &sel) })
 	for !rl.WindowShouldClose() {
 		rl.BeginDrawing()
 		rl.ClearBackground(color.RGBA{R: 64, G: 64, B: 64})
-		out := DrawArgumentsUI(choices[kind].name, cArgs, args, flags)
+		out := DrawArgumentsUI(choices[kind].name, cArgs, args, &sel)
 		rl.EndDrawing()
 		if out != nil && len(out) == 0 {
-			fadeOut(func() { DrawArgumentsUI(choices[kind].name, cArgs, args, flags) })
+			fadeOut(func() { DrawArgumentsUI(choices[kind].name, cArgs, args, &sel) })
 			goto cm
 		} else if len(out) != 0 {
-			fadeOut(func() { DrawArgumentsUI(choices[kind].name, cArgs, args, flags) })
+			fadeOut(func() { DrawArgumentsUI(choices[kind].name, cArgs, args, &sel) })
 			return kind, args
 		}
 	}
@@ -201,7 +247,7 @@ func SetUpSites() bool {
 		}
 	case 1:
 		args := []interface{}{saveData.Settings.SaveOnX, saveData.Settings.HideOnZ, saveData.Settings.PixivBookPriv}
-		flags := make([]bool, 2)
+		sel := -1
 		cArgs := []ListingArgument{
 			{
 				name: "Always download on X",
@@ -216,14 +262,17 @@ func SetUpSites() bool {
 				kind: LARGTYPE_BOOL,
 			},
 		}
+		fadeIn(func() { DrawArgumentsUI("Options", cArgs, args, &sel) })
 		for !rl.WindowShouldClose() {
 			rl.BeginDrawing()
 			rl.ClearBackground(color.RGBA{R: 64, G: 64, B: 64})
-			out := DrawArgumentsUI("Options", cArgs, args, flags)
+			out := DrawArgumentsUI("Options", cArgs, args, &sel)
 			rl.EndDrawing()
 			if out != nil && len(out) == 0 {
+				fadeOut(func() { DrawArgumentsUI("Options", cArgs, args, &sel) })
 				break
 			} else if len(out) != 0 {
+				fadeOut(func() { DrawArgumentsUI("Options", cArgs, args, &sel) })
 				saveData.Settings.SaveOnX = args[0].(bool)
 				saveData.Settings.HideOnZ = args[1].(bool)
 				saveData.Settings.PixivBookPriv = args[2].(bool)
@@ -232,12 +281,13 @@ func SetUpSites() bool {
 		}
 	case 2:
 		args := []interface{}{false, false, false}
-		flags := make([]bool, 3)
+		sel := -1
 		cArgs := make([]ListingArgument, 3)
 		if saveData.Reddit == "" {
 			cArgs[0] = ListingArgument{
-				name: "Not logged in to Reddit",
-				kind: LARGTYPE_LABEL,
+				name:    "Reddit",
+				kind:    LARGTYPE_LABEL,
+				options: []interface{}{"Logged out"},
 			}
 		} else {
 			cArgs[0] = ListingArgument{
@@ -247,8 +297,9 @@ func SetUpSites() bool {
 		}
 		if saveData.Twitter == "" {
 			cArgs[1] = ListingArgument{
-				name: "Not logged in to Twitter",
-				kind: LARGTYPE_LABEL,
+				name:    "Twitter",
+				kind:    LARGTYPE_LABEL,
+				options: []interface{}{"Logged out"},
 			}
 		} else {
 			cArgs[1] = ListingArgument{
@@ -258,8 +309,9 @@ func SetUpSites() bool {
 		}
 		if saveData.Pixiv == "" {
 			cArgs[2] = ListingArgument{
-				name: "Not logged in to Pixiv",
-				kind: LARGTYPE_LABEL,
+				name:    "Pixiv",
+				kind:    LARGTYPE_LABEL,
+				options: []interface{}{"Logged out"},
 			}
 		} else {
 			cArgs[2] = ListingArgument{
@@ -267,14 +319,17 @@ func SetUpSites() bool {
 				kind: LARGTYPE_BOOL,
 			}
 		}
+		fadeIn(func() { DrawArgumentsUI("Logout", cArgs, args, &sel) })
 		for !rl.WindowShouldClose() {
 			rl.BeginDrawing()
 			rl.ClearBackground(color.RGBA{R: 64, G: 64, B: 64})
-			out := DrawArgumentsUI("Logout", cArgs, args, flags)
+			out := DrawArgumentsUI("Logout", cArgs, args, &sel)
 			rl.EndDrawing()
 			if out != nil && len(out) == 0 {
+				fadeOut(func() { DrawArgumentsUI("Logout", cArgs, args, &sel) })
 				break
 			} else if len(out) != 0 {
+				fadeOut(func() { DrawArgumentsUI("Logout", cArgs, args, &sel) })
 				if args[0].(bool) {
 					siteReddit.Logout()
 					saveData.Reddit = ""
