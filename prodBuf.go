@@ -264,7 +264,7 @@ func (buf *BufferedImageProducer) ActionHandler(key int32, sel int, call int) Ac
 			if call == 0 {
 				return ARET_FADEOUT | ARET_AGAIN
 			}
-			menu := NewGalleryMenu(buf.items[sel], buf.site)
+			menu := NewGalleryMenu(buf.items[sel], buf.site, buf.buffer[BIP_BUFBEFORE].data)
 			ret := stdEventLoop(menu)
 			menu.Destroy()
 			if ret == LOOP_QUIT {
@@ -558,7 +558,7 @@ func (buf *BufferedImageProducer) GetListing() ImageListing {
 	return buf.listing
 }
 
-func NewGalleryMenu(img ImageEntry, site ImageSite) *ImageMenu {
+func NewGalleryMenu(img ImageEntry, site ImageSite, data []byte) *ImageMenu {
 	menu := NewImageMenu(func() <-chan ImageProducer {
 		ch := make(chan ImageProducer)
 		go func() {
@@ -567,6 +567,12 @@ func NewGalleryMenu(img ImageEntry, site ImageSite) *ImageMenu {
 			prod.extending = nil
 			prod.lazy = false
 			prod.site = site
+			if data != nil {
+				bo := BufferObject{prod.items[0].GetURL(), data}
+				prod.bufLock.Lock()
+				prod.buffer[BIP_BUFBEFORE] = bo
+				prod.bufLock.Unlock()
+			}
 			ch <- prod
 		}()
 		return ch
