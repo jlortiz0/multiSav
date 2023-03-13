@@ -344,6 +344,7 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 	}
 	_, ok := current.(*WrapperImageEntry)
 	if !ok {
+		call := true
 	Outer:
 		for {
 			domain, _ := url.Parse(URL)
@@ -353,7 +354,7 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 			}
 			newURL, newIE := res.ResolveURL(URL)
 			if newURL == RESOLVE_FINAL {
-				buf.items[sel] = &WrapperImageEntry{current, URL}
+				buf.items[sel] = &WrapperImageEntry{current, URL, call}
 				current = buf.items[sel]
 				// <-buf.selRecv
 				// buf.bufLock.Lock()
@@ -362,6 +363,7 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 				// go func() { buf.selRecv <- true }()
 				break
 			}
+			call = false
 			if newIE != nil {
 				URL = strings.ReplaceAll(newIE.GetURL(), "&amp;", "&")
 				tmp, _ := url.Parse(URL)
@@ -391,7 +393,7 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 				ext = ext[:ind]
 			}
 			if getExtType(ext[1:]) != EXT_NONE {
-				buf.items[sel] = &WrapperImageEntry{current, URL}
+				buf.items[sel] = &WrapperImageEntry{current, URL, false}
 				break Outer
 			}
 		}

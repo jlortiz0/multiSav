@@ -147,7 +147,8 @@ type ImageEntry interface {
 
 type WrapperImageEntry struct {
 	ImageEntry
-	url string
+	url  string
+	call bool
 }
 
 func (w *WrapperImageEntry) GetURL() string {
@@ -155,6 +156,9 @@ func (w *WrapperImageEntry) GetURL() string {
 }
 
 func (w *WrapperImageEntry) GetSaveName() string {
+	if w.call {
+		return w.ImageEntry.GetSaveName()
+	}
 	ind := strings.LastIndexByte(w.url, '/')
 	if ind == -1 {
 		return w.ImageEntry.GetSaveName()
