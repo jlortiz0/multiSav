@@ -108,6 +108,9 @@ func NewBufferedImageProducer(site ImageSite, kind int, args []interface{}, pers
 				if sel+i-BIP_BUFBEFORE < 0 || sel+i-BIP_BUFBEFORE+1 >= len(buf.items) {
 					continue
 				}
+				if len(buf.selSender) > 1 {
+					break
+				}
 				URL := buf.items[sel+i-BIP_BUFBEFORE].GetURL()
 				if buf.buffer[i].URL == URL {
 					continue
