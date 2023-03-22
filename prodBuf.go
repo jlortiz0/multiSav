@@ -116,7 +116,7 @@ func NewBufferedImageProducer(site ImageSite, kind int, args []interface{}, pers
 					continue
 				}
 				if buf.items[sel+i-BIP_BUFBEFORE].GetType() == IETYPE_GALLERY {
-					ret := buf.items[sel+i-BIP_BUFBEFORE].GetGalleryInfo(false)
+					ret := buf.items[sel+i-BIP_BUFBEFORE].GetGalleryInfo(true)
 					if len(ret) == 0 {
 						continue
 					}
@@ -403,7 +403,7 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 	}
 	switch current.GetType() {
 	case IETYPE_GALLERY:
-		ret := current.GetGalleryInfo(false)
+		ret := current.GetGalleryInfo(true)
 		if len(ret) == 0 {
 			*img = drawMessage("This gallery is empty.")
 			return "\\/err" + current.GetName()

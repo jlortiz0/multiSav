@@ -230,6 +230,7 @@ func (p PixivImageEntry) GetGalleryInfo(b bool) []ImageEntry {
 	}
 	arr := make([]ImageEntry, p.Page_count)
 	if b {
+		arr[0] = PixivGalleryEntry{p, 0}
 		return arr
 	}
 	for i := range p.Meta_pages {

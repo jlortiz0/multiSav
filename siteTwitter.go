@@ -563,6 +563,7 @@ func (t *TwitterImageEntry) GetGalleryInfo(b bool) []ImageEntry {
 	}
 	imgs := make([]ImageEntry, len(t.media))
 	if b {
+		imgs[0] = &TwitterGalleryEntry{*t, t.media[0].URL, 1}
 		return imgs
 	}
 	for i, x := range t.media {

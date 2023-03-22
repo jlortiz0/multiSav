@@ -465,10 +465,10 @@ func (red *RedditImageEntry) GetGalleryInfo(lazy bool) []ImageEntry {
 	if !red.Is_gallery {
 		return nil
 	}
-	if lazy {
-		return make([]ImageEntry, len(red.Media_metadata))
-	}
 	data := make([]ImageEntry, 0, len(red.Media_metadata))
+	if lazy {
+		data[0] = &RedditGalleryEntry{RedditImageEntry: *red, url: red.URL}
+	}
 	for i, s := range red.Gallery_data.Items {
 		x := red.Media_metadata[s.Media_id]
 		if x.S.U == "" {

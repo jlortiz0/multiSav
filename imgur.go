@@ -121,6 +121,7 @@ func (*ImgurGalleryEntry) Combine(ImageEntry) {}
 func (img *ImgurGalleryEntry) GetGalleryInfo(lazy bool) []ImageEntry {
 	data := make([]ImageEntry, len(img.Images))
 	if lazy {
+		data[0] = &img.Images[0]
 		return data
 	}
 	for i := range data {

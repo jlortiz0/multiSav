@@ -134,7 +134,7 @@ type ImageEntry interface {
 	GetURL() string
 	GetText() string
 	// If true is passed, no network requests should be made
-	// Additionally, the returned slice need only be the correct length; it can otherwise be blank
+	// The length and URL of the first item should still be correct
 	GetGalleryInfo(bool) []ImageEntry
 	GetType() ImageEntryType
 	GetPostURL() string
