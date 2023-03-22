@@ -124,11 +124,32 @@ func NewBufferedImageProducer(site ImageSite, kind int, args []interface{}, pers
 				} else if buf.items[sel+i-BIP_BUFBEFORE].GetType() == IETYPE_TEXT {
 					continue
 				}
-				ind := strings.LastIndexByte(URL, '.')
-				if ind == -1 {
-					continue
+				ind2 := strings.LastIndexByte(URL, '?')
+				if ind2 == -1 {
+					ind2 = len(URL)
 				}
-				ext := strings.ToLower(URL[ind:])
+				ind := strings.Index(URL[ind2:], "format=")
+				if ind == -1 {
+					ind = strings.LastIndexByte(URL[:ind2], '.')
+					if ind == -1 {
+						continue
+					}
+				} else {
+					ind += 6 + ind2
+					ind2 = strings.IndexByte(URL[ind:], '&')
+					if ind2 == -1 {
+						ind2 = len(URL[ind:])
+					}
+					ind2 += ind
+				}
+				ext := strings.ToLower(URL[ind:ind2])
+				if ext == "=png8" {
+					ext = ".png"
+				} else if ext == "=pjpg" {
+					ext = ".jpg"
+				} else if ext[0] == '=' {
+					ext = "." + ext[1:]
+				}
 				if getExtType(ext[1:]) == EXT_PICTURE {
 					obj, _ := url.Parse(URL)
 					if obj == nil {
