@@ -151,7 +151,7 @@ func (PropOGImageResolver) GetRequest(u string) (*http.Response, error) {
 type RedgifsResolver struct{}
 
 func (RedgifsResolver) GetResolvableDomains() []string {
-	return []string{"redgifs.com", "www.redgifs.com", "v3.redgifs.com", "thumbs4.redgifs.com", "i.redgifs.com", "thumbs44.redgifs.com", "gfycat.com", "www.gfycat.com"}
+	return []string{"redgifs.com", "www.redgifs.com", "*.redgifs.com", "gfycat.com", "www.gfycat.com"}
 }
 
 var redgifs_auth = ""

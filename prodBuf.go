@@ -374,7 +374,14 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 			domain, _ := url.Parse(URL)
 			res, ok := resolveMap[domain.Hostname()]
 			if !ok {
-				break
+				_, hst, ok := strings.Cut(domain.Hostname(), ".")
+				if !ok || !strings.ContainsRune(hst, '.') {
+					break
+				}
+				res, ok = resolveMap["*."+hst]
+				if !ok {
+					break
+				}
 			}
 			newURL, newIE := res.ResolveURL(URL)
 			if newURL == RESOLVE_FINAL {
