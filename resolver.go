@@ -157,7 +157,7 @@ func (RedgifsResolver) GetResolvableDomains() []string {
 var redgifs_auth = ""
 
 func (RedgifsResolver) ResolveURL(u string) (string, ImageEntry) {
-	if strings.Contains(u, "thumbs4") {
+	if strings.Contains(u, "thumbs") {
 		return RESOLVE_FINAL, nil
 	}
 	if strings.Contains(u, "i.redgifs") {
@@ -216,6 +216,9 @@ func (RedgifsResolver) ResolveURL(u string) (string, ImageEntry) {
 func (RedgifsResolver) GetRequest(u string) (*http.Response, error) {
 	req, _ := http.NewRequest("GET", u, http.NoBody)
 	req.Header.Set("User-Agent", UserAgent)
+	if redgifs_auth != "" {
+		req.Header.Set("Authorization", redgifs_auth)
+	}
 	return http.DefaultClient.Do(req)
 }
 

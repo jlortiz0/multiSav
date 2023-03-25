@@ -156,6 +156,13 @@ func NewBufferedImageProducer(site ImageSite, kind int, args []interface{}, pers
 						continue
 					}
 					resolve := resolveMap[obj.Host]
+					if resolve == nil {
+						_, hst, ok := strings.Cut(obj.Host, ".")
+						if !ok || !strings.ContainsRune(hst, '.') {
+							break
+						}
+						resolve = resolveMap["*."+hst]
+					}
 					var resp *http.Response
 					var err error
 					if resolve == nil {
@@ -526,6 +533,13 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 			resolve := resolveMap[obj.Host]
 			var resp *http.Response
 			var err error
+			if resolve == nil {
+				_, hst, ok := strings.Cut(obj.Host, ".")
+				if !ok || !strings.ContainsRune(hst, '.') {
+					break
+				}
+				resolve = resolveMap["*."+hst]
+			}
 			if resolve == nil {
 				resp, err = http.DefaultClient.Get(URL)
 			} else {
