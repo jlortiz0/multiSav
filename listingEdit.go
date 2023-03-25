@@ -145,35 +145,33 @@ func EditListings() bool {
 	} else {
 		data := saveData.Listings[sel]
 		var args []ListingArgument
-		switch data.Site {
-		case SITE_LOCAL:
+		if data.Site == SITE_LOCAL {
 			args = []ListingArgument{
 				{"Name", LARGTYPE_STRING, nil},
 				{"Reselect", LARGTYPE_BOOL, nil},
 			}
-		case SITE_REDDIT:
-			info := siteReddit.GetListingInfo()[data.Kind]
+		} else {
+			var infoLs []ListingInfo
+			var sName string
+			switch data.Site {
+			case SITE_REDDIT:
+				infoLs = siteReddit.GetListingInfo()
+				sName = "Reddit"
+			case SITE_TWITTER:
+				infoLs = siteTwitter.GetListingInfo()
+				sName = "Twitter"
+			case SITE_PIXIV:
+				infoLs = sitePixiv.GetListingInfo()
+				sName = "Pixiv"
+			default:
+				panic("unknown site")
+			}
+			info := infoLs[data.Kind]
 			args = make([]ListingArgument, 3, len(info.args)+3)
-			args[0] = ListingArgument{"Site", LARGTYPE_LABEL, []interface{}{"Reddit"}}
+			args[0] = ListingArgument{"Site", LARGTYPE_LABEL, []interface{}{sName}}
 			args[1] = ListingArgument{"Kind", LARGTYPE_LABEL, []interface{}{info.name}}
 			args[2] = ListingArgument{"Name", LARGTYPE_STRING, nil}
 			args = append(args, info.args...)
-		case SITE_PIXIV:
-			info := sitePixiv.GetListingInfo()[data.Kind]
-			args = make([]ListingArgument, 3, len(info.args)+3)
-			args[0] = ListingArgument{"Site", LARGTYPE_LABEL, []interface{}{"Pixiv"}}
-			args[1] = ListingArgument{"Kind", LARGTYPE_LABEL, []interface{}{info.name}}
-			args[2] = ListingArgument{"Name", LARGTYPE_STRING, nil}
-			args = append(args, info.args...)
-		case SITE_TWITTER:
-			info := siteTwitter.GetListingInfo()[data.Kind]
-			args = make([]ListingArgument, 3, len(info.args)+3)
-			args[0] = ListingArgument{"Site", LARGTYPE_LABEL, []interface{}{"Twitter"}}
-			args[1] = ListingArgument{"Kind", LARGTYPE_LABEL, []interface{}{info.name}}
-			args[2] = ListingArgument{"Name", LARGTYPE_STRING, nil}
-			args = append(args, info.args...)
-		default:
-			panic("unknown site")
 		}
 		var cArgs []interface{}
 		sel2 := -1
