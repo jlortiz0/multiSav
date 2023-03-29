@@ -535,10 +535,9 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 			var err error
 			if resolve == nil {
 				_, hst, ok := strings.Cut(obj.Host, ".")
-				if !ok || !strings.ContainsRune(hst, '.') {
-					break
+				if ok && strings.ContainsRune(hst, '.') {
+					resolve = resolveMap["*."+hst]
 				}
-				resolve = resolveMap["*."+hst]
 			}
 			if resolve == nil {
 				resp, err = http.DefaultClient.Get(URL)
