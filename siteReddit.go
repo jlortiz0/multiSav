@@ -465,9 +465,10 @@ func (red *RedditImageEntry) GetGalleryInfo(lazy bool) []ImageEntry {
 	if !red.Is_gallery {
 		return nil
 	}
-	data := make([]ImageEntry, 0, len(red.Media_metadata))
+	data := make([]ImageEntry, len(red.Media_metadata))
 	if lazy {
 		data[0] = &RedditGalleryEntry{RedditImageEntry: *red, url: red.URL}
+		return data
 	}
 	for i, s := range red.Gallery_data.Items {
 		x := red.Media_metadata[s.Media_id]
@@ -482,7 +483,7 @@ func (red *RedditImageEntry) GetGalleryInfo(lazy bool) []ImageEntry {
 		if ind != -1 {
 			x.S.U = x.S.U[:ind]
 		}
-		data = append(data, &RedditGalleryEntry{RedditImageEntry: *red, name: fmt.Sprintf("%s (%d/%d)", red.Title, i+1, len(red.Gallery_data.Items)), url: x.S.U, index: i + 1})
+		data[i] = &RedditGalleryEntry{RedditImageEntry: *red, name: fmt.Sprintf("%s (%d/%d)", red.Title, i+1, len(red.Gallery_data.Items)), url: x.S.U, index: i + 1}
 	}
 	return data
 }
