@@ -17,6 +17,7 @@ const (
 	EXT_NONE extType = iota
 	EXT_PICTURE
 	EXT_VIDEO
+	EXT_JXL
 )
 
 func getExtType(ext string) extType {
@@ -41,6 +42,8 @@ func getExtType(ext string) extType {
 		fallthrough
 	case "bmp":
 		return EXT_PICTURE
+	case "jxl":
+		return EXT_JXL
 	}
 	return EXT_NONE
 }

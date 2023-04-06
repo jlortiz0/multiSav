@@ -514,17 +514,50 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 			*img = drawMessage(wordWrapper(err.Error()))
 			return "\\/err" + current.GetName()
 		}
-		data := buf.buffer[BIP_BUFBEFORE]
-		if data.URL == URL {
-			*img = rl.LoadImageFromMemory(ext, data.data, int32(len(data.data)))
-			if (*img).Height == 0 {
-				*img = drawMessage("Failed to load image?")
+		buf.buffer[BIP_BUFBEFORE].data = nil
+		w, h := (*ffmpeg).GetDimensions()
+		*img = rl.GenImageColor(int(w), int(h), rl.Black)
+	case EXT_JXL:
+		obj := buf.buffer[BIP_BUFBEFORE]
+		data := obj.data
+		if obj.URL != URL {
+			obj, _ := url.Parse(URL)
+			resolve := resolveMap[obj.Host]
+			var resp *http.Response
+			var err error
+			if resolve == nil {
+				_, hst, ok := strings.Cut(obj.Host, ".")
+				if ok && strings.ContainsRune(hst, '.') {
+					resolve = resolveMap["*."+hst]
+				}
+			}
+			if resolve == nil {
+				resp, err = http.DefaultClient.Get(URL)
+			} else {
+				resp, err = resolve.GetRequest(URL)
+			}
+			if err != nil {
+				*img = drawMessage(wordWrapper(err.Error()))
 				return "\\/err" + current.GetName()
 			}
-		} else {
-			w, h := (*ffmpeg).GetDimensions()
-			*img = rl.GenImageColor(int(w), int(h), rl.Black)
+			if resp.StatusCode/100 > 3 {
+				body, _ := io.ReadAll(resp.Body)
+				*img = drawMessage(wordWrapper(resp.Status + "\n" + string(body)))
+				return "\\/err" + current.GetName()
+			}
+			data, err = io.ReadAll(resp.Body)
+			if err != nil {
+				*img = drawMessage(wordWrapper(err.Error()))
+				return "\\/err" + current.GetName()
+			}
+			if buf.bufLock.TryLock() {
+				buf.buffer[BIP_BUFBEFORE] = BufferObject{URL, data}
+				buf.bufLock.Unlock()
+			}
 		}
+		*ffmpeg = NewJxlWrapper(bytes.NewReader(data))
+		w, h := (*ffmpeg).GetDimensions()
+		*img = rl.GenImageColor(int(w), int(h), rl.Black)
 	case EXT_PICTURE:
 		obj := buf.buffer[BIP_BUFBEFORE]
 		data := obj.data

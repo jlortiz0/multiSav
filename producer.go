@@ -350,15 +350,24 @@ func (prod *OfflineImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 		_, err = os.Stat(filepath.Join(prod.fldr, prod.items[sel]))
 	}
 	ind := strings.LastIndexByte(prod.items[sel], '.')
-	if getExtType(strings.ToLower(prod.items[sel][ind+1:])) == EXT_VIDEO {
+	switch getExtType(strings.ToLower(prod.items[sel][ind+1:])) {
+	case EXT_VIDEO:
 		var err error
 		*ffmpeg, err = NewStreamy(filepath.Join(prod.fldr, prod.items[sel]))
 		if err != nil {
 			panic(err)
 		}
 		w, h := (*ffmpeg).GetDimensions()
-		*img = rl.GenImageColor(int(w), int(h), rl.Blank)
-	} else {
+		*img = rl.GenImageColor(int(w), int(h), rl.Black)
+	case EXT_JXL:
+		f, err := os.Open(filepath.Join(prod.fldr, prod.items[sel]))
+		if err != nil {
+			panic(err)
+		}
+		*ffmpeg = NewJxlWrapper(f)
+		w, h := (*ffmpeg).GetDimensions()
+		*img = rl.GenImageColor(int(w), int(h), rl.Black)
+	case EXT_PICTURE:
 		*img = rl.LoadImage(filepath.Join(prod.fldr, prod.items[sel]))
 		if (*img).Height == 0 {
 			*img = drawMessage("Failed to load image?")
