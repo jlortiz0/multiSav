@@ -6,7 +6,7 @@ require (
 	github.com/adrg/sysfont v0.1.2
 	github.com/g8rswimmer/go-twitter/v2 v2.1.4
 	github.com/gen2brain/raylib-go/raylib v0.0.0-20220702153720-2ba84634ed1e
-	github.com/jlortiz0/go-jxl-decoder v1.2.0
+	github.com/jlortiz0/go-jxl-decoder v1.2.1
 	github.com/jlortiz0/multisav/pixivapi v0.0.0-00010101000000-000000000000
 	github.com/jlortiz0/multisav/raygui-go v0.0.0
 	github.com/jlortiz0/multisav/redditapi v0.0.0
