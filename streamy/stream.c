@@ -6,6 +6,7 @@
 #include <libavutil/imgutils.h>
 #include <libswscale/swscale.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 typedef struct LibavReader {
     AVFormatContext *context;
@@ -15,10 +16,12 @@ typedef struct LibavReader {
     struct SwsContext *scaler;
     AVFrame *frame2;
     int idx;
+    bool loop;
 } LibavReader;
 
-int libavreader_new(const char *fName, LibavReader **ptr, char *user_agent) {
+int libavreader_new(const char *fName, LibavReader **ptr, char *user_agent, bool loop) {
     LibavReader *thing = malloc(sizeof(LibavReader));
+    thing->loop = loop;
     thing->context = avformat_alloc_context();
     AVDictionary *dict = NULL;
     if (user_agent != NULL) {
@@ -86,6 +89,9 @@ int libavreader_next(LibavReader *l, uint8_t *buf) {
         if (code == AVERROR(EAGAIN)) {
             code = av_read_frame(l->context, l->packet);
             if (code == AVERROR_EOF) {
+                if (!l->loop) {
+                    return code;
+                }
                 avio_seek(l->context->pb, 0, SEEK_SET);
                 code = avformat_seek_file(l->context, l->idx, 0, 0, 0, 0);
                 if (code) {

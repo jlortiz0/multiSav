@@ -15,7 +15,7 @@ const GET_FRAME_MAX = 5
 const FILE_NAME = "iwonb.webm"
 
 func TestNormalOps(t *testing.T) {
-	rd, err := streamy.NewAvVideoReader(FILE_NAME, "")
+	rd, err := streamy.NewAvVideoReader(FILE_NAME, "", true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +42,7 @@ func TestNormalOps(t *testing.T) {
 }
 
 func TestErrNotExist(t *testing.T) {
-	_, err := streamy.NewAvVideoReader("nonexist.ouch", "")
+	_, err := streamy.NewAvVideoReader("nonexist.ouch", "", true)
 	if err == nil {
 		t.FailNow()
 	}
@@ -76,7 +76,7 @@ func (s SpecificFileHandler) ServeHTTP(w http.ResponseWriter, req *http.Request)
 func TestUserAgent(t *testing.T) {
 	srv := &http.Server{Handler: SpecificFileHandler(FILE_NAME), Addr: ":8000"}
 	go srv.ListenAndServe()
-	rd, err := streamy.NewAvVideoReader("http://localhost:8000/"+FILE_NAME, USER_AGENT)
+	rd, err := streamy.NewAvVideoReader("http://localhost:8000/"+FILE_NAME, USER_AGENT, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,7 +89,7 @@ func TestUserAgent(t *testing.T) {
 }
 
 func TestGetFrame(t *testing.T) {
-	rd, err := streamy.NewAvVideoReader(FILE_NAME, "")
+	rd, err := streamy.NewAvVideoReader(FILE_NAME, "", true)
 	if err != nil {
 		t.Fatal(err)
 	}

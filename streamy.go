@@ -26,7 +26,7 @@ type StreamyWrapperClass struct {
 }
 
 func NewStreamy(f string) (*StreamyWrapperClass, error) {
-	s, err := streamy.NewAvVideoReader(f, UserAgent)
+	s, err := streamy.NewAvVideoReader(f, UserAgent, true)
 	if err != nil {
 		return nil, err
 	}
