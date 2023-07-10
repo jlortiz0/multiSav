@@ -15,6 +15,7 @@ var resolveMap map[string]Resolver
 var siteReddit RedditSite
 var siteTwitter TwitterSite
 var sitePixiv PixivSite
+var siteLemmy LemmySite
 
 const TEXT_SIZE = 18
 
@@ -25,6 +26,7 @@ const (
 	SITE_REDDIT
 	SITE_TWITTER
 	SITE_PIXIV
+	SITE_LEMMY
 )
 
 type SavedListing struct {
@@ -36,9 +38,14 @@ type SavedListing struct {
 }
 
 var saveData struct {
-	Reddit    string
-	Twitter   string
-	Pixiv     string
+	Reddit  string
+	Twitter string
+	Pixiv   string
+	Lemmy   struct {
+		Base string
+		User string
+		Pass string
+	}
 	Downloads string
 	Settings  struct {
 		SaveOnX       bool
@@ -85,6 +92,10 @@ func loginToSites() {
 	sitePixiv = NewPixivSite(saveData.Pixiv)
 	for _, x := range sitePixiv.GetResolvableDomains() {
 		resolveMap[x] = sitePixiv
+	}
+	siteLemmy = NewLemmyClient(saveData.Lemmy.Base, saveData.Lemmy.User, saveData.Lemmy.Pass)
+	for _, x := range siteLemmy.GetResolvableDomains() {
+		resolveMap[x] = siteLemmy
 	}
 	temp := BlockingResolver{}
 	for _, x := range temp.GetResolvableDomains() {
@@ -204,6 +215,8 @@ MainLoop:
 						producer = NewTwitterProducer(siteTwitter, data.Kind, data.Args, data.Persistent)
 					case SITE_PIXIV:
 						producer = NewPixivProducer(sitePixiv, data.Kind, data.Args, data.Persistent)
+					case SITE_LEMMY:
+						producer = NewLemmyProducer(siteLemmy, data.Kind, data.Args, data.Persistent)
 					}
 					ch <- producer
 				}()

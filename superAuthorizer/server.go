@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/jlortiz0/multisav/pixivapi"
@@ -131,14 +132,14 @@ func main() {
 	})
 
 	for {
-		fmt.Print("Super Authorizer\n1. Twitter\n2. Pixiv\n3. Reddit\n4. Exit\n\nSel: ")
-		i := 4
+		fmt.Print("Super Authorizer\n1. Twitter\n2. Pixiv\n3. Reddit\n4. Lemmy\n5. Exit\n\nSel: ")
+		i := 5
 		n, _ := fmt.Scanf("%d\n", &i)
 		if n != 1 {
-			i = 4
+			i = 5
 		}
 		switch i {
-		case 4:
+		case 5:
 			ch <- nil
 			(chan int)(nil) <- 0
 		case 1:
@@ -176,6 +177,27 @@ func main() {
 				fmt.Println("Success! Token has been saved.")
 			}
 			fmt.Println("Press enter to continue.")
+			fmt.Scanf("\n")
+		case 4:
+			fmt.Print("Lemmy site: ")
+			var site, user, pass string
+			fmt.Scanf("%s\n", &site)
+			if strings.ContainsRune(site, '/') {
+				fmt.Println("Only put the actual site name, no http or slashes")
+			} else {
+				fmt.Print("Username or email (leave blank for anonymous): ")
+				fmt.Scanf("%s\n", &user)
+				if user != "" {
+					fmt.Print("Password: ")
+					fmt.Scanf("%s\n", &pass)
+				}
+				saveData["Lemmy"] = struct{ Base, User, Pass string }{
+					site, user, pass,
+				}
+				saveSaveData()
+				fmt.Println("Hopefully this works...")
+			}
+			fmt.Println("Press any key to continue.")
 			fmt.Scanf("\n")
 		default:
 			fmt.Println("Invalid selection.")

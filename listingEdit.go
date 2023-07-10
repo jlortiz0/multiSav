@@ -99,7 +99,7 @@ func EditListings() bool {
 		return false
 	}
 	if sel == len(saveData.Listings) {
-		cm := NewChoiceMenu([]string{"Local", "Reddit", "Twitter", "Pixiv", "Cancel"})
+		cm := NewChoiceMenu([]string{"Local", "Reddit", "Twitter", "Pixiv", "Lemmy", "Cancel"})
 		if stdEventLoop(cm) == LOOP_QUIT {
 			return true
 		}
@@ -130,6 +130,9 @@ func EditListings() bool {
 		case 3:
 			site = sitePixiv
 			sKind = SITE_PIXIV
+		case 4:
+			site = siteLemmy
+			sKind = SITE_LEMMY
 		default:
 			return false
 		}
@@ -163,6 +166,9 @@ func EditListings() bool {
 			case SITE_PIXIV:
 				infoLs = sitePixiv.GetListingInfo()
 				sName = "Pixiv"
+			case SITE_LEMMY:
+				infoLs = siteLemmy.GetListingInfo()
+				sName = "Lemmy"
 			default:
 				panic("unknown site")
 			}
