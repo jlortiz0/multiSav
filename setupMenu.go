@@ -282,7 +282,7 @@ func SetUpSites() bool {
 	case 2:
 		args := []interface{}{false, false, false}
 		sel := -1
-		cArgs := make([]ListingArgument, 3)
+		cArgs := make([]ListingArgument, 2)
 		if saveData.Reddit == "" {
 			cArgs[0] = ListingArgument{
 				name:    "Reddit",
@@ -295,26 +295,14 @@ func SetUpSites() bool {
 				kind: LARGTYPE_BOOL,
 			}
 		}
-		if saveData.Twitter == "" {
-			cArgs[1] = ListingArgument{
-				name:    "Twitter",
-				kind:    LARGTYPE_LABEL,
-				options: []interface{}{"Logged out"},
-			}
-		} else {
-			cArgs[1] = ListingArgument{
-				name: "Twitter",
-				kind: LARGTYPE_BOOL,
-			}
-		}
 		if saveData.Pixiv == "" {
-			cArgs[2] = ListingArgument{
+			cArgs[1] = ListingArgument{
 				name:    "Pixiv",
 				kind:    LARGTYPE_LABEL,
 				options: []interface{}{"Logged out"},
 			}
 		} else {
-			cArgs[2] = ListingArgument{
+			cArgs[1] = ListingArgument{
 				name: "Pixiv",
 				kind: LARGTYPE_BOOL,
 			}
@@ -335,10 +323,6 @@ func SetUpSites() bool {
 					saveData.Reddit = ""
 				}
 				if args[1].(bool) {
-					siteTwitter.Logout()
-					saveData.Twitter = ""
-				}
-				if args[2].(bool) {
 					saveData.Pixiv = ""
 				}
 				loginToSites()
