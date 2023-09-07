@@ -246,6 +246,9 @@ func (menu *ImageMenu) Prerender() LoopStatus {
 	if menu.prodLoader != nil {
 		select {
 		case menu.Producer = <-menu.prodLoader:
+			if menu.Producer == nil {
+				return LOOP_EXIT
+			}
 			menu.prodLoader = nil
 			rl.SetWindowTitle(menu.Producer.GetTitle())
 			menu.state = IMSTATE_SHOULDLOAD | IMSTATE_GOTO

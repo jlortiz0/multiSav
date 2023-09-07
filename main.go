@@ -22,7 +22,7 @@ var font rl.Font
 const (
 	SITE_LOCAL = iota
 	SITE_REDDIT
-	SITE_TWITTER_UNUSED
+	SITE_TWITTER_OBSELETE
 	SITE_PIXIV
 )
 

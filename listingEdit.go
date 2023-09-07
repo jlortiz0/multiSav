@@ -147,6 +147,10 @@ func EditListings() bool {
 				{"Name", LARGTYPE_STRING, nil},
 				{"Reselect", LARGTYPE_BOOL, nil},
 			}
+		} else if data.Site == SITE_TWITTER_OBSELETE {
+			args = []ListingArgument{
+				{"", LARGTYPE_LABEL, []interface{}{"Twitter is no longer supported"}},
+			}
 		} else {
 			var infoLs []ListingInfo
 			var sName string
@@ -171,6 +175,8 @@ func EditListings() bool {
 		sel2 := -1
 		if data.Site == SITE_LOCAL {
 			cArgs = []interface{}{data.Name, false}
+		} else if data.Site == SITE_TWITTER_OBSELETE {
+			cArgs = []interface{}{nil}
 		} else {
 			cArgs = make([]interface{}, 3, len(data.Args)+3)
 			cArgs[0] = 0
@@ -223,7 +229,7 @@ func EditListings() bool {
 							saveData.Listings[sel].Args[0] = s
 						}
 					}
-				} else {
+				} else if data.Site != SITE_TWITTER_OBSELETE {
 					saveData.Listings[sel].Args = cArgs[3:]
 					saveData.Listings[sel].Name = cArgs[2].(string)
 				}
