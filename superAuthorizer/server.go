@@ -23,18 +23,6 @@ import (
 
 var respChannel chan [3]string
 
-func twitterHandler(u string) (string, string, error) {
-	err := browser.OpenURL(u)
-	if err != nil {
-		return "", "", err
-	}
-	s := <-respChannel
-	if s[2] != "" {
-		return "", "", errors.New(s[2])
-	}
-	return s[0], s[1], nil
-}
-
 func redditHandler(u string) (string, string, error) {
 	err := browser.OpenURL(u + "&duration=permanent")
 	if err != nil {
@@ -75,8 +63,7 @@ func main() {
 	}
 	loadSaveData()
 	hndlr := http.NewServeMux()
-	hndlr.HandleFunc("/twitter", ServeTwitter)
-	hndlr.HandleFunc("/reddit", ServeTwitter)
+	hndlr.HandleFunc("/reddit", ServeReddit)
 	hndlr.Handle("/", http.NotFoundHandler())
 	respChannel = make(chan [3]string)
 	srv := &http.Server{Addr: ":5738", ReadHeaderTimeout: time.Second * 5, Handler: hndlr}
@@ -87,27 +74,14 @@ func main() {
 	var stateRand [32]byte
 	rand.Read(stateRand[:])
 	state := base64.NewEncoding("abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZZZ").WithPadding(base64.NoPadding).EncodeToString(stateRand[:])
-	config := &oauth2.Config{
-		ClientID:     TwitterID,
-		ClientSecret: TwitterSecret,
-		RedirectURL:  "http://localhost:5738/twitter",
-		Scopes:       []string{"tweet.read", "users.read", "list.read", "offline.access", "bookmark.read", "bookmark.write"},
-	}
-	config.Endpoint.AuthURL = "https://twitter.com/i/oauth2/authorize"
-	config.Endpoint.TokenURL = "https://api.twitter.com/2/oauth2/token"
 	var pkceRand [32]byte
 	rand.Read(pkceRand[:])
 	pkce := base64.NewEncoding("abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZZZ").WithPadding(base64.NoPadding).EncodeToString(pkceRand[:])
 	pkce2 := sha256.Sum256([]byte(pkce))
 	pkce3 := base64.RawURLEncoding.EncodeToString(pkce2[:])
 	// pkce3 := strings.TrimRight(strings.ReplaceAll(strings.ReplaceAll(string(pkce2[:]), "+", "-"), "/", "_"), "=")
-	twitterToken := authhandler.TokenSourceWithPKCE(context.Background(), config, state, twitterHandler, &authhandler.PKCEParams{
-		Verifier:        pkce,
-		ChallengeMethod: "S256",
-		Challenge:       pkce3,
-	})
 
-	config = &oauth2.Config{
+	config := &oauth2.Config{
 		ClientID:     RedditID,
 		ClientSecret: RedditSecret,
 		RedirectURL:  "http://localhost:5738/reddit",
@@ -132,29 +106,17 @@ func main() {
 	})
 
 	for {
-		fmt.Print("Super Authorizer\n1. Twitter\n2. Pixiv\n3. Reddit\n4. Lemmy\n5. Exit\n\nSel: ")
-		i := 5
+		fmt.Print("Super Authorizer\n1. Pixiv\n2. Reddit\n3. Lemmy\n4. Exit\n\nSel: ")
+		i := 4
 		n, _ := fmt.Scanf("%d\n", &i)
 		if n != 1 {
-			i = 5
+			i = 4
 		}
 		switch i {
-		case 5:
+		case 4:
 			ch <- nil
 			(chan int)(nil) <- 0
 		case 1:
-			fmt.Println("Authorize the app in your browser")
-			t, err := twitterToken.Token()
-			if err != nil {
-				fmt.Printf("An error occured: %s\n", err.Error())
-			} else {
-				saveData["Twitter"] = t.RefreshToken
-				saveSaveData()
-				fmt.Println("Success! Token has been saved.")
-			}
-			fmt.Println("Press enter to continue.")
-			fmt.Scanf("\n")
-		case 2:
 			fmt.Println("When the page opens in your browser, sign in. You will see a message saying \"Invalid request\"\nPaste the URL of the page where you get that message below:")
 			t, err := pixivToken.Token()
 			if err != nil {
@@ -166,7 +128,7 @@ func main() {
 			}
 			fmt.Println("Press enter to continue.")
 			fmt.Scanf("\n")
-		case 3:
+		case 2:
 			fmt.Println("Authorize the app in your browser")
 			t, err := redditToken.Token()
 			if err != nil {
@@ -178,7 +140,7 @@ func main() {
 			}
 			fmt.Println("Press enter to continue.")
 			fmt.Scanf("\n")
-		case 4:
+		case 3:
 			fmt.Print("Lemmy site: ")
 			var site, user, pass string
 			fmt.Scanf("%s\n", &site)
@@ -205,7 +167,7 @@ func main() {
 	}
 }
 
-func ServeTwitter(w http.ResponseWriter, req *http.Request) {
+func ServeReddit(w http.ResponseWriter, req *http.Request) {
 	w.Header().Add("Content-Type", "text/plain")
 	err := req.ParseForm()
 	if err != nil {

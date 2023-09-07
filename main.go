@@ -13,7 +13,6 @@ import (
 
 var resolveMap map[string]Resolver
 var siteReddit RedditSite
-var siteTwitter TwitterSite
 var sitePixiv PixivSite
 var siteLemmy LemmySite
 
@@ -24,7 +23,7 @@ var font rl.Font
 const (
 	SITE_LOCAL = iota
 	SITE_REDDIT
-	SITE_TWITTER
+	SITE_TWITTER_OBSELETE
 	SITE_PIXIV
 	SITE_LEMMY
 )
@@ -38,10 +37,9 @@ type SavedListing struct {
 }
 
 var saveData struct {
-	Reddit  string
-	Twitter string
-	Pixiv   string
-	Lemmy   struct {
+	Reddit string
+	Pixiv  string
+	Lemmy  struct {
 		Base string
 		User string
 		Pass string
@@ -85,10 +83,6 @@ func loginToSites() {
 	for _, x := range img.GetResolvableDomains() {
 		resolveMap[x] = img
 	}
-	siteTwitter = NewTwitterSite(saveData.Twitter)
-	for _, x := range siteTwitter.GetResolvableDomains() {
-		resolveMap[x] = siteTwitter
-	}
 	sitePixiv = NewPixivSite(saveData.Pixiv)
 	for _, x := range sitePixiv.GetResolvableDomains() {
 		resolveMap[x] = sitePixiv
@@ -117,8 +111,6 @@ func loginToSites() {
 		resolveMap[x] = RetryWOQueryResolver(temp)
 	}
 
-	// Save Twitter token in case of an abnormal termination
-	siteTwitter.Destroy()
 	saveSaveData()
 }
 
@@ -211,8 +203,6 @@ MainLoop:
 						producer = NewOfflineImageProducer(data.Args[0].(string))
 					case SITE_REDDIT:
 						producer = NewRedditProducer(siteReddit, data.Kind, data.Args, data.Persistent)
-					case SITE_TWITTER:
-						producer = NewTwitterProducer(siteTwitter, data.Kind, data.Args, data.Persistent)
 					case SITE_PIXIV:
 						producer = NewPixivProducer(sitePixiv, data.Kind, data.Args, data.Persistent)
 					case SITE_LEMMY:
@@ -239,7 +229,6 @@ MainLoop:
 	rl.UnloadFont(font)
 	rl.CloseWindow()
 	siteReddit.Destroy()
-	siteTwitter.Destroy()
 	sitePixiv.Destroy()
 	err = saveSaveData()
 	if err != nil {
