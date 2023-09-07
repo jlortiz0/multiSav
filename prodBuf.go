@@ -507,6 +507,10 @@ func (buf *BufferedImageProducer) Get(sel int, img **rl.Image, ffmpeg *VideoRead
 	<-buf.selRecv
 	switch getExtType(ext[1:]) {
 	case EXT_VIDEO:
+		if current.GetType() == IETYPE_GALLERY {
+			*img = rl.GenImageColor(600, 600, rl.Black)
+			break
+		}
 		var err error
 		*ffmpeg, err = NewStreamy(URL)
 		if err != nil {

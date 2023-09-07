@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"image/color"
+	"math"
 	"sync"
 
 	"github.com/rainycape/unidecode"
@@ -68,9 +69,12 @@ func NewImageMenu(prod func() <-chan ImageProducer) *ImageMenu {
 
 func (menu *ImageMenu) loadImage() {
 	if menu.ffmpeg != nil {
-		menu.ffmpeg.Destroy()
+		go func() {
+			ffd := menu.ffmpegData
+			menu.ffmpeg.Destroy()
+			<-ffd
+		}()
 		menu.ffmpeg = nil
-		<-menu.ffmpegData
 	}
 	if menu.Selected < 0 {
 		menu.Selected = 0
@@ -478,24 +482,30 @@ func (menu *ImageMenu) Renderer() {
 		if y > int32(menu.target.Y)/4 && y-int32(menu.target.Y)/4 < int32(menu.target.Y)/2 {
 			x := rl.GetMouseX()
 			if x < int32(menu.target.X)/8 && menu.Selected > 0 {
-				a := float32(x) - menu.target.X/16
+				a := math.Hypot(float64(x), float64(y)-float64(menu.target.Y)/2) - float64(menu.target.X)/16
 				if a < 0 {
-					a = 0
-				} else {
-					a = a / (menu.target.X / 16) * 255
-				}
-				rl.DrawCircleV(rl.NewVector2(0, menu.target.Y/2), TEXT_SIZE*2, color.RGBA{250, 250, 250, 255 - uint8(a)})
-				rl.DrawCircleLines(0, int32(menu.target.Y/2), TEXT_SIZE*2, color.RGBA{A: 255 - uint8(a)})
-				rl.DrawLineEx(rl.Vector2{X: TEXT_SIZE, Y: menu.target.Y/2 - TEXT_SIZE},
-					rl.Vector2{X: menu.target.X / 128, Y: menu.target.Y / 2}, TEXT_SIZE/4, color.RGBA{128, 128, 128, 255 - uint8(a)})
-				rl.DrawLineEx(rl.Vector2{X: menu.target.X / 128, Y: menu.target.Y / 2},
-					rl.Vector2{X: TEXT_SIZE, Y: menu.target.Y/2 + TEXT_SIZE}, TEXT_SIZE/4, color.RGBA{128, 128, 128, 255 - uint8(a)})
-			} else if x-int32(menu.target.X) > -int32(menu.target.X)/8 && (menu.Producer.IsLazy() || menu.Selected+1 < menu.Producer.Len()) {
-				a := float32(x) - menu.target.X + menu.target.X/8
-				if a > menu.target.X/16 {
 					a = 255
 				} else {
-					a = a / (menu.target.X / 16) * 255
+					a = 255 - a/(float64(menu.target.X)/16)*255
+					if a < 0 {
+						a = 0
+					}
+				}
+				rl.DrawCircleV(rl.NewVector2(0, menu.target.Y/2), TEXT_SIZE*2, color.RGBA{250, 250, 250, uint8(a)})
+				rl.DrawCircleLines(0, int32(menu.target.Y/2), TEXT_SIZE*2, color.RGBA{A: uint8(a)})
+				rl.DrawLineEx(rl.Vector2{X: TEXT_SIZE, Y: menu.target.Y/2 - TEXT_SIZE},
+					rl.Vector2{X: menu.target.X / 128, Y: menu.target.Y / 2}, TEXT_SIZE/4, color.RGBA{128, 128, 128, uint8(a)})
+				rl.DrawLineEx(rl.Vector2{X: menu.target.X / 128, Y: menu.target.Y / 2},
+					rl.Vector2{X: TEXT_SIZE, Y: menu.target.Y/2 + TEXT_SIZE}, TEXT_SIZE/4, color.RGBA{128, 128, 128, uint8(a)})
+			} else if x-int32(menu.target.X) > -int32(menu.target.X)/8 && (menu.Producer.IsLazy() || menu.Selected+1 < menu.Producer.Len()) {
+				a := math.Hypot(float64(x)-float64(menu.target.X), float64(y)-float64(menu.target.Y)/2) - float64(menu.target.X)/16
+				if a < 0 {
+					a = 255
+				} else {
+					a = 255 - a/(float64(menu.target.X)/16)*255
+					if a < 0 {
+						a = 0
+					}
 				}
 				rl.DrawCircleV(rl.NewVector2(menu.target.X, menu.target.Y/2), TEXT_SIZE*2, color.RGBA{250, 250, 250, uint8(a)})
 				rl.DrawCircleLines(int32(menu.target.X), int32(menu.target.Y/2), TEXT_SIZE*2, color.RGBA{A: uint8(a)})
