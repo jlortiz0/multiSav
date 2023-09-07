@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 	"go.elara.ws/go-lemmy"
@@ -26,10 +27,12 @@ func NewLemmyClient(site string, user string, pass string) LemmySite {
 		panic(err)
 	}
 	if user != "" {
-		err = cl.ClientLogin(context.Background(), types.Login{UsernameOrEmail: user, Password: pass})
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		err = cl.ClientLogin(ctx, types.Login{UsernameOrEmail: user, Password: pass})
 		if err != nil {
 			panic(err)
 		}
+		cancel()
 	}
 	return LemmySite{cl, site}
 }
@@ -39,7 +42,47 @@ func (LemmySite) Destroy() {}
 func (l LemmySite) GetListingInfo() []ListingInfo {
 	return []ListingInfo{
 		{
-			name: "New: community",
+			name: "Community: New",
+			args: []ListingArgument{
+				{
+					name: "Community",
+				},
+			},
+		},
+		{
+			name: "Community: Hot",
+			args: []ListingArgument{
+				{
+					name: "Community",
+				},
+			},
+		},
+		{
+			name: "Community: Active",
+			args: []ListingArgument{
+				{
+					name: "Community",
+				},
+			},
+		},
+		{
+			name: "Community: Top Week",
+			args: []ListingArgument{
+				{
+					name: "Community",
+				},
+			},
+		},
+		{
+			name: "Community: Top Month",
+			args: []ListingArgument{
+				{
+					name: "Community",
+				},
+			},
+		},
+		{
+			name: "Community: Top All Time",
 			args: []ListingArgument{
 				{
 					name: "Community",
@@ -71,19 +114,20 @@ func (lem LemmySite) GetListing(kind int, args []interface{}, persist interface{
 	}
 	var posts types.GetPosts
 	var err error
-	switch kind {
-	case 0:
+	if kind < 6 {
 		var sub *types.GetCommunityResponse
 		sub, err = lem.Community(context.Background(), types.GetCommunity{Name: types.NewOptional[string](args[0].(string))})
 		if err == nil && sub.Error.IsValid() {
 			err = errors.New(sub.Error.String())
 		}
 		if err == nil {
-			posts = types.GetPosts{
-				Sort:        types.NewOptional[types.SortType](types.SortTypeNew),
-				CommunityID: types.NewOptional[int](sub.CommunityView.Counts.CommunityID),
-			}
+			posts.CommunityID = types.NewOptional[int](sub.CommunityView.Counts.CommunityID)
+			posts.Sort = types.NewOptional[types.SortType]([]types.SortType{
+				types.SortTypeNew, types.SortTypeHot, types.SortTypeActive, types.SortTypeTopWeek, types.SortTypeTopMonth, types.SortTypeTopAll,
+			}[kind])
 		}
+	} else {
+		err = errors.New("unknown kind")
 	}
 	if err != nil {
 		return ErrorListing{err}, nil
@@ -121,10 +165,13 @@ func (lem LemmySite) ExtendListing(cont ImageListing) ([]ImageEntry, error) {
 	ls := make([]ImageEntry, 0, len(resp.Posts))
 	for _, v := range resp.Posts {
 		if v.Post.ID < posts.persistent {
-			posts.page = -1
-			break
+			continue
 		}
 		ls = append(ls, LemmyImageEntry{v.Post, lem.base})
+	}
+	if len(ls) == 0 {
+		posts.page = -1
+		return nil, nil
 	}
 	return ls, nil
 }
