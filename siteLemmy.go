@@ -28,11 +28,11 @@ func NewLemmyClient(site string, user string, pass string) LemmySite {
 	}
 	if user != "" {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
 		err = cl.ClientLogin(ctx, types.Login{UsernameOrEmail: user, Password: pass})
 		if err != nil {
-			panic(err)
+			return LemmySite{}
 		}
-		cancel()
 	}
 	return LemmySite{cl, site}
 }

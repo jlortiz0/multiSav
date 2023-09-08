@@ -69,9 +69,10 @@ func NewImageMenu(prod func() <-chan ImageProducer) *ImageMenu {
 
 func (menu *ImageMenu) loadImage() {
 	if menu.ffmpeg != nil {
+		ffm := menu.ffmpeg
+		ffd := menu.ffmpegData
 		go func() {
-			ffd := menu.ffmpegData
-			menu.ffmpeg.Destroy()
+			ffm.Destroy()
 			<-ffd
 		}()
 		menu.ffmpeg = nil
