@@ -8,19 +8,19 @@ import (
 )
 
 type Multireddit struct {
-	Name            string
-	Display_name    string
-	Num_subscribers int
-	Copied_from     string
-	Subreddits      []struct {
+	Created_utc  Timestamp
+	reddit       *Reddit
+	Name         string
+	Display_name string
+	Copied_from  string
+	Visibility   string
+	Path         string
+	Owner        string
+	Subreddits   []struct {
 		Name string
 	}
-	Created_utc Timestamp
-	Visibility  string
-	Over_18     bool
-	Path        string
-	Owner       string
-	reddit      *Reddit
+	Num_subscribers int
+	Over_18         bool
 }
 
 func (red *Reddit) Multireddit(user string, name string) (*Multireddit, error) {

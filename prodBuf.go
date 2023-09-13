@@ -23,15 +23,15 @@ const BIP_BUFBEFORE = 5
 const BIP_BUFAFTER = 5
 
 type BufferedImageProducer struct {
-	items     []ImageEntry
 	listing   ImageListing
 	site      ImageSite
 	selSender chan int
 	selRecv   chan bool
-	lazy      bool
 	bufLock   *sync.Mutex
-	buffer    []BufferObject
 	extending *sync.Once
+	buffer    []BufferObject
+	items     []ImageEntry
+	lazy      bool
 }
 
 type BufferObject struct {

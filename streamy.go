@@ -19,10 +19,10 @@ type VideoReader interface {
 
 type StreamyWrapperClass struct {
 	*streamy.AvVideoReader
-	buf     []color.RGBA
 	slpTime *time.Ticker
-	stop    chan struct{}
 	lock    *sync.Mutex
+	stop    chan struct{}
+	buf     []color.RGBA
 }
 
 func NewStreamy(f string) (*StreamyWrapperClass, error) {
@@ -36,7 +36,7 @@ func NewStreamy(f string) (*StreamyWrapperClass, error) {
 	if fps < 4 || math.IsNaN(float64(fps)) {
 		fps = 4
 	}
-	return &StreamyWrapperClass{s, buf, time.NewTicker(time.Second / time.Duration(fps)), make(chan struct{}, 1), new(sync.Mutex)}, nil
+	return &StreamyWrapperClass{AvVideoReader: s, buf: buf, slpTime: time.NewTicker(time.Second / time.Duration(fps)), stop: make(chan struct{}, 1), lock: new(sync.Mutex)}, nil
 }
 
 func (s *StreamyWrapperClass) Read() ([]color.RGBA, *rl.Image, error) {

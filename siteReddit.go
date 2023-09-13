@@ -146,9 +146,9 @@ func (red RedditSite) GetListingInfo() []ListingInfo {
 
 type RedditImageListing struct {
 	*redditapi.SubmissionIterator
-	kind int
-	args []interface{}
 	seen string
+	args []interface{}
+	kind int
 }
 
 func (red *RedditImageListing) GetInfo() (int, []interface{}) {
@@ -248,7 +248,7 @@ func (red RedditSite) GetListing(kind int, args []interface{}, persistent interf
 	if persistent == nil {
 		persistent = ""
 	}
-	iter2 := &RedditImageListing{iter, kind, args, persistent.(string)}
+	iter2 := &RedditImageListing{SubmissionIterator: iter, kind: kind, args: args, seen: persistent.(string)}
 	ext, err := red.ExtendListing(iter2)
 	if err != nil {
 		return ErrorListing{err}, nil
@@ -500,7 +500,7 @@ func splitAny(s string, seps string) []string {
 	for _, x := range seps {
 		fast[x] = true
 	}
-	out := make([]string, 0, len(s)*len(seps)/20+1)
+	out := make([]string, 0, (len(s)*len(seps))/20+1)
 	ind := strings.IndexFunc(s, func(r rune) bool { return fast[r%256] })
 	for ind != -1 {
 		if ind != 0 {
@@ -674,9 +674,9 @@ func (red *RedditImageEntry) GetSaveName() string {
 }
 
 type RedditGalleryEntry struct {
+	name string
+	url  string
 	RedditImageEntry
-	name  string
-	url   string
 	index int
 }
 

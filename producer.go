@@ -57,9 +57,9 @@ const (
 
 type ListingArgument struct {
 	name string
-	kind ListingArgumentType
 	// If not nil, possible options to select from a drop-down
 	options []interface{}
+	kind    ListingArgumentType
 }
 
 type ListingInfo struct {
@@ -214,8 +214,8 @@ const (
 )
 
 type OfflineImageProducer struct {
-	items []string
 	fldr  string
+	items []string
 	empty uint8
 }
 
@@ -248,7 +248,7 @@ func NewOfflineImageProducer(fldr string) *OfflineImageProducer {
 			b |= 2
 		}
 	}
-	return &OfflineImageProducer{ls, fldr, b}
+	return &OfflineImageProducer{items: ls, fldr: fldr, empty: b}
 	// if len(ls) == 0 {
 	// 	menu.state = IMSTATE_ERROR
 	// 	if len(entries) != 0 {

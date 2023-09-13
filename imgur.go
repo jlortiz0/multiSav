@@ -153,8 +153,8 @@ type ImgurImageEntry struct {
 	Description string
 	Link        string
 	Mp4         string
-	index       int
 	parent      string
+	index       int
 }
 
 func (*ImgurImageEntry) GetType() ImageEntryType { return IETYPE_REGULAR }

@@ -147,12 +147,12 @@ func EditListings() bool {
 		var args []ListingArgument
 		if data.Site == SITE_LOCAL {
 			args = []ListingArgument{
-				{"Name", LARGTYPE_STRING, nil},
-				{"Reselect", LARGTYPE_BOOL, nil},
+				{name: "Name"},
+				{name: "Reselect", kind: LARGTYPE_BOOL},
 			}
 		} else if data.Site == SITE_TWITTER_OBSELETE {
 			args = []ListingArgument{
-				{"", LARGTYPE_LABEL, []interface{}{"Twitter is no longer supported"}},
+				{kind: LARGTYPE_LABEL, options: []interface{}{"Twitter is no longer supported"}},
 			}
 		} else {
 			var infoLs []ListingInfo
@@ -172,9 +172,9 @@ func EditListings() bool {
 			}
 			info := infoLs[data.Kind]
 			args = make([]ListingArgument, 3, len(info.args)+3)
-			args[0] = ListingArgument{"Site", LARGTYPE_LABEL, []interface{}{sName}}
-			args[1] = ListingArgument{"Kind", LARGTYPE_LABEL, []interface{}{info.name}}
-			args[2] = ListingArgument{"Name", LARGTYPE_STRING, nil}
+			args[0] = ListingArgument{"Site", []interface{}{sName}, LARGTYPE_LABEL}
+			args[1] = ListingArgument{"Kind", []interface{}{info.name}, LARGTYPE_LABEL}
+			args[2] = ListingArgument{name: "Name"}
 			args = append(args, info.args...)
 		}
 		var cArgs []interface{}

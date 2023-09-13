@@ -94,10 +94,10 @@ func (l LemmySite) GetListingInfo() []ListingInfo {
 
 type LemmyPostListing struct {
 	types.GetPosts
-	kind       int
 	args       []interface{}
-	persistent int
 	page       int64
+	kind       int
+	persistent int
 }
 
 func (p *LemmyPostListing) GetInfo() (int, []interface{}) {
@@ -167,7 +167,7 @@ func (lem LemmySite) ExtendListing(cont ImageListing) ([]ImageEntry, error) {
 		if v.Post.ID < posts.persistent {
 			continue
 		}
-		ls = append(ls, LemmyImageEntry{v.Post, lem.base})
+		ls = append(ls, LemmyImageEntry{lem.base, v.Post})
 	}
 	if len(ls) == 0 {
 		posts.page = -1
@@ -205,12 +205,12 @@ func (lem LemmySite) ResolveURL(u string) (string, ImageEntry) {
 	if err != nil || ps.Error.IsValid() {
 		return "", nil
 	}
-	return "", LemmyImageEntry{ps.PostView.Post, lem.base}
+	return "", LemmyImageEntry{lem.base, ps.PostView.Post}
 }
 
 type LemmyImageEntry struct {
-	types.Post
 	site string
+	types.Post
 }
 
 func (l LemmyImageEntry) GetName() string { return l.Name }

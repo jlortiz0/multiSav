@@ -58,9 +58,9 @@ func (p PixivSite) GetResolvableDomains() []string {
 
 type PixivImageListing struct {
 	*pixivapi.IllustrationListing
+	args    []interface{}
 	persist int
 	kind    int
-	args    []interface{}
 }
 
 func (p *PixivImageListing) GetInfo() (int, []interface{}) {
@@ -128,7 +128,7 @@ func (p PixivSite) GetListing(kind int, args []interface{}, persist interface{})
 	if err != nil {
 		return ErrorListing{err}, nil
 	}
-	out := &PixivImageListing{ls, 0, kind, args}
+	out := &PixivImageListing{IllustrationListing: ls, kind: kind, args: args}
 	if persist != nil {
 		out.persist = int(persist.(float64))
 	}
@@ -393,13 +393,13 @@ func (p PixivProducer) GetTitle() string {
 
 type UgoiraReader struct {
 	reader *zip.Reader
-	i      int
-	w, h   int32
+	target time.Time
 	frames []struct {
 		File  string
 		Delay int
 	}
-	target time.Time
+	i    int
+	w, h int32
 }
 
 func (*UgoiraReader) Destroy() error { return nil }

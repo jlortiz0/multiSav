@@ -107,8 +107,8 @@ func (p *Client) Login(token string) error {
 		}
 		Access_token      string
 		Refresh_token     string
-		Expires_in        int
 		Error_description string
+		Expires_in        int
 	}
 	mData, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -185,10 +185,10 @@ func (p *Client) GetIllust(id int) (*Illustration, error) {
 		return nil, err
 	}
 	var output struct {
-		Illust Illustration
-		Error  struct {
+		Error struct {
 			Message string
 		}
+		Illust Illustration
 	}
 	err = json.Unmarshal(data, &output)
 	if err != nil {
@@ -212,11 +212,11 @@ func (p *Client) GetUser(id int) (*User, error) {
 		return nil, err
 	}
 	var output struct {
-		User User
-		// Profile, Profile_publicity, Workspace
 		Error struct {
 			Message string
 		}
+		User User
+		// Profile, Profile_publicity, Workspace
 	}
 	err = json.Unmarshal(data, &output)
 	if err != nil {

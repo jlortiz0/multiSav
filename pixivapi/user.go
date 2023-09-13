@@ -34,13 +34,13 @@ func (m multisize) Best() string {
 }
 
 type User struct {
-	ID                 int
+	client             *Client
+	Profile_image_urls multisize
+	Comment            string
 	Name               string
 	Account            string
-	Profile_image_urls multisize
+	ID                 int
 	Is_followed        bool
-	Comment            string
-	client             *Client
 }
 
 func (p *Client) UserFromID(ID int) *User {
@@ -112,13 +112,13 @@ func (u *User) BookmarkTags(visi Visibility, offset int) (*BookmarkTagsResponse,
 		return nil, err
 	}
 	var output struct {
-		Bookmark_tags []struct {
-			Name  string
-			Count int
-		}
 		Next_url string
 		Error    struct {
 			Message string
+		}
+		Bookmark_tags []struct {
+			Name  string
+			Count int
 		}
 	}
 	err = json.Unmarshal(data, &output)

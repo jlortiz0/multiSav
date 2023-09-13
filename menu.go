@@ -27,11 +27,11 @@ const (
 )
 
 type ChoiceMenu struct {
-	Selected int
 	itemList []string
 	scroll   rl.Vector2
 	target   rl.Rectangle
 	height   float32
+	Selected int
 	status   LoopStatus
 }
 

@@ -12,24 +12,24 @@ import (
 const LISTING_PAGE_LIMIT = 100
 
 type SubmissionIterator struct {
-	URL    string
 	Reddit *Reddit
-	count  int
-	limit  int
+	URL    string
 	lastId string
-	index  int
 	data   []struct {
-		Kind string
 		Data *Submission
+		Kind string
 	}
+	count int
+	limit int
+	index int
 }
 
 type submissionListingPayload struct {
 	Data struct {
 		After    string
 		Children []struct {
-			Kind string
 			Data *Submission
+			Kind string
 		}
 	}
 }
@@ -145,24 +145,24 @@ func (iter *SubmissionIterator) Buffered() int {
 }
 
 type CommentIterator struct {
-	URL    string
 	Reddit *Reddit
-	count  int
-	limit  int
+	URL    string
 	lastId string
-	index  int
 	data   []struct {
-		Kind string
 		Data *Comment
+		Kind string
 	}
+	count int
+	limit int
+	index int
 }
 
 type commentListingPayload struct {
 	Data struct {
 		After    string
 		Children []struct {
-			Kind string
 			Data *Comment
+			Kind string
 		}
 	}
 }

@@ -20,47 +20,47 @@ const (
 )
 
 type Illustration struct {
-	ID         int
-	Title      string
-	Type       IllustrationType
-	Image_urls multisize
-	Caption    string
-	// What does this mean? Is it an R18 bool?
-	Restrict int
-	User     *User
-	Tags     []struct {
-		Name, Translated_name string
-	}
 	Create_date time.Time
-	Page_count  int
-	Width       int
-	Height      int
-	// What do these mean?
-	Sanity_level int
-	X_restrict   int
-	Series       struct {
-		ID    int
+	client      *Client
+	User        *User
+	Image_urls  multisize
+	Series      struct {
 		Title string
+		ID    int
 	}
+	Title            string
+	Type             IllustrationType
+	Caption          string
 	Meta_single_page struct {
 		Original_image_url string
+	}
+	Tags []struct {
+		Name, Translated_name string
 	}
 	Meta_pages []struct {
 		Image_urls multisize
 	}
+	ID int
+	// What does this mean? Is it an R18 bool?
+	Restrict   int
+	Page_count int
+	Width      int
+	Height     int
+	// What do these mean?
+	Sanity_level    int
+	X_restrict      int
 	Total_view      int
 	Total_bookmarks int
+	Total_comments  int
 	Is_bookmarked   bool
 	Is_muted        bool
-	Total_comments  int
-	client          *Client
 }
 
 type Comment struct {
-	ID      int
-	Comment string
 	Date    time.Time
 	User    *User
+	Comment string
+	ID      int
 }
 
 type UgoiraMetadata struct {
@@ -87,9 +87,9 @@ func (i *Illustration) Fetch() error {
 }
 
 type Comments struct {
+	Comments       []*Comment
 	Total_comments int
 	Offset         int
-	Comments       []*Comment
 }
 
 func (i *Illustration) GetComments(offset int) (*Comments, error) {
@@ -110,11 +110,11 @@ func (i *Illustration) GetComments(offset int) (*Comments, error) {
 		return nil, err
 	}
 	var output struct {
-		Comments
 		Next_url string
 		Error    struct {
 			Message string
 		}
+		Comments
 	}
 	err = json.Unmarshal(data, &output)
 	if err != nil {
@@ -168,10 +168,10 @@ func (i *Illustration) GetUgoiraMetadata() (*UgoiraMetadata, error) {
 		return nil, err
 	}
 	var output struct {
-		Ugoira_metadata UgoiraMetadata
-		Error           struct {
+		Error struct {
 			Message string
 		}
+		Ugoira_metadata UgoiraMetadata
 	}
 	err = json.Unmarshal(data, &output)
 	if err != nil {

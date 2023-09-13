@@ -30,10 +30,10 @@ const (
 
 type SavedListing struct {
 	Name       string
+	Persistent interface{}   `json:",omitempty"`
+	Args       []interface{} `json:",omitempty"`
 	Site       int
 	Kind       int
-	Args       []interface{} `json:",omitempty"`
-	Persistent interface{}   `json:",omitempty"`
 }
 
 var saveData struct {
@@ -45,12 +45,12 @@ var saveData struct {
 		Pass string
 	}
 	Downloads string
+	Listings  []SavedListing
 	Settings  struct {
 		SaveOnX       bool
 		HideOnZ       bool
 		PixivBookPriv bool
 	}
-	Listings []SavedListing
 }
 
 func loadSaveData() error {

@@ -9,17 +9,17 @@ import (
 )
 
 type Subreddit struct {
-	ID                                                    string
-	Active_user_count                                     int
 	Created_utc                                           Timestamp
+	reddit                                                *Reddit
+	ID                                                    string
 	Description                                           string
 	Display_name                                          string
 	Name                                                  string
-	Over18                                                bool
 	Public_description                                    string
+	Active_user_count                                     int
 	Subscribers                                           int
 	User_is_banned, User_is_moderator, User_is_subscriber bool
-	reddit                                                *Reddit
+	Over18                                                bool
 }
 
 func (red *Reddit) Subreddit(id string) (*Subreddit, error) {

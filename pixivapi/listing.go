@@ -30,11 +30,11 @@ func (p *Client) newIllustrationListing(URL string) (*IllustrationListing, error
 		return nil, err
 	}
 	var output struct {
-		Illusts  []*Illustration
 		Next_url string
 		Error    struct {
 			Message string
 		}
+		Illusts []*Illustration
 	}
 	err = json.Unmarshal(data, &output)
 	if err != nil {
@@ -112,12 +112,12 @@ func (p *Client) newUserListing(URL string) (*UserListing, error) {
 		return nil, err
 	}
 	var output struct {
-		User_previews []struct {
-			User *User
-		}
 		Next_url string
 		Error    struct {
 			Message string
+		}
+		User_previews []struct {
+			User *User
 		}
 	}
 	err = json.Unmarshal(data, &output)

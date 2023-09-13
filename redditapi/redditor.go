@@ -8,14 +8,14 @@ import (
 )
 
 type Redditor struct {
-	ID                                          string
-	Is_employee, Is_mod, Is_suspended, Verified bool
 	Created_utc                                 Timestamp
+	Subreddit                                   *Subreddit
+	reddit                                      *Reddit
+	ID                                          string
 	Name                                        string
 	Icon_img                                    string
-	Subreddit                                   *Subreddit
 	Total_karma                                 int
-	reddit                                      *Reddit
+	Is_employee, Is_mod, Is_suspended, Verified bool
 	self                                        bool
 }
 

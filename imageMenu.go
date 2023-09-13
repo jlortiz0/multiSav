@@ -13,25 +13,25 @@ import (
 )
 
 type ImageMenu struct {
-	Selected     int
-	Producer     ImageProducer
-	target       rl.Vector2
-	img          *rl.Image
-	imgLock      *sync.Mutex
-	texture      rl.Texture2D
-	prevMoveDir  bool
-	state        imageMenuState
-	loadingFrame int
-	cam          rl.Camera2D
-	tol          rl.Vector2
-	tempSel      int
 	ffmpeg       VideoReader
-	fName        string
+	Producer     ImageProducer
 	ffmpegData   chan []color.RGBA
 	prodLoader   <-chan ImageProducer
+	img          *rl.Image
+	imgLock      *sync.Mutex
+	fName        string
+	Selected     int
+	tempSel      int
+	loadingFrame int
+	target       rl.Vector2
+	texture      rl.Texture2D
+	cam          rl.Camera2D
+	tol          rl.Vector2
+	state        imageMenuState
+	prevMoveDir  bool
 }
 
-type imageMenuState int
+type imageMenuState uint8
 
 const (
 	IMSTATE_NORMAL imageMenuState = iota

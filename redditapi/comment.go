@@ -9,20 +9,20 @@ import (
 )
 
 type Comment struct {
+	Edited          TSBool
+	Created_utc     Timestamp
+	reddit          *Reddit
 	Subreddit       string
 	ID              string
 	Name            string
-	Saved           bool
-	Created_utc     Timestamp
 	Author_fullname string
-	Score           int
 	Body            string
 	Parent_id       string
 	Link_id         string
+	Score           int
+	Saved           bool
 	Is_submitter    bool
 	Removed         bool
-	Edited          TSBool
-	reddit          *Reddit
 }
 
 func (c *Comment) Reply(text string) error {

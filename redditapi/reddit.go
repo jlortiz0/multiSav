@@ -75,8 +75,8 @@ func (r *Reddit) Login(refresh string) error {
 	}
 	var tokenData struct {
 		Access_token string
-		Expires_in   int
 		Token_type   string
+		Expires_in   int
 	}
 	err = json.Unmarshal(data, &tokenData)
 	if err != nil {

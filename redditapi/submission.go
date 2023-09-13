@@ -10,45 +10,33 @@ import (
 )
 
 type Submission struct {
-	ID              string
-	Author          string
-	Archived        bool
-	Author_fullname string
-	Created         Timestamp
-	Created_utc     Timestamp
-	Clicked         bool
-	Domain          string
-	Hidden          bool
-	Is_self         bool
-	Is_video        bool
-	Is_gallery      bool
-	Locked          bool
-	Num_comments    uint32
-	Over_18         bool
-	Permalink       string
-	Saved           bool
-	Score           int
-	Selftext        string
-	Spoiler         bool
-	Stickied        bool
-	Subreddit       string
-	Title           string
-	URL             string
-	Upvote_ratio    float32
-	Name            string
-	Gallery_data    struct {
-		Items []struct {
-			Media_id string
-			// ID int
-		}
-	}
+	Created        Timestamp
+	Created_utc    Timestamp
 	Media_metadata map[string]struct {
 		M string
 		S struct {
-			X, Y int
 			U    string
 			Mp4  string
 			Gif  string
+			X, Y int
+		}
+	}
+	reddit             *Reddit
+	ID                 string
+	Author             string
+	Author_fullname    string
+	Domain             string
+	Permalink          string
+	Selftext           string
+	Subreddit          string
+	Title              string
+	URL                string
+	Name               string
+	Unrepliable_reason string
+	Gallery_data       struct {
+		Items []struct {
+			Media_id string
+			// ID int
 		}
 	}
 	Preview struct {
@@ -61,9 +49,21 @@ type Submission struct {
 		}
 	}
 	Crosspost_parent_list []*Submission
-	Unrepliable_reason    string
+	Score                 int
+	Upvote_ratio          float32
+	Num_comments          uint32
+	Archived              bool
+	Clicked               bool
+	Hidden                bool
+	Is_self               bool
+	Is_video              bool
+	Is_gallery            bool
+	Locked                bool
+	Over_18               bool
+	Saved                 bool
+	Spoiler               bool
+	Stickied              bool
 	Author_is_blocked     bool
-	reddit                *Reddit
 }
 
 func (red *Reddit) Submission(id string) (*Submission, error) {
