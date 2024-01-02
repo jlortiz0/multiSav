@@ -13,7 +13,8 @@ require (
 	github.com/rainycape/unidecode v0.0.0-20150907023854-cb7f23ec59be
 	github.com/sqweek/dialog v0.0.0-20220809060634-e981b270ebbf
 	gitlab.com/tslocum/preallocate v0.1.3
-	go.elara.ws/go-lemmy v0.17.3
+	go.elara.ws/go-lemmy v0.19.0
+	golang.org/x/net v0.13.0
 )
 
 require (

@@ -9,8 +9,7 @@ import (
 	"time"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
-	"go.elara.ws/go-lemmy"
-	"go.elara.ws/go-lemmy/types"
+	lemmy "go.elara.ws/go-lemmy"
 )
 
 type LemmySite struct {
@@ -29,7 +28,7 @@ func NewLemmyClient(site string, user string, pass string) LemmySite {
 	if user != "" {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		defer cancel()
-		err = cl.ClientLogin(ctx, types.Login{UsernameOrEmail: user, Password: pass})
+		err = cl.ClientLogin(ctx, lemmy.Login{UsernameOrEmail: user, Password: pass})
 		if err != nil {
 			return LemmySite{}
 		}
@@ -93,11 +92,11 @@ func (l LemmySite) GetListingInfo() []ListingInfo {
 }
 
 type LemmyPostListing struct {
-	types.GetPosts
+	lemmy.GetPosts
 	args       []interface{}
 	page       int64
 	kind       int
-	persistent int
+	persistent int64
 }
 
 func (p *LemmyPostListing) GetInfo() (int, []interface{}) {
@@ -112,18 +111,18 @@ func (lem LemmySite) GetListing(kind int, args []interface{}, persist interface{
 	if lem.Client == nil {
 		return ErrorListing{errors.New("not signed in to Lemmy")}, nil
 	}
-	var posts types.GetPosts
+	var posts lemmy.GetPosts
 	var err error
 	if kind < 6 {
-		var sub *types.GetCommunityResponse
-		sub, err = lem.Community(context.Background(), types.GetCommunity{Name: types.NewOptional[string](args[0].(string))})
+		var sub *lemmy.GetCommunityResponse
+		sub, err = lem.Community(context.Background(), lemmy.GetCommunity{Name: lemmy.NewOptional[string](args[0].(string))})
 		if err == nil && sub.Error.IsValid() {
 			err = errors.New(sub.Error.String())
 		}
 		if err == nil {
-			posts.CommunityID = types.NewOptional[int](sub.CommunityView.Counts.CommunityID)
-			posts.Sort = types.NewOptional[types.SortType]([]types.SortType{
-				types.SortTypeNew, types.SortTypeHot, types.SortTypeActive, types.SortTypeTopWeek, types.SortTypeTopMonth, types.SortTypeTopAll,
+			posts.CommunityID = lemmy.NewOptional[int64](sub.CommunityView.Counts.CommunityID)
+			posts.Sort = lemmy.NewOptional[lemmy.SortType]([]lemmy.SortType{
+				lemmy.SortTypeNew, lemmy.SortTypeHot, lemmy.SortTypeActive, lemmy.SortTypeTopWeek, lemmy.SortTypeTopMonth, lemmy.SortTypeTopAll,
 			}[kind])
 		}
 	} else {
@@ -132,11 +131,11 @@ func (lem LemmySite) GetListing(kind int, args []interface{}, persist interface{
 	if err != nil {
 		return ErrorListing{err}, nil
 	}
-	posts.Limit = types.NewOptional[int64](20)
+	posts.Limit = lemmy.NewOptional[int64](20)
 	ls := &LemmyPostListing{GetPosts: posts, kind: kind, args: args}
 	if persist != nil {
 		temp := persist.(float64)
-		ls.persistent = int(temp)
+		ls.persistent = int64(temp)
 	}
 	out, err := lem.ExtendListing(ls)
 	if err != nil {
@@ -154,7 +153,7 @@ func (lem LemmySite) ExtendListing(cont ImageListing) ([]ImageEntry, error) {
 		return nil, nil
 	}
 	posts.page += 1
-	posts.Page = types.NewOptional[int64](posts.page)
+	posts.Page = lemmy.NewOptional[int64](posts.page)
 	resp, err := lem.Posts(context.Background(), posts.GetPosts)
 	if err != nil {
 		return nil, err
@@ -195,12 +194,12 @@ func (lem LemmySite) ResolveURL(u string) (string, ImageEntry) {
 	if u[ind2+1:ind] != "post" {
 		return "", nil
 	}
-	id, err := strconv.Atoi(u[ind+1:])
+	id, err := strconv.ParseInt(u[ind+1:], 10, 64)
 	if err != nil {
 		return "", nil
 	}
-	ps, err := lem.Post(context.Background(), types.GetPost{
-		ID: types.NewOptional[int](id),
+	ps, err := lem.Post(context.Background(), lemmy.GetPost{
+		ID: lemmy.NewOptional[int64](id),
 	})
 	if err != nil || ps.Error.IsValid() {
 		return "", nil
@@ -210,7 +209,7 @@ func (lem LemmySite) ResolveURL(u string) (string, ImageEntry) {
 
 type LemmyImageEntry struct {
 	site string
-	types.Post
+	lemmy.Post
 }
 
 func (l LemmyImageEntry) GetName() string { return l.Name }
@@ -229,14 +228,14 @@ func (l LemmyImageEntry) GetType() ImageEntryType {
 }
 
 func (l LemmyImageEntry) GetPostURL() string {
-	return "https://" + l.site + "/post/" + strconv.Itoa(l.ID)
+	return "https://" + l.site + "/post/" + strconv.FormatInt(l.ID, 10)
 }
 
 func (l LemmyImageEntry) GetSaveName() string {
 	if !l.URL.IsValid() {
 		return ""
 	}
-	u := l.URL.MustValue()
+	u := l.URL.ValueOrZero()
 	ind := strings.LastIndexByte(u, '/')
 	if ind == -1 {
 		return ""
@@ -259,7 +258,7 @@ func (l LemmyImageEntry) GetInfo() string { return "" }
 func (l LemmyImageEntry) Combine(ie ImageEntry) {
 	if ie.GetText() != "" {
 		if l.Body.IsValid() {
-			l.Body.Set(l.Body.MustValue() + "\n" + ie.GetText())
+			l.Body.Set(l.Body.ValueOrZero() + "\n" + ie.GetText())
 		} else {
 			l.Body.Set(ie.GetText())
 		}

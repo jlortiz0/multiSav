@@ -339,7 +339,7 @@ func (menu *ImageMenu) Prerender() LoopStatus {
 			menu.cam.Target.Y = float32(menu.texture.Height) - menu.tol.Y
 		}
 	}
-	if rl.IsKeyDown(rl.KeyDown) && menu.cam.Zoom > 0.1 {
+	if rl.IsKeyDown(rl.KeyDown) || rl.GetMouseWheelMove() < 0 && menu.cam.Zoom > 0.1 {
 		menu.cam.Zoom /= ZOOM_STEP
 		menu.tol = rl.Vector2{Y: menu.cam.Offset.Y / menu.cam.Zoom, X: menu.cam.Offset.X / menu.cam.Zoom}
 		if menu.tol.Y > float32(menu.texture.Height)/2 {
@@ -357,7 +357,7 @@ func (menu *ImageMenu) Prerender() LoopStatus {
 			menu.cam.Target.X = float32(menu.texture.Width) - menu.tol.X
 		}
 	}
-	if rl.IsKeyDown(rl.KeyUp) && menu.cam.Zoom < 6 {
+	if rl.IsKeyDown(rl.KeyUp) || rl.GetMouseWheelMove() > 0 && menu.cam.Zoom < 6 {
 		menu.cam.Zoom *= ZOOM_STEP
 		menu.tol = rl.Vector2{Y: menu.cam.Offset.Y / menu.cam.Zoom, X: menu.cam.Offset.X / menu.cam.Zoom}
 	}
