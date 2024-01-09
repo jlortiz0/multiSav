@@ -390,7 +390,7 @@ func (red RedditSite) ResolveURL(link string) (string, ImageEntry) {
 			}
 			s = s[ind+1:]
 			sub, err := red.Submission(s)
-			if err != nil {
+			if err != nil || sub == nil {
 				return "", nil
 			}
 			// If there's still no gallery data, bail to prevent a loop
